@@ -62,21 +62,7 @@ def log_activity(action, details=None, user=None, ip_address=None):
         db.session.add(activity)
         db.session.commit()
         
-        # Emit socket.io event for real-time updates
-        try:
-            from app import socketio
-            socketio.emit('new_activity', {
-                'id': activity.id,
-                'timestamp': activity.timestamp.isoformat(),
-                'user': {
-                    'id': user.id,
-                    'username': user.username
-                } if user else None,
-                'action': action,
-                'details': details
-            }, namespace='/admin')
-        except ImportError:
-            current_app.logger.warning("SocketIO not available for activity logging")
+        current_app.logger.debug("Activity logged: %s by user %s", action, user.username if user else "system")
         
         return True
     except Exception as e:
