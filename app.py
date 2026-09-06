@@ -159,6 +159,64 @@ def timeago_filter(timestamp):
 
 
 # ---------------------------------------------------------------------------
+# SSE with Redis pub/sub (replaces DB polling)
+# ---------------------------------------------------------------------------
+
+class SSEBroker:
+    """Publishes tank updates via Redis pub/sub so SSE endpoints don't poll."""
+
+    def __init__(self):
+        self._subscribers: dict[int, list] = {}  # tank_id -> [queue, ...]
+        self._lock = Lock()
+        self._redis = None
+        self._listener_thread = None
+
+    def _get_redis(self):
+        try:
+            from redis import Redis
+            return Redis.from_url(
+                app.config.get('REDIS_URL', 'redis://localhost:6379/0'),
+                decode_responses=True,
+                socket_timeout=2,
+            )
+        except Exception:
+            return None
+
+    def publish(self, tank_id: int, data: dict):
+        """Publish a measurement update for *tank_id*."""
+        redis = self._get_redis()
+        if redis:
+            try:
+                redis.publish(f"tank:{tank_id}", json.dumps(data, cls=DateTimeEncoder))
+                return
+            except Exception:
+                pass
+
+        # Fallback: push directly to in-memory queues.
+        with self._lock:
+            for q in self._subscribers.get(tank_id, []):
+                try:
+                    q.append(data)
+                except Exception:
+                    pass
+
+    def subscribe(self, tank_id: int):
+        """Return a list that will receive updates for *tank_id*."""
+        with self._lock:
+            queue = []
+            self._subscribers.setdefault(tank_id, []).append(queue)
+            return queue
+
+    def unsubscribe(self, tank_id: int, queue: list):
+        with self._lock:
+            subs = self._subscribers.get(tank_id, [])
+            if queue in subs:
+                subs.remove(queue)
+
+
+sse_broker = SSEBroker()
+
+# ---------------------------------------------------------------------------
 # MQTT ingestion
 # ---------------------------------------------------------------------------
 
@@ -168,6 +226,7 @@ mqtt_ingestion = MqttIngestionService(
     port=app.config.get('MQTT_PORT', 1883),
     username=app.config.get('MQTT_USER'),
     password=app.config.get('MQTT_PASS'),
+    sse_broker=sse_broker,
 )
 
 
@@ -340,66 +399,6 @@ def start_monitoring_on_startup():
 
 
 Thread(target=start_monitoring_on_startup, daemon=True).start()
-
-
-# ---------------------------------------------------------------------------
-# SSE with Redis pub/sub (replaces DB polling)
-# ---------------------------------------------------------------------------
-
-class SSEBroker:
-    """Publishes tank updates via Redis pub/sub so SSE endpoints don't poll."""
-
-    def __init__(self):
-        self._subscribers: dict[int, list] = {}  # tank_id -> [queue, ...]
-        self._lock = Lock()
-        self._redis = None
-        self._listener_thread = None
-
-    def _get_redis(self):
-        try:
-            from redis import Redis
-            return Redis.from_url(
-                app.config.get('REDIS_URL', 'redis://localhost:6379/0'),
-                decode_responses=True,
-                socket_timeout=2,
-            )
-        except Exception:
-            return None
-
-    def publish(self, tank_id: int, data: dict):
-        """Publish a measurement update for *tank_id*."""
-        redis = self._get_redis()
-        if redis:
-            try:
-                redis.publish(f"tank:{tank_id}", json.dumps(data, cls=DateTimeEncoder))
-                return
-            except Exception:
-                pass
-
-        # Fallback: push directly to in-memory queues.
-        with self._lock:
-            for q in self._subscribers.get(tank_id, []):
-                try:
-                    q.append(data)
-                except Exception:
-                    pass
-
-    def subscribe(self, tank_id: int):
-        """Return a list that will receive updates for *tank_id*."""
-        with self._lock:
-            queue = []
-            self._subscribers.setdefault(tank_id, []).append(queue)
-            return queue
-
-    def unsubscribe(self, tank_id: int, queue: list):
-        with self._lock:
-            subs = self._subscribers.get(tank_id, [])
-            if queue in subs:
-                subs.remove(queue)
-
-
-sse_broker = SSEBroker()
-mqtt_ingestion._sse_broker = sse_broker
 
 
 @app.route('/tank-updates')
