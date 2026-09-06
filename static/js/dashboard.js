@@ -443,48 +443,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 // Update status indicators
-function updateStatusIndicators(status) {
-    const statusContainer = document.getElementById('status-indicators');
-    statusContainer.innerHTML = '';
-    
-    // Convert status to binary and interpret
-    const statusBinary = status.toString(2).padStart(8, '0');
-    const statusFlags = [
-        { bit: 0, name: 'Communication Error', color: 'danger' },
-        { bit: 1, name: 'Memory Error', color: 'danger' },
-        { bit: 2, name: 'Sensor Error', color: 'danger' },
-        { bit: 3, name: 'Math Error', color: 'danger' },
-        { bit: 4, name: 'New Min/Max', color: 'info' },
-        { bit: 5, name: 'Busy', color: 'warning' },
-        { bit: 6, name: 'Negative', color: 'warning' },
-        { bit: 7, name: 'Overflow', color: 'danger' }
-    ];
-    
-    // Check if any status flags are set
-    let anyFlagSet = false;
-    
-    // Add badges for active status flags
-    for (let i = 0; i < statusFlags.length; i++) {
-        const flag = statusFlags[i];
-        const bitPosition = 7 - flag.bit; // Reverse bit order for display
-        
-        if (statusBinary[bitPosition] === '1') {
-            const badge = document.createElement('span');
-            badge.className = `badge bg-${flag.color} me-1 mb-1`;
-            badge.textContent = flag.name;
-            statusContainer.appendChild(badge);
-            anyFlagSet = true;
-        }
-    }
-    
-    // If no flags are set, show "Normal" status
-    if (!anyFlagSet) {
-        const badge = document.createElement('span');
-        badge.className = 'badge bg-success me-1 mb-1';
-        badge.textContent = 'Normal';
-        statusContainer.appendChild(badge);
-    }
-}
+
 
 // Connect to device
 function connectToDevice() {
