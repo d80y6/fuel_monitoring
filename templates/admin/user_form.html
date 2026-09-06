@@ -3,263 +3,259 @@
 {% block title %}{{ 'Edit' if user else 'Add' }} User{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <h1>{{ 'Edit' if user else 'Add New' }} User</h1>
-            <p class="text-muted">{{ 'Update existing' if user else 'Create a new' }} user account</p>
+<div class="max-w-6xl mx-auto space-y-6">
+
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">{{ 'Edit' if user else 'Add New' }} User</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ 'Update existing' if user else 'Create a new' }} user account</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-900">User Information</h2>
+        </div>
+        <div class="px-6 py-6">
+            <form method="POST" action="{{ url_for('admin.edit_user', user_id=user.id) if user else url_for('admin.new_user') }}">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Account Details</h3>
+
+                        <div>
+                            <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username *</label>
+                            <input type="text" id="username" name="username"
+                                   value="{{ user.username if user else '' }}" required
+                                   {% if user %}readonly{% endif %}
+                                   class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 {% if user %}bg-gray-50 text-gray-500 cursor-not-allowed{% endif %}">
+                            {% if user %}
+                            <p class="mt-1 text-xs text-gray-500">Username cannot be changed after creation.</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
+                            <input type="email" id="email" name="email"
+                                   value="{{ user.email if user else '' }}" required
+                                   class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                        </div>
+
+                        {% if not user %}
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                            <input type="password" id="password" name="password" required
+                                   class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                        </div>
+
+                        <div>
+                            <label for="confirm_password" class="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
+                            <input type="password" id="confirm_password" name="confirm_password" required
+                                   class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                        </div>
+                        {% endif %}
+
+                        <div>
+                            <label for="role" class="block text-sm font-medium text-gray-700 mb-1">Role *</label>
+                            <select id="role" name="role" required
+                                    class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                                <option value="user" {% if user and user.role == 'user' %}selected{% endif %}>User</option>
+                                <option value="company_admin" {% if user and user.role == 'company_admin' %}selected{% endif %}>Company Manager</option>
+                                <option value="admin" {% if user and user.role == 'admin' %}selected{% endif %}>Administrator</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="is_active" name="is_active"
+                                   {% if not user or user.is_active %}checked{% endif %}
+                                   class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                            <label for="is_active" class="text-sm font-medium text-gray-700">Active</label>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Personal Information</h3>
+
+                        <div>
+                            <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                            <input type="text" id="first_name" name="first_name"
+                                   value="{{ user.first_name if user else '' }}" required
+                                   class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                        </div>
+
+                        <div>
+                            <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                            <input type="text" id="last_name" name="last_name"
+                                   value="{{ user.last_name if user else '' }}" required
+                                   class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                        </div>
+
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                            <input type="tel" id="phone" name="phone"
+                                   value="{{ user.phone if user else '' }}"
+                                   class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                        </div>
+
+                        <div>
+                            <label for="job_title" class="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
+                            <input type="text" id="job_title" name="job_title"
+                                   value="{{ user.job_title if user else '' }}"
+                                   class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm placeholder-gray-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500">
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-6 border-gray-200">
+
+                <div class="space-y-6">
+                    <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Access Control</h3>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Company Access</label>
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                            <p class="text-sm text-gray-500 mb-3">Select which companies this user can access:</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                {% for company in companies %}
+                                <label class="flex items-center gap-2 rounded-md bg-white border border-gray-200 px-3 py-2 cursor-pointer hover:bg-gray-100 transition">
+                                    <input type="checkbox" class="company-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                           id="company_{{ company.id }}" name="companies" value="{{ company.id }}"
+                                           {% if user and company in user.companies %}checked{% endif %}>
+                                    <span class="text-sm text-gray-700">{{ company.name }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                            <div class="mt-3 flex gap-2">
+                                <button type="button" id="select-all-companies"
+                                        class="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition">
+                                    <i data-lucide="check-square" class="h-3 w-3"></i> Select All
+                                </button>
+                                <button type="button" id="deselect-all-companies"
+                                        class="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition">
+                                    <i data-lucide="square" class="h-3 w-3"></i> Deselect All
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Site Access</label>
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                            <p class="text-sm text-gray-500 mb-3">Select specific sites this user can access (optional):</p>
+
+                            <div id="sites-container" class="space-y-4">
+                                {% for company in companies %}
+                                <div class="company-sites" data-company-id="{{ company.id }}">
+                                    <h4 class="text-sm font-medium text-gray-700 mb-2">{{ company.name }}</h4>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                        {% for site in company.sites %}
+                                        <label class="flex items-center gap-2 rounded-md bg-white border border-gray-200 px-3 py-2 cursor-pointer hover:bg-gray-100 transition">
+                                            <input type="checkbox" class="site-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                                   id="site_{{ site.id }}" name="sites" value="{{ site.id }}"
+                                                   data-company-id="{{ company.id }}"
+                                                   {% if user and site in user.sites %}checked{% endif %}>
+                                            <span class="text-sm text-gray-700">{{ site.name }}</span>
+                                        </label>
+                                        {% endfor %}
+                                    </div>
+                                    <hr class="my-3 border-gray-200">
+                                </div>
+                                {% endfor %}
+                            </div>
+
+                            <div class="mt-3 flex gap-2">
+                                <button type="button" id="select-all-sites"
+                                        class="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition">
+                                    <i data-lucide="check-square" class="h-3 w-3"></i> Select All
+                                </button>
+                                <button type="button" id="deselect-all-sites"
+                                        class="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition">
+                                    <i data-lucide="square" class="h-3 w-3"></i> Deselect All
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex items-center gap-3">
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition">
+                        <i data-lucide="save" class="h-4 w-4"></i> {{ 'Update' if user else 'Create' }} User
+                    </button>
+                    <a href="{{ url_for('admin.users') }}"
+                       class="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition">
+                        <i data-lucide="x" class="h-4 w-4"></i> Cancel
+                    </a>
+                    {% if user %}
+                    <button type="button" id="reset-password-btn" data-user-id="{{ user.id }}"
+                            class="ml-auto inline-flex items-center gap-2 rounded-md border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-700 shadow-sm hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition">
+                        <i data-lucide="key" class="h-4 w-4"></i> Reset Password
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
         </div>
     </div>
 
-    <!-- Form -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">User Information</h5>
-                </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('admin.edit_user', user_id=user.id) if user else url_for('admin.new_user') }}">
-                        <!-- <input type="hidden" name="csrf_token" value=""> -->
-                        
-                        <div class="row">
-                            <!-- Basic Information -->
-                            <div class="col-md-6">
-                                <h6 class="mb-3">Account Details</h6>
-                                
-                                <div class="mb-3">
-                                    <label for="username" class="form-label">Username *</label>
-                                    <input type="text" class="form-control" id="username" name="username" value="{{ user.username if user else '' }}" required {% if user %}readonly{% endif %}>
-                                    {% if user %}
-                                    <small class="form-text text-muted">Username cannot be changed after creation.</small>
-                                    {% endif %}
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="email" class="form-label">Email Address *</label>
-                                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email if user else '' }}" required>
-                                </div>
-                                
-                                {% if not user %}
-                                <div class="mb-3">
-                                    <label for="password" class="form-label">Password *</label>
-                                    <input type="password" class="form-control" id="password" name="password" required>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="confirm_password" class="form-label">Confirm Password *</label>
-                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
-                                </div>
-                                {% endif %}
-                                
-                                <div class="mb-3">
-                                    <label for="role" class="form-label">Role *</label>
-                                    <select class="form-control" id="role" name="role" required>
-                                        <option value="user" {% if user and user.role == 'user' %}selected{% endif %}>User</option>
-                                        <option value="company_admin" {% if user and user.role == 'company_admin' %}selected{% endif %}>Company Manager</option>
-                                        <option value="admin" {% if user and user.role == 'admin' %}selected{% endif %}>Administrator</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3 form-check">
-                                    <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if not user or user.is_active %}checked{% endif %}>
-                                    <label class="form-check-label" for="is_active">Active</label>
-                                </div>
-                            </div>
-                            
-                            <!-- Personal Information -->
-                            <div class="col-md-6">
-                                <h6 class="mb-3">Personal Information</h6>
-                                
-                                <div class="mb-3">
-                                    <label for="first_name" class="form-label">First Name *</label>
-                                    <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name if user else '' }}" required>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="last_name" class="form-label">Last Name *</label>
-                                    <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name if user else '' }}" required>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="phone" class="form-label">Phone Number</label>
-                                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ user.phone if user else '' }}">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="job_title" class="form-label">Job Title</label>
-                                    <input type="text" class="form-control" id="job_title" name="job_title" value="{{ user.job_title if user else '' }}">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <hr>
-                        
-                        <!-- Access Control -->
-                        <div class="row">
-                            <div class="col-md-12">
-                                <h6 class="mb-3">Access Control</h6>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Company Access</label>
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <p class="text-muted mb-3">Select which companies this user can access:</p>
-                                            
-                                            <div class="row">
-                                                {% for company in companies %}
-                                                <div class="col-md-4 mb-2">
-                                                    <div class="form-check">
-                                                        <input class="form-check-input company-checkbox" type="checkbox" 
-                                                               id="company_{{ company.id }}" 
-                                                               name="companies" 
-                                                               value="{{ company.id }}"
-                                                               {% if user and company in user.companies %}checked{% endif %}>
-                                                        <label class="form-check-label" for="company_{{ company.id }}">
-                                                            {{ company.name }}
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                                {% endfor %}
-                                            </div>
-                                            
-                                            <div class="mt-2">
-                                                <button type="button" id="select-all-companies" class="btn btn-sm btn-outline-secondary">Select All</button>
-                                                <button type="button" id="deselect-all-companies" class="btn btn-sm btn-outline-secondary ms-2">Deselect All</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Site Access</label>
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <p class="text-muted mb-3">Select specific sites this user can access (optional):</p>
-                                            
-                                            <div id="sites-container">
-                                                {% for company in companies %}
-                                                <div class="company-sites" data-company-id="{{ company.id }}">
-                                                    <h6>{{ company.name }}</h6>
-                                                    <div class="row">
-                                                        {% for site in company.sites %}
-                                                        <div class="col-md-4 mb-2">
-                                                            <div class="form-check">
-                                                                <input class="form-check-input site-checkbox" 
-                                                                       type="checkbox" 
-                                                                       id="site_{{ site.id }}" 
-                                                                       name="sites" 
-                                                                       value="{{ site.id }}"
-                                                                       data-company-id="{{ company.id }}"
-                                                                       {% if user and site in user.sites %}checked{% endif %}>
-                                                                <label class="form-check-label" for="site_{{ site.id }}">
-                                                                    {{ site.name }}
-                                                                </label>
-                                                            </div>
-                                                        </div>
-                                                        {% endfor %}
-                                                    </div>
-                                                    <hr>
-                                                </div>
-                                                {% endfor %}
-                                            </div>
-                                            
-                                            <div class="mt-2">
-                                                <button type="button" id="select-all-sites" class="btn btn-sm btn-outline-secondary">Select All</button>
-                                                <button type="button" id="deselect-all-sites" class="btn btn-sm btn-outline-secondary ms-2">Deselect All</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row mt-4">
-                            <div class="col-md-12">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-save me-2"></i>{{ 'Update' if user else 'Create' }} User
-                                </button>
-                                <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary ms-2">
-                                    <i class="fas fa-times me-2"></i>Cancel
-                                </a>
-                                
-                                {% if user %}
-                                <button type="button" class="btn btn-outline-warning float-end" id="reset-password-btn" data-user-id="{{ user.id }}">
-                                    <i class="fas fa-key me-2"></i>Reset Password
-                                </button>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     {% if user %}
-    <!-- User Activity -->
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">User Activity</h5>
+    <div class="bg-white rounded-lg shadow border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-medium text-gray-900">User Activity</h2>
+        </div>
+        <div class="px-6 py-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Account Information</h3>
+                    <table class="w-full text-sm">
+                        <tbody class="divide-y divide-gray-100">
+                            <tr>
+                                <th class="py-2 pr-4 text-left font-medium text-gray-500">Created</th>
+                                <td class="py-2 text-gray-900">{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else 'N/A' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2 pr-4 text-left font-medium text-gray-500">Last Updated</th>
+                                <td class="py-2 text-gray-900">{{ user.updated_at.strftime('%Y-%m-%d %H:%M:%S') if user.updated_at else 'N/A' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2 pr-4 text-left font-medium text-gray-500">Last Login</th>
+                                <td class="py-2 text-gray-900">{{ user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else 'Never' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2 pr-4 text-left font-medium text-gray-500">Login Count</th>
+                                <td class="py-2 text-gray-900">{{ user.login_count or 0 }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Account Information</h6>
-                            <table class="table table-sm">
-                                <tbody>
-                                    <tr>
-                                        <th>Created</th>
-                                        <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else 'N/A' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Last Updated</th>
-                                        <td>{{ user.updated_at.strftime('%Y-%m-%d %H:%M:%S') if user.updated_at else 'N/A' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Last Login</th>
-                                        <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else 'Never' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Login Count</th>
-                                        <td>{{ user.login_count or 0 }}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Recent Activity</h6>
-                            {% if user_logs %}
-                            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
-                                <table class="table table-sm table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Timestamp</th>
-                                            <th>Action</th>
-                                            <th>Details</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for log in user_logs %}
-                                        <tr>
-                                            <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                                            <td>{{ log.action }}</td>
-                                            <td>{{ log.details }}</td>
-                                        </tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {% else %}
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>No activity logs available for this user.
-                            </div>
-                            {% endif %}
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Recent Activity</h3>
+                    {% if user_logs %}
+                    <div class="max-h-56 overflow-y-auto rounded-lg border border-gray-200">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                {% for log in user_logs %}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-3 py-2 text-gray-900">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td class="px-3 py-2 text-gray-900">{{ log.action }}</td>
+                                    <td class="px-3 py-2 text-gray-900">{{ log.details }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="rounded-lg bg-blue-50 border border-blue-200 p-4 text-sm text-blue-700">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="info" class="h-4 w-4"></i>
+                            <span>No activity logs available for this user.</span>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -268,28 +264,37 @@
 </div>
 
 <!-- Reset Password Modal -->
-<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="resetPasswordModalLabel">Reset Password</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div id="resetPasswordModal" class="fixed inset-0 z-50 hidden">
+    <div class="fixed inset-0 bg-black/50 transition-opacity" id="resetPasswordBackdrop"></div>
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900" id="resetPasswordModalLabel">Reset Password</h3>
+                <button type="button" id="closeResetModal" class="text-gray-400 hover:text-gray-500">
+                    <i data-lucide="x" class="h-5 w-5"></i>
+                </button>
             </div>
-            <div class="modal-body">
-                <p>Are you sure you want to reset the password for this user?</p>
-                <p>A new random password will be generated and displayed to you.</p>
-                
-                <div id="new-password-container" class="d-none mt-3">
-                    <div class="alert alert-success">
-                        <p><strong>Password reset successful!</strong></p>
-                        <p>The new password is: <strong id="new-password" class="user-select-all"></strong></p>
-                        <p class="mb-0"><small>Make sure to copy this password and provide it to the user. For security reasons, it won't be displayed again.</small></p>
+            <div class="px-6 py-4">
+                <p class="text-sm text-gray-700">Are you sure you want to reset the password for this user?</p>
+                <p class="text-sm text-gray-700 mt-1">A new random password will be generated and displayed to you.</p>
+
+                <div id="new-password-container" class="hidden mt-4">
+                    <div class="rounded-lg bg-green-50 border border-green-200 p-4">
+                        <p class="text-sm font-medium text-green-800">Password reset successful!</p>
+                        <p class="text-sm text-green-700 mt-1">The new password is: <strong id="new-password" class="select-all font-mono bg-green-100 px-1.5 py-0.5 rounded"></strong></p>
+                        <p class="text-xs text-green-600 mt-2">Make sure to copy this password and provide it to the user. For security reasons, it won't be displayed again.</p>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" id="confirm-reset-btn" class="btn btn-warning">Reset Password</button>
+            <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200">
+                <button type="button" id="cancelResetBtn"
+                        class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition">
+                    Cancel
+                </button>
+                <button type="button" id="confirm-reset-btn"
+                        class="rounded-md bg-amber-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-amber-600 transition">
+                    Reset Password
+                </button>
             </div>
         </div>
     </div>
@@ -302,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Password validation
     const passwordField = document.getElementById('password');
     const confirmPasswordField = document.getElementById('confirm_password');
-    
+
     if (passwordField && confirmPasswordField) {
         confirmPasswordField.addEventListener('input', function() {
             if (passwordField.value !== confirmPasswordField.value) {
@@ -311,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 confirmPasswordField.setCustomValidity('');
             }
         });
-        
+
         passwordField.addEventListener('input', function() {
             if (passwordField.value !== confirmPasswordField.value) {
                 confirmPasswordField.setCustomValidity("Passwords don't match");
@@ -320,135 +325,150 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Company checkboxes
     const companyCheckboxes = document.querySelectorAll('.company-checkbox');
     const siteCheckboxes = document.querySelectorAll('.site-checkbox');
-    const companySites = document.querySelectorAll('.company-sites');
-    
-    // Show/hide sites based on company selection
+
     function updateSiteVisibility() {
-        companyCheckboxes.forEach(checkbox => {
-            const companyId = checkbox.value;
-            const siteContainer = document.querySelector(`.company-sites[data-company-id="${companyId}"]`);
-            
+        companyCheckboxes.forEach(function(checkbox) {
+            var companyId = checkbox.value;
+            var siteContainer = document.querySelector('.company-sites[data-company-id="' + companyId + '"]');
+
             if (siteContainer) {
                 if (checkbox.checked) {
                     siteContainer.style.display = 'block';
                 } else {
                     siteContainer.style.display = 'none';
-                    // Uncheck all sites for this company
-                    const companySiteCheckboxes = document.querySelectorAll(`.site-checkbox[data-company-id="${companyId}"]`);
-                    companySiteCheckboxes.forEach(siteCheckbox => {
+                    var companySiteCheckboxes = document.querySelectorAll('.site-checkbox[data-company-id="' + companyId + '"]');
+                    companySiteCheckboxes.forEach(function(siteCheckbox) {
                         siteCheckbox.checked = false;
                     });
                 }
             }
         });
     }
-    
-    // Initialize site visibility
+
     updateSiteVisibility();
-    
-    // Update site visibility when company selection changes
-    companyCheckboxes.forEach(checkbox => {
+
+    companyCheckboxes.forEach(function(checkbox) {
         checkbox.addEventListener('change', updateSiteVisibility);
     });
-    
-    // Select/deselect all companies
+
     document.getElementById('select-all-companies').addEventListener('click', function() {
-        companyCheckboxes.forEach(checkbox => {
+        companyCheckboxes.forEach(function(checkbox) {
             checkbox.checked = true;
         });
         updateSiteVisibility();
     });
-    
+
     document.getElementById('deselect-all-companies').addEventListener('click', function() {
-        companyCheckboxes.forEach(checkbox => {
+        companyCheckboxes.forEach(function(checkbox) {
             checkbox.checked = false;
         });
         updateSiteVisibility();
     });
-    
-    // Select/deselect all sites
+
     document.getElementById('select-all-sites').addEventListener('click', function() {
-        // Only select sites for selected companies
-        companyCheckboxes.forEach(companyCheckbox => {
+        companyCheckboxes.forEach(function(companyCheckbox) {
             if (companyCheckbox.checked) {
-                const companyId = companyCheckbox.value;
-                const companySiteCheckboxes = document.querySelectorAll(`.site-checkbox[data-company-id="${companyId}"]`);
-                companySiteCheckboxes.forEach(siteCheckbox => {
+                var companyId = companyCheckbox.value;
+                var companySiteCheckboxes = document.querySelectorAll('.site-checkbox[data-company-id="' + companyId + '"]');
+                companySiteCheckboxes.forEach(function(siteCheckbox) {
                     siteCheckbox.checked = true;
                 });
             }
         });
     });
-    
+
     document.getElementById('deselect-all-sites').addEventListener('click', function() {
-        siteCheckboxes.forEach(checkbox => {
+        siteCheckboxes.forEach(function(checkbox) {
             checkbox.checked = false;
         });
     });
-    
+
     // Role change handler
-    const roleSelect = document.getElementById('role');
+    var roleSelect = document.getElementById('role');
     if (roleSelect) {
         roleSelect.addEventListener('change', function() {
-            const role = this.value;
-            
-            // If admin, select all companies and sites
+            var role = this.value;
             if (role === 'admin') {
-                companyCheckboxes.forEach(checkbox => {
+                companyCheckboxes.forEach(function(checkbox) {
                     checkbox.checked = true;
                 });
                 updateSiteVisibility();
-                siteCheckboxes.forEach(checkbox => {
+                siteCheckboxes.forEach(function(checkbox) {
                     checkbox.checked = true;
                 });
             }
         });
     }
-    
-    // Reset password button
-    const resetPasswordBtn = document.getElementById('reset-password-btn');
+
+    // Reset password modal (vanilla JS)
+    var resetPasswordBtn = document.getElementById('reset-password-btn');
+    var resetModal = document.getElementById('resetPasswordModal');
+    var backdrop = document.getElementById('resetPasswordBackdrop');
+    var closeModal = document.getElementById('closeResetModal');
+    var cancelResetBtn = document.getElementById('cancelResetBtn');
+    var confirmResetBtn = document.getElementById('confirm-reset-btn');
+    var newPasswordContainer = document.getElementById('new-password-container');
+    var newPasswordEl = document.getElementById('new-password');
+
+    function openModal() {
+        newPasswordContainer.classList.add('hidden');
+        resetModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        lucide.createIcons();
+    }
+
+    function closeModalFn() {
+        resetModal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
     if (resetPasswordBtn) {
-        resetPasswordBtn.addEventListener('click', function() {
-            const userId = this.getAttribute('data-user-id');
-            
-            document.getElementById('new-password-container').classList.add('d-none');
-            
-            const resetModal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
-            resetModal.show();
-            
-            // Handle confirm reset button
-            document.getElementById('confirm-reset-btn').onclick = function() {
-                this.disabled = true;
-                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Resetting...';
-                
-                fetch(`/admin/api/users/${userId}/reset-password`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('new-password').textContent = data.password;
-                        document.getElementById('new-password-container').classList.remove('d-none');
-                    } else {
-                        alert(`Failed to reset password: ${data.error}`);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while resetting the password.');
-                })
-                .finally(() => {
-                    this.disabled = false;
-                    this.innerHTML = 'Reset Password';
-                });
-            };
+        resetPasswordBtn.addEventListener('click', openModal);
+    }
+
+    backdrop.addEventListener('click', closeModalFn);
+    closeModal.addEventListener('click', closeModalFn);
+    cancelResetBtn.addEventListener('click', closeModalFn);
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !resetModal.classList.contains('hidden')) {
+            closeModalFn();
+        }
+    });
+
+    if (confirmResetBtn) {
+        confirmResetBtn.addEventListener('click', function() {
+            var userId = resetPasswordBtn.getAttribute('data-user-id');
+            this.disabled = true;
+            this.innerHTML = '<span class="inline-flex items-center gap-1"><svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Resetting...</span>';
+
+            fetch('/admin/api/users/' + userId + '/reset-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    newPasswordEl.textContent = data.password;
+                    newPasswordContainer.classList.remove('hidden');
+                } else {
+                    alert('Failed to reset password: ' + data.error);
+                }
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                alert('An error occurred while resetting the password.');
+            })
+            .finally(function() {
+                confirmResetBtn.disabled = false;
+                confirmResetBtn.textContent = 'Reset Password';
+            });
         });
     }
 });
