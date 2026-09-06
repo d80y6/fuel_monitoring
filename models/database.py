@@ -252,11 +252,18 @@ class Tank(db.Model):
     name = db.Column(db.String(100), nullable=False, index=True)
     description = db.Column(db.Text)
     site_id = db.Column(db.Integer, db.ForeignKey('site.id'), nullable=False, index=True)
+    # NEW: Gateway & Sensor Identity (for MQTT ingestion)
+    gateway_mac = db.Column(db.String(17), nullable=True, index=True)  # e.g., "aabbcc112233"
+    sensor_serial_number = db.Column(db.BigInteger, nullable=True, index=True, unique=True)
+
     
     # Connection settings
     host = db.Column(db.String(100), nullable=False)
     tcp_port = db.Column(db.Integer, default=2000)
     device_address = db.Column(db.Integer, default=1)
+    
+    # NEW: Connection mode (to support both old TCP and new MQTT during transition)
+    connection_mode = db.Column(db.String(20), default='mqtt')  # 'mqtt' or 'tcp'
     
     # Tank parameters
     tank_orientation = db.Column(db.String(20), default='vertical')  # 'vertical' or 'horizontal'

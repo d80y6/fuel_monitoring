@@ -45,6 +45,10 @@ class Config:
         'en': 'English',
         'ar': 'العربية'
     }
+    MQTT_BROKER = os.environ.get('MQTT_BROKER', 'localhost')
+    MQTT_PORT = int(os.environ.get('MQTT_PORT', 1883))
+    MQTT_USER = os.environ.get('MQTT_USER')
+    MQTT_PASS = os.environ.get('MQTT_PASS')
     
     @classmethod
     def update_from_dict(cls, config_dict):

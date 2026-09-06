@@ -17,7 +17,8 @@ from flask import Flask, render_template, jsonify, request, redirect, url_for, f
 from flask_login import LoginManager, login_required, current_user
 from config import Config
 from models.database import db, User, Company, Site, Tank, Measurement, Alarm, create_timescale_extensions, setup_timescale_retention
-from models.tank_monitor_manager import TankMonitorManager
+#from models.tank_monitor_manager import TankMonitorManager
+from services.mqtt_ingestion import MqttIngestionService
 from auth import auth, login_manager
 from admin import admin, init_admin
 from datetime import datetime, timedelta
@@ -118,19 +119,30 @@ class DateTimeEncoder(json.JSONEncoder):
 login_manager.init_app(app)
 
 # Create tank monitor manager
-tank_monitor_manager = TankMonitorManager(app)
+#tank_monitor_manager = TankMonitorManager(app)
+
+# Initialize MQTT ingestion instead
+mqtt_ingestion = MqttIngestionService(
+    app=app,
+    broker=app.config.get('MQTT_BROKER', 'localhost'),
+    port=app.config.get('MQTT_PORT', 1883),
+    username=app.config.get('MQTT_USER'),
+    password=app.config.get('MQTT_PASS')
+)
+
 
 # Register cleanup function to be called when the application shuts down
 @app.teardown_appcontext
 def cleanup_monitors(exception=None):
     """Clean up tank monitors when the application shuts down."""
-    if hasattr(app, 'tank_monitor_manager'):
-        app.tank_monitor_manager.cleanup_resources()
+    mqtt_ingestion.stop()
+    #if hasattr(app, 'tank_monitor_manager'):
+    #    app.tank_monitor_manager.cleanup_resources()
 
 # Initialize monitors for all active tanks
-with app.app_context():
-    """Initialize monitors for all active tanks."""
-    tank_monitor_manager.initialize_monitors()
+#with app.app_context():
+#    """Initialize monitors for all active tanks."""
+#    tank_monitor_manager.initialize_monitors()
 
 # Register blueprints
 app.register_blueprint(auth)
@@ -174,10 +186,13 @@ with app.app_context():
 # Start monitoring all active tanks after app initialization
 def start_monitoring_on_startup():
     """Start monitoring all active tanks."""
-    logger.info("Starting monitoring for all active tanks on application startup")
-    with app.app_context():
-        # Use the existing method to start monitoring all tanks
-        tank_monitor_manager.start_monitoring_all_active_tanks()
+    #logger.info("Starting monitoring for all active tanks on application startup")
+    logger.info("Starting MQTT ingestion service...")
+    mqtt_ingestion.start()
+    
+    #with app.app_context():
+    #    # Use the existing method to start monitoring all tanks
+    #    tank_monitor_manager.start_monitoring_all_active_tanks()
 
 # Start monitoring in a background thread
 Thread(target=start_monitoring_on_startup, daemon=True).start()
@@ -1000,4 +1015,5 @@ if __name__ == '__main__':
         print("Shutting down...")
     finally:
         # Make sure monitoring is stopped when the app exits
-        tank_monitor_manager.stop_monitoring()
+        #tank_monitor_manager.stop_monitoring()
+        mqtt_ingestion.stop()
