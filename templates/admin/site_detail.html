@@ -3,238 +3,211 @@
 {% block title %}Site Details - Admin - Fuel Tank Monitoring System{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Site Details: {{ site.name }}</h1>
-        <div>
-            <button id="refresh-site-data" class="btn btn-outline-primary me-2">
-                <i class="bi bi-arrow-clockwise"></i> Refresh Data
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+        <h1 class="text-2xl font-bold text-gray-900">Site Details: {{ site.name }}</h1>
+        <div class="flex flex-wrap gap-2">
+            <button id="refresh-site-data" class="inline-flex items-center gap-2 px-4 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition text-sm font-medium">
+                <i data-lucide="refresh-cw" class="h-4 w-4"></i> Refresh Data
             </button>
-            <a href="{{ url_for('admin.edit_site', site_id=site.id) }}" class="btn btn-primary me-2">
-                <i class="bi bi-pencil"></i> Edit Site
+            <a href="{{ url_for('admin.edit_site', site_id=site.id) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium">
+                <i data-lucide="pencil" class="h-4 w-4"></i> Edit Site
             </a>
-            <button id="delete-site-btn" class="btn btn-danger me-2" data-site-name="{{ site.name }}">
-                <i class="bi bi-trash"></i> Delete Site
+            <button id="delete-site-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium" data-site-name="{{ site.name }}">
+                <i data-lucide="trash-2" class="h-4 w-4"></i> Delete Site
             </button>
-            <a href="{{ url_for('admin.sites') }}" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Back to Sites
+            <a href="{{ url_for('admin.sites') }}" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
+                <i data-lucide="arrow-left" class="h-4 w-4"></i> Back to Sites
             </a>
         </div>
     </div>
-    
-    <div id="alert-container"></div>
-    
-    <div id="site-data" data-site-id="{{ site.id }}" style="display: none;"></div>
-    
-    <div class="row">
-        <div class="col-md-4">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5>Site Information</h5>
+
+    <div id="alert-container" class="mb-4"></div>
+
+    <div id="site-data" data-site-id="{{ site.id }}" class="hidden"></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Site Information</h2>
                 </div>
-                <div class="card-body">
-                    <table class="table">
-                        <tr>
-                            <th>Name:</th>
-                            <td>{{ site.name }}</td>
-                        </tr>
-                        <tr>
-                            <th>Company:</th>
-                            <td>
-                                <a href="{{ url_for('admin.company_detail', company_id=site.company.id) }}">
-                                    {{ site.company.name }}
-                                </a>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th>Address:</th>
-                            <td>{{ site.address or 'N/A' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Contact Name:</th>
-                            <td>{{ site.contact_name or 'N/A' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Contact Email:</th>
-                            <td>{{ site.contact_email or 'N/A' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Contact Phone:</th>
-                            <td>{{ site.contact_phone or 'N/A' }}</td>
-                        </tr>
-                        <tr>
-                            <th>Created:</th>
-                            <td>{{ site.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                        </tr>
+                <div class="px-6 py-4">
+                    <table class="w-full text-sm">
+                        <tbody class="divide-y divide-gray-100">
+                            <tr>
+                                <th class="py-2 text-left text-gray-500 font-medium">Name:</th>
+                                <td class="py-2 text-right text-gray-900">{{ site.name }}</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2 text-left text-gray-500 font-medium">Company:</th>
+                                <td class="py-2 text-right text-gray-900">
+                                    <a href="{{ url_for('admin.company_detail', company_id=site.company.id) }}" class="text-primary-600 hover:text-primary-800 underline">{{ site.company.name }}</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th class="py-2 text-left text-gray-500 font-medium">Address:</th>
+                                <td class="py-2 text-right text-gray-900">{{ site.address or 'N/A' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2 text-left text-gray-500 font-medium">Contact Name:</th>
+                                <td class="py-2 text-right text-gray-900">{{ site.contact_name or 'N/A' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2 text-left text-gray-500 font-medium">Contact Email:</th>
+                                <td class="py-2 text-right text-gray-900">{{ site.contact_email or 'N/A' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2 text-left text-gray-500 font-medium">Contact Phone:</th>
+                                <td class="py-2 text-right text-gray-900">{{ site.contact_phone or 'N/A' }}</td>
+                            </tr>
+                            <tr>
+                                <th class="py-2 text-left text-gray-500 font-medium">Created:</th>
+                                <td class="py-2 text-right text-gray-900">{{ site.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
-            
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5>Site Statistics</h5>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Site Statistics</h2>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <div class="card bg-light">
-                                <div class="card-body text-center">
-                                    <h3 id="total-tanks">{{ site.tanks|length }}</h3>
-                                    <p class="mb-0">Total Tanks</p>
-                                </div>
-                            </div>
+                <div class="px-6 py-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <h3 id="total-tanks" class="text-2xl font-bold text-gray-900">{{ site.tanks|length }}</h3>
+                            <p class="text-sm text-gray-500 mt-1">Total Tanks</p>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="card bg-light">
-                                <div class="card-body text-center">
-                                    <h3 id="active-tanks">0</h3>
-                                    <p class="mb-0">Active Tanks</p>
-                                </div>
-                            </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <h3 id="active-tanks" class="text-2xl font-bold text-gray-900">0</h3>
+                            <p class="text-sm text-gray-500 mt-1">Active Tanks</p>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="card bg-light">
-                                <div class="card-body text-center">
-                                    <h3 id="connected-tanks">0</h3>
-                                    <p class="mb-0">Connected Tanks</p>
-                                </div>
-                            </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <h3 id="connected-tanks" class="text-2xl font-bold text-gray-900">0</h3>
+                            <p class="text-sm text-gray-500 mt-1">Connected Tanks</p>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="card bg-light">
-                                <div class="card-body text-center">
-                                    <h3 id="total-volume">0 L</h3>
-                                    <p class="mb-0">Total Volume</p>
-                                </div>
-                            </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <h3 id="total-volume" class="text-2xl font-bold text-gray-900">0 L</h3>
+                            <p class="text-sm text-gray-500 mt-1">Total Volume</p>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="card bg-light">
-                                <div class="card-body text-center">
-                                    <h3 id="avg-fill-level">0%</h3>
-                                    <p class="mb-0">Avg. Fill Level</p>
-                                </div>
-                            </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <h3 id="avg-fill-level" class="text-2xl font-bold text-gray-900">0%</h3>
+                            <p class="text-sm text-gray-500 mt-1">Avg. Fill Level</p>
                         </div>
-                        <div class="col-md-6 mb-3">
-                            <div class="card bg-light">
-                                <div class="card-body text-center">
-                                    <h3 id="active-alarms">0</h3>
-                                    <p class="mb-0">Active Alarms</p>
-                                </div>
-                            </div>
+                        <div class="bg-gray-50 rounded-lg p-4 text-center">
+                            <h3 id="active-alarms" class="text-2xl font-bold text-gray-900">0</h3>
+                            <p class="text-sm text-gray-500 mt-1">Active Alarms</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-8">
-            <div class="card mb-4">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5>Tanks</h5>
-                    <a href="{{ url_for('admin.create_tank') }}?site_id={{ site.id }}" class="btn btn-primary btn-sm">
-                        <i class="bi bi-plus-circle"></i> Add Tank
+
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">Tanks</h2>
+                    <a href="{{ url_for('admin.create_tank') }}?site_id={{ site.id }}" class="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium">
+                        <i data-lucide="plus-circle" class="h-4 w-4"></i> Add Tank
                     </a>
                 </div>
-                <div class="card-body">
+                <div class="px-6 py-4">
                     {% if site.tanks %}
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
                             <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Fill Level</th>
-                                    <th>Volume</th>
-                                    <th>Status</th>
-                                    <th>Last Update</th>
-                                    <th>Actions</th>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-3 px-2 text-gray-500 font-medium">Name</th>
+                                    <th class="text-left py-3 px-2 text-gray-500 font-medium">Fill Level</th>
+                                    <th class="text-left py-3 px-2 text-gray-500 font-medium">Volume</th>
+                                    <th class="text-left py-3 px-2 text-gray-500 font-medium">Status</th>
+                                    <th class="text-left py-3 px-2 text-gray-500 font-medium">Last Update</th>
+                                    <th class="text-left py-3 px-2 text-gray-500 font-medium">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="site-tanks">
-                                <!-- Tank data will be loaded via JavaScript -->
+                            <tbody id="site-tanks" class="divide-y divide-gray-100">
                                 <tr>
-                                    <td colspan="6" class="text-center">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Loading...</span>
+                                    <td colspan="6" class="text-center py-8">
+                                        <div class="flex flex-col items-center gap-2">
+                                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                                            <p class="text-sm text-gray-500">Loading tanks...</p>
                                         </div>
-                                        <p class="mt-2">Loading tanks...</p>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                     {% else %}
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> No tanks have been added to this site yet.
-                        <a href="{{ url_for('admin.create_tank') }}?site_id={{ site.id }}" class="alert-link">Add a tank</a>
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
+                        <i data-lucide="info" class="h-4 w-4 inline mr-1"></i> No tanks have been added to this site yet.
+                        <a href="{{ url_for('admin.create_tank') }}?site_id={{ site.id }}" class="text-blue-600 hover:text-blue-800 underline ml-1">Add a tank</a>
                     </div>
                     {% endif %}
                 </div>
             </div>
-            
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5>Volume Distribution</h5>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Volume Distribution</h2>
                 </div>
-                <div class="card-body">
+                <div class="px-6 py-4">
                     <canvas id="volumeDistributionChart" height="250"></canvas>
                 </div>
             </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h5>Recent Alarms</h5>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Recent Alarms</h2>
                 </div>
-                <div class="card-body">
+                <div class="px-6 py-4">
                     {% set alarms = site.get_recent_alarms() %}
                     {% if alarms %}
-                    <div class="table-responsive">
-                        <table class="table table-striped">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
                             <thead>
-                                <tr>
-                                    <th>Time</th>
-                                    <th>Tank</th>
-                                    <th>Type</th>
-                                    <th>Message</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-3 px-2 text-gray-500 font-medium">Time</th>
+                                    <th class="text-left py-3 px-2 text-gray-500 font-medium">Tank</th>
+                                    <th class="text-left py-3 px-2 text-gray-500 font-medium">Type</th>
+                                    <th class="text-left py-3 px-2 text-gray-500 font-medium">Message</th>
+                                    <th class="text-left py-3 px-2 text-gray-500 font-medium">Status</th>
+                                    <th class="text-left py-3 px-2 text-gray-500 font-medium">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody class="divide-y divide-gray-100">
                                 {% for alarm in alarms %}
                                 <tr data-alarm-id="{{ alarm.id }}">
-                                    <td>{{ alarm.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                                    <td>
-                                        <a href="{{ url_for('admin.tank_detail', tank_id=alarm.tank_id) }}">
-                                            {{ alarm.tank.name }}
-                                        </a>
+                                    <td class="py-3 px-2 text-gray-900">{{ alarm.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td class="py-3 px-2">
+                                        <a href="{{ url_for('admin.tank_detail', tank_id=alarm.tank_id) }}" class="text-primary-600 hover:text-primary-800 underline">{{ alarm.tank.name }}</a>
                                     </td>
-                                    <td>
+                                    <td class="py-3 px-2">
                                         {% if alarm.type == 'low_level' %}
-                                        <span class="badge bg-warning">Low Level</span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Low Level</span>
                                         {% elif alarm.type == 'critical_level' %}
-                                        <span class="badge bg-danger">Critical Level</span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Critical Level</span>
                                         {% elif alarm.type == 'high_level' %}
-                                        <span class="badge bg-warning">High Level</span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">High Level</span>
                                         {% elif alarm.type == 'connection' %}
-                                        <span class="badge bg-danger">Connection</span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Connection</span>
                                         {% else %}
-                                        <span class="badge bg-secondary">{{ alarm.type }}</span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">{{ alarm.type }}</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ alarm.message }}</td>
-                                    <td class="alarm-status">
+                                    <td class="py-3 px-2 text-gray-900">{{ alarm.message }}</td>
+                                    <td class="py-3 px-2 alarm-status">
                                         {% if alarm.acknowledged %}
-                                        <span class="badge bg-success">Acknowledged</span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Acknowledged</span>
                                         {% else %}
-                                        <span class="badge bg-danger">Unacknowledged</span>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Unacknowledged</span>
                                         {% endif %}
                                     </td>
-                                    <td class="alarm-actions">
+                                    <td class="py-3 px-2 alarm-actions">
                                         {% if not alarm.acknowledged %}
-                                        <button class="btn btn-sm btn-success acknowledge-alarm-btn" data-alarm-id="{{ alarm.id }}">
-                                            <i class="bi bi-check-circle"></i> Acknowledge
+                                        <button class="inline-flex items-center gap-1 px-2.5 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs font-medium acknowledge-alarm-btn" data-alarm-id="{{ alarm.id }}">
+                                            <i data-lucide="check-circle" class="h-3 w-3"></i> Acknowledge
                                         </button>
                                         {% endif %}
                                     </td>
@@ -244,7 +217,7 @@
                         </table>
                     </div>
                     {% else %}
-                    <p class="text-muted">No recent alarms for this site.</p>
+                    <p class="text-sm text-gray-500">No recent alarms for this site.</p>
                     {% endif %}
                 </div>
             </div>
@@ -253,20 +226,27 @@
 </div>
 
 <!-- Delete Site Confirmation Modal -->
-<div class="modal fade" id="deleteSiteModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Confirm Deletion</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div id="deleteSiteModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" id="deleteSiteModalBackdrop"></div>
+        <div class="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-xl shadow-xl sm:my-8 sm:max-w-lg sm:w-full">
+            <div class="px-6 pt-6 pb-4">
+                <div class="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                    <i data-lucide="alert-triangle" class="h-6 w-6 text-red-600"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 text-center">Confirm Deletion</h3>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-600">Are you sure you want to delete the site "<span id="delete-site-name" class="font-medium text-gray-900"></span>"?</p>
+                    <p class="text-sm text-red-600 mt-2">This action cannot be undone and will delete all tanks and their data associated with this site.</p>
+                </div>
             </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete the site "<span id="delete-site-name"></span>"?</p>
-                <p class="text-danger">This action cannot be undone and will delete all tanks and their data associated with this site.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirm-delete-site">Delete Site</button>
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+                <button type="button" id="cancel-delete-site" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition text-sm font-medium">
+                    Cancel
+                </button>
+                <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium" id="confirm-delete-site">
+                    Delete Site
+                </button>
             </div>
         </div>
     </div>
@@ -274,59 +254,47 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const siteId = document.getElementById('site-data').getAttribute('data-site-id');
     let volumeDistributionChart = null;
-    
-    // Function to show alert
+
     function showAlert(type, message) {
         const alertContainer = document.getElementById('alert-container');
         if (!alertContainer) return;
-        
+
+        const colorMap = {
+            success: 'bg-green-50 text-green-800 border border-green-200',
+            danger: 'bg-red-50 text-red-800 border border-red-200',
+            info: 'bg-blue-50 text-blue-800 border border-blue-200',
+            warning: 'bg-yellow-50 text-yellow-800 border border-yellow-200'
+        };
+
         const alert = document.createElement('div');
-        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.className = `rounded-lg px-4 py-3 text-sm flex items-center justify-between ${colorMap[type] || colorMap.info}`;
         alert.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <span>${message}</span>
+            <button type="button" class="ml-4 text-current opacity-50 hover:opacity-100" onclick="this.parentElement.remove()">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
         `;
-        
+
         alertContainer.innerHTML = '';
         alertContainer.appendChild(alert);
-        
-        // Auto-dismiss after 5 seconds
-        setTimeout(() => {
-            alert.classList.remove('show');
-            setTimeout(() => {
-                alertContainer.removeChild(alert);
-            }, 150);
-        }, 5000);
+
+        setTimeout(() => { alert.remove(); }, 5000);
     }
-    
-    // Function to fetch site statistics
+
     function fetchSiteStats() {
         fetch(`/admin/api/sites/${siteId}/stats`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
+            .then(response => { if (!response.ok) throw new Error('Network response was not ok'); return response.json(); })
             .then(data => {
-                if (data.success) {
-                    updateSiteStats(data.stats);
-                } else {
-                    showAlert('danger', data.message || 'Error fetching site statistics');
-                }
+                if (data.success) updateSiteStats(data.stats);
+                else showAlert('danger', data.message || 'Error fetching site statistics');
             })
-            .catch(error => {
-                console.error('Error fetching site statistics:', error);
-                showAlert('danger', 'Error fetching site statistics: ' + error.message);
-            });
+            .catch(error => { console.error('Error fetching site statistics:', error); showAlert('danger', 'Error fetching site statistics: ' + error.message); });
     }
-    
-    // Function to update site statistics
+
     function updateSiteStats(stats) {
         document.getElementById('active-tanks').textContent = stats.active_tank_count;
         document.getElementById('connected-tanks').textContent = stats.connected_tank_count;
@@ -334,162 +302,83 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('avg-fill-level').textContent = `${stats.avg_fill_level.toFixed(1)}%`;
         document.getElementById('active-alarms').textContent = stats.active_alarms;
     }
-    
-    // Function to fetch site tanks
+
     function fetchSiteTanks() {
         fetch(`/admin/api/sites/${siteId}/tanks`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
+            .then(response => { if (!response.ok) throw new Error('Network response was not ok'); return response.json(); })
             .then(data => {
-                if (data.success) {
-                    updateSiteTanks(data.tanks);
-                    updateVolumeDistributionChart(data.tanks);
-                } else {
-                    showAlert('danger', data.message || 'Error fetching site tanks');
-                }
+                if (data.success) { updateSiteTanks(data.tanks); updateVolumeDistributionChart(data.tanks); }
+                else showAlert('danger', data.message || 'Error fetching site tanks');
             })
-            .catch(error => {
-                console.error('Error fetching site tanks:', error);
-                showAlert('danger', 'Error fetching site tanks: ' + error.message);
-            });
+            .catch(error => { console.error('Error fetching site tanks:', error); showAlert('danger', 'Error fetching site tanks: ' + error.message); });
     }
-    
-    // Function to update site tanks table
+
     function updateSiteTanks(tanks) {
         const tanksContainer = document.getElementById('site-tanks');
         if (!tanksContainer) return;
-        
+
         if (tanks.length === 0) {
-            tanksContainer.innerHTML = `
-                <tr>
-                    <td colspan="6" class="text-center">
-                        <div class="alert alert-info mb-0">
-                            <i class="bi bi-info-circle"></i> No tanks have been added to this site yet.
-                        </div>
-                    </td>
-                </tr>
-            `;
+            tanksContainer.innerHTML = `<tr><td colspan="6" class="text-center py-8"><div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800"><i data-lucide="info" class="h-4 w-4 inline mr-1"></i> No tanks have been added to this site yet.</div></td></tr>`;
+            lucide.createIcons();
             return;
         }
-        
+
         let html = '';
-        
         tanks.forEach(tank => {
-            // Determine connection status badge
-            let statusBadgeClass = 'bg-danger';
+            let statusBadgeClass = 'bg-red-100 text-red-800';
             let statusText = 'Disconnected';
-            
-            if (tank.connection_status === 'Connected') {
-                statusBadgeClass = 'bg-success';
-                statusText = 'Connected';
-            } else if (tank.connection_status === 'Recently Disconnected') {
-                statusBadgeClass = 'bg-warning';
-                statusText = 'Recently Disconnected';
-            }
-            
-            // Format last update time
+            if (tank.connection_status === 'Connected') { statusBadgeClass = 'bg-green-100 text-green-800'; statusText = 'Connected'; }
+            else if (tank.connection_status === 'Recently Disconnected') { statusBadgeClass = 'bg-yellow-100 text-yellow-800'; statusText = 'Recently Disconnected'; }
+
             let lastUpdateText = 'Never';
-            if (tank.measurement && tank.measurement.timestamp) {
-                const lastUpdate = new Date(tank.measurement.timestamp);
-                lastUpdateText = lastUpdate.toLocaleString();
-            }
-            
-            html += `
-                <tr>
-                    <td>
-                        <a href="/admin/tanks/${tank.id}">${tank.name}</a>
-                        ${tank.description ? `<br><small class="text-muted">${tank.description}</small>` : ''}
-                    </td>
-                    <td>
-                        ${tank.measurement ? 
-                            `<div class="progress" style="height: 20px;">
-                                <div class="progress-bar ${getFillLevelClass(tank.measurement.fill_percent)}" 
-                                     role="progressbar" 
-                                     style="width: ${tank.measurement.fill_percent}%;" 
-                                     aria-valuenow="${tank.measurement.fill_percent}" 
-                                     aria-valuemin="0" 
-                                     aria-valuemax="100">
-                                    ${tank.measurement.fill_percent.toFixed(1)}%
-                                </div>
-                            </div>` : 
-                            'N/A'}
-                    </td>
-                    <td>${tank.measurement ? `${tank.measurement.volume.toFixed(1)} L` : 'N/A'}</td>
-                    <td><span class="badge ${statusBadgeClass}">${statusText}</span></td>
-                    <td>${lastUpdateText}</td>
-                    <td>
-                        <div class="btn-group btn-group-sm">
-                            <a href="/admin/tanks/${tank.id}" class="btn btn-info">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            <a href="/admin/tanks/edit/${tank.id}" class="btn btn-primary">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <button type="button" class="btn btn-danger delete-tank-btn" 
-                                    data-tank-id="${tank.id}" data-tank-name="${tank.name}">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
+            if (tank.measurement && tank.measurement.timestamp) { lastUpdateText = new Date(tank.measurement.timestamp).toLocaleString(); }
+
+            html += `<tr class="border-b border-gray-100">
+                <td class="py-3 px-2"><a href="/admin/tanks/${tank.id}" class="text-primary-600 hover:text-primary-800 underline">${tank.name}</a>${tank.description ? `<br><span class="text-xs text-gray-500">${tank.description}</span>` : ''}</td>
+                <td class="py-3 px-2">${tank.measurement ? `<div class="w-full bg-gray-200 rounded-full h-5"><div class="h-5 rounded-full text-white text-xs flex items-center justify-center ${getFillLevelClass(tank.measurement.fill_percent)}" style="width: ${tank.measurement.fill_percent}%">${tank.measurement.fill_percent.toFixed(1)}%</div></div>` : 'N/A'}</td>
+                <td class="py-3 px-2 text-gray-900">${tank.measurement ? `${tank.measurement.volume.toFixed(1)} L` : 'N/A'}</td>
+                <td class="py-3 px-2"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadgeClass}">${statusText}</span></td>
+                <td class="py-3 px-2 text-gray-900">${lastUpdateText}</td>
+                <td class="py-3 px-2"><div class="flex gap-1">
+                    <a href="/admin/tanks/${tank.id}" class="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition" title="View"><i data-lucide="eye" class="h-3.5 w-3.5"></i></a>
+                    <a href="/admin/tanks/edit/${tank.id}" class="p-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition" title="Edit"><i data-lucide="pencil" class="h-3.5 w-3.5"></i></a>
+                    <button type="button" class="p-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition delete-tank-btn" data-tank-id="${tank.id}" data-tank-name="${tank.name}" title="Delete"><i data-lucide="trash-2" class="h-3.5 w-3.5"></i></button>
+                </div></td>
+            </tr>`;
         });
-        
         tanksContainer.innerHTML = html;
+        lucide.createIcons();
     }
-    
-    // Function to get fill level class based on percentage
+
     function getFillLevelClass(fillPercent) {
-        if (fillPercent <= 10) {
-            return 'bg-danger';
-        } else if (fillPercent <= 20) {
-            return 'bg-warning';
-        } else if (fillPercent >= 90) {
-            return 'bg-warning';
-        } else {
-            return 'bg-success';
-        }
+        if (fillPercent <= 10) return 'bg-red-500';
+        if (fillPercent <= 20) return 'bg-yellow-500';
+        if (fillPercent >= 90) return 'bg-yellow-500';
+        return 'bg-green-500';
     }
-    
-    // Function to update volume distribution chart
+
     function updateVolumeDistributionChart(tanks) {
-        // Filter tanks with measurements
         const tanksWithMeasurements = tanks.filter(tank => tank.measurement);
-        
-        if (tanksWithMeasurements.length === 0) {
-            return;
-        }
-        
-        // Prepare data for chart
+        if (tanksWithMeasurements.length === 0) return;
+
         const tankNames = [];
         const volumes = [];
         const fillLevels = [];
         const backgroundColors = [
-            'rgba(75, 192, 192, 0.8)',
-            'rgba(54, 162, 235, 0.8)',
-            'rgba(255, 206, 86, 0.8)',
-            'rgba(153, 102, 255, 0.8)',
-            'rgba(255, 159, 64, 0.8)',
-            'rgba(255, 99, 132, 0.8)',
-            'rgba(199, 199, 199, 0.8)',
-            'rgba(83, 102, 255, 0.8)',
-            'rgba(40, 159, 64, 0.8)',
+            'rgba(75, 192, 192, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)',
+            'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)', 'rgba(255, 99, 132, 0.8)',
+            'rgba(199, 199, 199, 0.8)', 'rgba(83, 102, 255, 0.8)', 'rgba(40, 159, 64, 0.8)',
             'rgba(210, 99, 132, 0.8)'
         ];
-        
-        tanksWithMeasurements.forEach((tank, index) => {
+
+        tanksWithMeasurements.forEach(tank => {
             tankNames.push(tank.name);
             volumes.push(tank.measurement.volume);
             fillLevels.push(tank.measurement.fill_percent);
         });
-        
-        // Create or update chart
+
         const ctx = document.getElementById('volumeDistributionChart').getContext('2d');
-        
+
         if (volumeDistributionChart) {
             volumeDistributionChart.data.labels = tankNames;
             volumeDistributionChart.data.datasets[0].data = volumes;
@@ -524,165 +413,105 @@ document.addEventListener('DOMContentLoaded', function() {
                 options: {
                     responsive: true,
                     scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Volume (L)'
-                            }
-                        },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            beginAtZero: true,
-                            max: 100,
-                            title: {
-                                display: true,
-                                text: 'Fill Level (%)'
-                            },
-                            grid: {
-                                drawOnChartArea: false
-                            }
-                        }
+                        y: { type: 'linear', display: true, position: 'left', beginAtZero: true, title: { display: true, text: 'Volume (L)' } },
+                        y1: { type: 'linear', display: true, position: 'right', beginAtZero: true, max: 100, title: { display: true, text: 'Fill Level (%)' }, grid: { drawOnChartArea: false } }
                     }
                 }
             });
         }
     }
-    
-    // Fetch initial data
+
     fetchSiteStats();
     fetchSiteTanks();
-    
-    // Set up refresh button
+
     document.getElementById('refresh-site-data').addEventListener('click', function() {
         fetchSiteStats();
         fetchSiteTanks();
         showAlert('info', 'Refreshing site data...');
     });
-    
-    // Set up delete site button
+
     document.getElementById('delete-site-btn').addEventListener('click', function() {
-        const siteName = this.getAttribute('data-site-name');
-        document.getElementById('delete-site-name').textContent = siteName;
-        
-        const deleteModal = new bootstrap.Modal(document.getElementById('deleteSiteModal'));
-        deleteModal.show();
+        document.getElementById('delete-site-name').textContent = this.getAttribute('data-site-name');
+        document.getElementById('deleteSiteModal').classList.remove('hidden');
     });
-    
-    // Set up confirm delete button
+
+    document.getElementById('cancel-delete-site').addEventListener('click', function() {
+        document.getElementById('deleteSiteModal').classList.add('hidden');
+    });
+
+    document.getElementById('deleteSiteModalBackdrop').addEventListener('click', function() {
+        document.getElementById('deleteSiteModal').classList.add('hidden');
+    });
+
     document.getElementById('confirm-delete-site').addEventListener('click', function() {
         fetch(`/admin/sites/delete/${siteId}`, {
             method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                window.location.href = '/admin/sites';
-            } else {
-                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteSiteModal'));
-                deleteModal.hide();
+            if (data.success) { window.location.href = '/admin/sites'; }
+            else {
+                document.getElementById('deleteSiteModal').classList.add('hidden');
                 showAlert('danger', data.message || 'Cannot delete site with tanks. Please delete all tanks first.');
             }
         })
         .catch(error => {
             console.error('Error deleting site:', error);
-            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteSiteModal'));
-            deleteModal.hide();
+            document.getElementById('deleteSiteModal').classList.add('hidden');
             showAlert('danger', 'Error deleting site: ' + error.message);
         });
     });
-    
-    // Set up delete tank buttons
+
     document.addEventListener('click', function(e) {
         if (e.target.closest('.delete-tank-btn')) {
             const btn = e.target.closest('.delete-tank-btn');
             const tankId = btn.getAttribute('data-tank-id');
             const tankName = btn.getAttribute('data-tank-name');
-            
+
             if (confirm(`Are you sure you want to delete tank "${tankName}"? This action cannot be undone.`)) {
                 fetch(`/admin/tanks/delete/${tankId}`, {
                     method: 'POST',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        // Refresh site data
-                        fetchSiteStats();
-                        fetchSiteTanks();
-                        showAlert('success', data.message || 'Tank deleted successfully');
-                    } else {
-                        showAlert('danger', data.message || 'Error deleting tank');
-                    }
+                    if (data.success) { fetchSiteStats(); fetchSiteTanks(); showAlert('success', data.message || 'Tank deleted successfully'); }
+                    else showAlert('danger', data.message || 'Error deleting tank');
                 })
-                .catch(error => {
-                    console.error('Error deleting tank:', error);
-                    showAlert('danger', 'Error deleting tank: ' + error.message);
-                });
+                .catch(error => { console.error('Error deleting tank:', error); showAlert('danger', 'Error deleting tank: ' + error.message); });
             }
         }
     });
-    
-    // Set up acknowledge alarm buttons
+
     document.addEventListener('click', function(e) {
         if (e.target.closest('.acknowledge-alarm-btn')) {
             const btn = e.target.closest('.acknowledge-alarm-btn');
             const alarmId = btn.getAttribute('data-alarm-id');
-            
+
             fetch(`/admin/alarms/acknowledge/${alarmId}`, {
                 method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Update the alarm status in the UI
                     const row = document.querySelector(`tr[data-alarm-id="${alarmId}"]`);
                     if (row) {
                         const statusCell = row.querySelector('.alarm-status');
                         const actionsCell = row.querySelector('.alarm-actions');
-                        
-                        if (statusCell) {
-                            statusCell.innerHTML = '<span class="badge bg-success">Acknowledged</span>';
-                        }
-                        
-                        if (actionsCell) {
-                            actionsCell.innerHTML = '';
-                        }
+                        if (statusCell) statusCell.innerHTML = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Acknowledged</span>';
+                        if (actionsCell) actionsCell.innerHTML = '';
                     }
-                    
-                    // Update site statistics
                     fetchSiteStats();
-                    
                     showAlert('success', data.message || 'Alarm acknowledged successfully');
-                } else {
-                    showAlert('danger', data.message || 'Error acknowledging alarm');
-                }
+                } else showAlert('danger', data.message || 'Error acknowledging alarm');
             })
-            .catch(error => {
-                console.error('Error acknowledging alarm:', error);
-                showAlert('danger', 'Error acknowledging alarm: ' + error.message);
-            });
+            .catch(error => { console.error('Error acknowledging alarm:', error); showAlert('danger', 'Error acknowledging alarm: ' + error.message); });
         }
     });
-    
-    // Auto-refresh data every 60 seconds
-    setInterval(function() {
-        fetchSiteStats();
-        fetchSiteTanks();
-    }, 60000);
+
+    setInterval(function() { fetchSiteStats(); fetchSiteTanks(); }, 60000);
 });
 </script>
 {% endblock %}
