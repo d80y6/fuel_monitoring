@@ -2484,8 +2484,6 @@ def create_tank():
             name = request.form.get('name'),
             description = request.form.get('description'),
             site_id = request.form.get('site_id'),
-            host = request.form.get('host'),
-            tcp_port = request.form.get('tcp_port'),
             device_address = request.form.get('device_address'),
             tank_orientation = request.form.get('tank_orientation'),
             tank_height = request.form.get('tank_height'),
@@ -2538,8 +2536,6 @@ def edit_tank(tank_id):
         name = request.form.get('name')
         description = request.form.get('description')
         site_id = request.form.get('site_id')
-        host = request.form.get('host')
-        tcp_port = request.form.get('tcp_port')
         device_address = request.form.get('device_address')
         tank_orientation = request.form.get('tank_orientation')
         tank_height = request.form.get('tank_height')
@@ -2556,8 +2552,8 @@ def edit_tank(tank_id):
         is_active = 'is_active' in request.form
         
         # Validate input
-        if not name or not site_id or not host:
-            flash('Tank name, site, and host are required', 'danger')
+        if not name or not site_id:
+            flash('Tank name and site are required', 'danger')
             return redirect(url_for('admin.edit_tank', tank_id=tank_id))
         
         # Check if tank name already exists for this site (for another tank)
@@ -2570,8 +2566,6 @@ def edit_tank(tank_id):
         tank.name = name
         tank.description = description
         tank.site_id = site_id
-        tank.host = host
-        tank.tcp_port = int(tcp_port) if tcp_port else 2000
         tank.device_address = int(device_address) if device_address else 1
         tank.tank_orientation = tank_orientation or 'vertical'
         tank.tank_height = float(tank_height) if tank_height else 2.0
@@ -2594,8 +2588,6 @@ def edit_tank(tank_id):
             from app import tank_monitor_manager as monitor_manager
             monitor = monitor_manager.get_monitor(tank_id)
             if monitor:
-                monitor.host = tank.host
-                monitor.tcp_port = tank.tcp_port
                 monitor.device_address = tank.device_address
                 monitor.tank_orientation = tank.tank_orientation
                 monitor.tank_height = tank.tank_height
@@ -2761,8 +2753,6 @@ def api_tanks():
             'company_name': tank.site.company.name,
             'description': tank.description,
             'is_active': tank.is_active,
-            'host': tank.host,
-            'tcp_port': tank.tcp_port,
             'connection_status': tank.get_connection_status(),
             'last_connection': tank.last_connection.isoformat() if tank.last_connection else None,
             'measurement': measurement.to_dict() if measurement else None,
@@ -3897,8 +3887,6 @@ class CreateTankForm(FlaskForm):
     name = StringField('Tank Name', validators=[DataRequired(), Length(max=100)])
     description = TextAreaField('Description', validators=[Length(max=500)])
     site_id = StringField('Site', validators=[DataRequired()])
-    host = StringField('Host/IP Address', validators=[DataRequired(), Length(max=100)])
-    tcp_port = IntegerField('TCP Port', default=2000)
     device_address = IntegerField('Device Address', default=1)
     tank_orientation = SelectField('Tank Orientation', choices=[('vertical', 'Vertical'), ('horizontal', 'Horizontal')], default='vertical')
     tank_height = FloatField('Tank Height (meters)', default=2.0)
@@ -3919,8 +3907,6 @@ class EditTankForm(FlaskForm):
     name = StringField('Tank Name', validators=[DataRequired(), Length(max=100)])
     description = TextAreaField('Description', validators=[Length(max=500)])
     site_id = StringField('Site', validators=[DataRequired()])
-    host = StringField('Host/IP Address', validators=[DataRequired(), Length(max=100)])
-    tcp_port = IntegerField('TCP Port', default=2000)
     device_address = IntegerField('Device Address', default=1)
     tank_orientation = SelectField('Tank Orientation', choices=[('vertical', 'Vertical'), ('horizontal', 'Horizontal')], default='vertical')
     tank_height = FloatField('Tank Height (meters)', default=2.0)
