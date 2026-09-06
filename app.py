@@ -399,6 +399,7 @@ class SSEBroker:
 
 
 sse_broker = SSEBroker()
+mqtt_ingestion._sse_broker = sse_broker
 
 
 @app.route('/tank-updates')

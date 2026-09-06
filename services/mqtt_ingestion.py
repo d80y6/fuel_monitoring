@@ -163,12 +163,14 @@ class MqttIngestionService:
         ca_cert: str = None,
         client_cert: str = None,
         client_key: str = None,
+        sse_broker=None,
     ):
         self.app = app
         self.broker = broker
         self.port = port
         self.username = username
         self.password = password
+        self._sse_broker = sse_broker
 
         # TLS
         self._ca_cert = ca_cert or app.config.get("MQTT_CA_CERT")
@@ -486,9 +488,27 @@ class MqttIngestionService:
             except Exception as exc:
                 db.session.rollback()
                 logger.error("Batch flush failed: %s", exc)
-                # Re-queue failed measurements
                 with self._batch_lock:
                     self._batch_buffer = to_flush + self._batch_buffer
+                return
+
+        if self._sse_broker:
+            for m in to_flush:
+                try:
+                    self._sse_broker.publish(m.tank_id, {
+                        'event': 'measurement',
+                        'tank_id': m.tank_id,
+                        'timestamp': m.timestamp.isoformat() if m.timestamp else None,
+                        'pressure': m.pressure,
+                        'temperature': m.temperature,
+                        'level': m.level,
+                        'volume': m.volume,
+                        'flow_rate': m.flow_rate,
+                        'fill_percent': m.fill_percent,
+                        'status': m.status,
+                    })
+                except Exception as exc:
+                    logger.warning("SSE publish failed for tank %s: %s", m.tank_id, exc)
 
     # ------------------------------------------------------------------
     # Tank lookup
