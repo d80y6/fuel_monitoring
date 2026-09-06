@@ -1,133 +1,142 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 
 {% block title %}Manage User Access - {{ user.username }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Manage Access for {{ user.username }}</h1>
-        <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Back to Users
+<div class="flex flex-col space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">Manage Access for {{ user.username }}</h1>
+        <a href="{{ url_for('admin.users') }}" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
+            <i data-lucide="arrow-left" class="h-4 w-4 mr-2"></i> Back to Users
         </a>
     </div>
     
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">User Information</h5>
+    <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold flex items-center">
+                <i data-lucide="user" class="h-5 w-5 mr-2 text-primary-500"></i> User Information
+            </h2>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <table class="table">
-                        <tr>
-                            <th>Username:</th>
-                            <td>{{ user.username }}</td>
-                        </tr>
-                        <tr>
-                            <th>Email:</th>
-                            <td>{{ user.email }}</td>
-                        </tr>
-                        <tr>
-                            <th>Full Name:</th>
-                            <td>{{ user.get_full_name() }}</td>
-                        </tr>
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <table class="min-w-full text-sm">
+                        <tbody class="divide-y divide-gray-200">
+                            <tr>
+                                <td class="py-2 font-medium text-gray-900 w-1/3">Username:</td>
+                                <td class="py-2 text-gray-600">{{ user.username }}</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 font-medium text-gray-900">Email:</td>
+                                <td class="py-2 text-gray-600">{{ user.email }}</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 font-medium text-gray-900">Full Name:</td>
+                                <td class="py-2 text-gray-600">{{ user.get_full_name() }}</td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
-                <div class="col-md-6">
-                    <table class="table">
-                        <tr>
-                            <th>Role:</th>
-                            <td>{{ user.role|title }}</td>
-                        </tr>
-                        <tr>
-                            <th>Created:</th>
-                            <td>{{ user.created_at.strftime('%Y-%m-%d') }}</td>
-                        </tr>
-                        <tr>
-                            <th>Last Login:</th>
-                            <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else 'Never' }}</td>
-                        </tr>
+                <div>
+                    <table class="min-w-full text-sm">
+                        <tbody class="divide-y divide-gray-200">
+                            <tr>
+                                <td class="py-2 font-medium text-gray-900 w-1/3">Role:</td>
+                                <td class="py-2 text-gray-600">{{ user.role|title }}</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 font-medium text-gray-900">Created:</td>
+                                <td class="py-2 text-gray-600">{{ user.created_at.strftime('%Y-%m-%d') }}</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 font-medium text-gray-900">Last Login:</td>
+                                <td class="py-2 text-gray-600">{{ user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else 'Never' }}</td>
+                            </tr>
+                        </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
     
-    <div class="row mt-4">
-        <div class="col-12">
-            <form method="post" action="{{ url_for('admin.user_access', user_id=user.id) }}">
-                <input type="hidden" name="csrf_token" value="">
+    <form method="post" action="{{ url_for('admin.user_access', user_id=user.id) }}">
+        <input type="hidden" name="csrf_token" value="">
+        
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold flex items-center">
+                    <i data-lucide="building-2" class="h-5 w-5 mr-2 text-primary-500"></i> Company Access
+                </h2>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-500 mb-4">Select the companies this user should have access to:</p>
                 
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Company Access</h5>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for company in companies %}
+                    <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                        <input type="checkbox" name="companies" value="{{ company.id }}" 
+                               id="company-{{ company.id }}" 
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                               {% if company in user.companies %}checked{% endif %}>
+                        <label class="ml-3 text-sm text-gray-700" for="company-{{ company.id }}">
+                            {{ company.name }}
+                        </label>
                     </div>
-                    <div class="card-body">
-                        <p class="text-muted">Select the companies this user should have access to:</p>
-                        
-                        <div class="row">
-                            {% for company in companies %}
-                            <div class="col-md-4 mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="companies" value="{{ company.id }}" 
-                                           id="company-{{ company.id }}" {% if company in user.companies %}checked{% endif %}>
-                                    <label class="form-check-label" for="company-{{ company.id }}">
-                                        {{ company.name }}
-                                    </label>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
+                    {% endfor %}
                 </div>
-                
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Site Access</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted">Select the specific sites this user should have access to:</p>
-                        
-                        <div class="row">
-                            {% for site in sites %}
-                            <div class="col-md-4 mb-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" name="sites" value="{{ site.id }}" 
-                                           id="site-{{ site.id }}" {% if site in user.sites %}checked{% endif %}>
-                                    <label class="form-check-label" for="site-{{ site.id }}">
-                                        {{ site.name }} ({{ site.company.name }})
-                                    </label>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="d-flex justify-content-end">
-                    <button type="button" class="btn btn-secondary me-2" onclick="history.back()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Access Settings</button>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
+        
+        <div class="bg-white rounded-lg shadow-md overflow-hidden mt-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold flex items-center">
+                    <i data-lucide="map-pin" class="h-5 w-5 mr-2 text-primary-500"></i> Site Access
+                </h2>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-500 mb-4">Select the specific sites this user should have access to:</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for site in sites %}
+                    <div class="flex items-center p-3 bg-gray-50 rounded-lg site-item" data-company-id="{{ site.company.id }}">
+                        <input type="checkbox" name="sites" value="{{ site.id }}" 
+                               id="site-{{ site.id }}" 
+                               class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                               {% if site in user.sites %}checked{% endif %}>
+                        <label class="ml-3 text-sm text-gray-700" for="site-{{ site.id }}">
+                            {{ site.name }} ({{ site.company.name }})
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3 mt-6">
+            <button type="button" onclick="history.back()" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                Cancel
+            </button>
+            <button type="submit" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                Save Access Settings
+            </button>
+        </div>
+    </form>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-$(document).ready(function() {
+document.addEventListener('DOMContentLoaded', function() {
     // When a company is selected/deselected, toggle its sites
-    $('input[name="companies"]').change(function() {
-        const companyId = $(this).val();
-        const isChecked = $(this).prop('checked');
-        
-        // Find all sites belonging to this company
-        $('input[name="sites"]').each(function() {
-            const siteLabel = $(this).next('label').text();
-            if (siteLabel.includes(`(Company ${companyId})`)) {
-                $(this).prop('checked', isChecked);
-            }
+    document.querySelectorAll('input[name="companies"]').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const companyId = this.value;
+            const isChecked = this.checked;
+            
+            // Find all sites belonging to this company and toggle their checked state
+            document.querySelectorAll('.site-item[data-company-id="' + companyId + '"] input[type="checkbox"]').forEach(siteCheckbox => {
+                siteCheckbox.checked = isChecked;
+            });
         });
     });
 });
