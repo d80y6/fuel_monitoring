@@ -1,57 +1,52 @@
-{% extends "base.html" %}
-
-{% block title %}Home - Fuel Tank Monitoring System{% endblock %}
-
-{% block content %}
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            <div class="jumbotron text-center">
-                <h1 class="display-4">Fuel Tank Monitoring System</h1>
-                <p class="lead">Real-time monitoring of fuel levels, volume, and flow rates</p>
-                <hr class="my-4">
-                <p>Monitor your fuel tanks from anywhere with our advanced monitoring system.</p>
-                {% if current_user.is_authenticated %}
-                <a class="btn btn-primary btn-lg" href="{{ url_for('dashboard') }}" role="button">
-                    <i class="bi bi-speedometer2"></i> Go to Dashboard
-                </a>
-                {% else %}
-                <a class="btn btn-primary btn-lg" href="{{ url_for('auth.login') }}" role="button">
-                    <i class="bi bi-box-arrow-in-right"></i> Login
-                </a>
-                {% endif %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Monitoring Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between h-16 items-center">
+            <div class="flex items-center gap-2">
+                <i data-lucide="fuel" class="h-6 w-6 text-primary-600"></i>
+                <span class="font-bold text-lg">Fuel Monitor</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="{{ url_for('auth.login') }}" class="text-sm text-gray-600 hover:text-primary-600">Login</a>
+            </div>
+        </div>
+    </nav>
+    <div class="bg-gradient-to-br from-primary-600 to-primary-800 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold mb-6">Cloud Fuel Monitoring Platform</h1>
+            <p class="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">Real-time fuel level monitoring, consumption tracking, and intelligent alarms for your fuel storage infrastructure.</p>
+            <a href="{{ url_for('auth.login') }}" class="inline-flex items-center gap-2 bg-white text-primary-700 px-6 py-3 rounded-lg font-semibold hover:bg-primary-50 transition">
+                <i data-lucide="log-in" class="h-5 w-5"></i> Get Started
+            </a>
+        </div>
+    </div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="bg-white rounded-xl shadow-sm border p-6 text-center">
+                <div class="inline-flex items-center justify-center w-12 h-12 bg-primary-50 rounded-lg mb-4"><i data-lucide="gauge" class="h-6 w-6 text-primary-600"></i></div>
+                <h3 class="font-semibold text-lg mb-2">Real-time Monitoring</h3>
+                <p class="text-gray-500 text-sm">Live fuel level, temperature, and flow rate data streamed directly from IoT sensors.</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border p-6 text-center">
+                <div class="inline-flex items-center justify-center w-12 h-12 bg-green-50 rounded-lg mb-4"><i data-lucide="bell" class="h-6 w-6 text-green-600"></i></div>
+                <h3 class="font-semibold text-lg mb-2">Smart Alarms</h3>
+                <p class="text-gray-500 text-sm">Configurable thresholds with instant email notifications for critical conditions.</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border p-6 text-center">
+                <div class="inline-flex items-center justify-center w-12 h-12 bg-purple-50 rounded-lg mb-4"><i data-lucide="bar-chart-3" class="h-6 w-6 text-purple-600"></i></div>
+                <h3 class="font-semibold text-lg mb-2">Analytics & Reports</h3>
+                <p class="text-gray-500 text-sm">Consumption forecasting, historical trends, and exportable reports.</p>
             </div>
         </div>
     </div>
-
-    <div class="row mt-5">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <i class="bi bi-graph-up text-primary" style="font-size: 3rem;"></i>
-                    <h5 class="card-title mt-3">Real-time Monitoring</h5>
-                    <p class="card-text">Monitor your fuel tanks in real-time with accurate measurements and visualizations.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <i class="bi bi-bell text-warning" style="font-size: 3rem;"></i>
-                    <h5 class="card-title mt-3">Alerts & Notifications</h5>
-                    <p class="card-text">Receive alerts when fuel levels are low or when abnormal conditions are detected.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <i class="bi bi-file-earmark-text text-success" style="font-size: 3rem;"></i>
-                    <h5 class="card-title mt-3">Historical Data</h5>
-                    <p class="card-text">Access historical data and generate reports for analysis and planning.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
+    <script>lucide.createIcons();</script>
+</body>
+</html>
