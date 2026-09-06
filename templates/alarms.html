@@ -1,336 +1,78 @@
 {% extends "base.html" %}
-
-{% block title %}Alarms{% endblock %}
-
-{% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/alarms.css') }}">
-<style>
-    /* Responsive styles */
-    @media (max-width: 767.98px) {
-        .card-header .btn {
-            margin-top: 0.5rem;
-        }
-        
-        .filter-label {
-            font-size: 0.9rem;
-        }
-        
-        .table th, .table td {
-            font-size: 0.9rem;
-        }
-        
-        .badge {
-            white-space: normal;
-            text-align: left;
-        }
-    }
-    
-    /* Ensure table is responsive */
-    .table-responsive {
-        margin-bottom: 0;
-    }
-    
-    /* Add hover effect to table rows */
-    .table-hover tr:hover {
-        background-color: rgba(0,0,0,0.03);
-    }
-    
-    /* Make sure action buttons are properly sized */
-    .btn-sm {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
-    }
-    
-    /* Ensure consistent spacing */
-    .card {
-        margin-bottom: 1.5rem;
-    }
-    
-    /* Improve filter form layout */
-    .filter-form-container {
-        margin-bottom: 1rem;
-    }
-</style>
-{% endblock %}
-
+{% block title %}Alarms - Fuel Monitor{% endblock %}
 {% block content %}
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <h1 class="h2 d-flex align-items-center">
-                Alarms
-                {% if active_alarms_count > 0 %}
-                <span class="badge bg-danger ms-2">{{ active_alarms_count }}</span>
-                {% endif %}
-            </h1>
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">Alarms</h1>
+        <div class="flex items-center gap-2">
+            <button onclick="exportAlarmsCSV()" class="px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-gray-50 transition">Export CSV</button>
         </div>
     </div>
-
-    <!-- Filters -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
-                    <h5 class="mb-0">Filters</h5>
-                    <button class="btn btn-sm btn-outline-secondary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false">
-                        <i class="fas fa-filter me-1"></i>Toggle Filters
-                    </button>
-                </div>
-                <div class="card-body collapse d-md-block" id="filterCollapse">
-                    <form id="filter-form" method="GET" action="{{ url_for('alarms') }}" class="filter-form-container">
-                        <div class="row g-3">
-                            <div class="col-12 col-sm-6 col-md-3">
-                                <div class="form-group">
-                                    <label for="acknowledged" class="filter-label">Status:</label>
-                                    <select id="acknowledged" name="acknowledged" class="form-select">
-                                        <option value="false" {% if acknowledged == 'false' %}selected{% endif %}>Active</option>
-                                        <option value="true" {% if acknowledged == 'true' %}selected{% endif %}>Acknowledged</option>
-                                        <option value="all" {% if acknowledged == 'all' %}selected{% endif %}>All</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-3">
-                                <div class="form-group">
-                                    <label for="level" class="filter-label">Severity:</label>
-                                    <select id="level" name="level" class="form-select">
-                                        <option value="all" {% if level == 'all' %}selected{% endif %}>All</option>
-                                        <option value="info" {% if level == 'info' %}selected{% endif %}>Info</option>
-                                        <option value="warning" {% if level == 'warning' %}selected{% endif %}>Warning</option>
-                                        <option value="danger" {% if level == 'danger' %}selected{% endif %}>Danger</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-3">
-                                <div class="form-group">
-                                    <label for="tank_id" class="filter-label">Tank:</label>
-                                    <select id="tank_id" name="tank_id" class="form-select">
-                                        <option value="all">All Tanks</option>
-                                        {% for tank in get_accessible_tanks() %}
-                                        <option value="{{ tank.id }}" {% if request.args.get('tank_id')|int == tank.id %}selected{% endif %}>{{ tank.name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-12 col-sm-6 col-md-3">
-                                <div class="form-group">
-                                    <label for="date_range" class="filter-label">Date Range:</label>
-                                    <select id="date_range" name="date_range" class="form-select">
-                                        <option value="24h" {% if request.args.get('date_range') == '24h' %}selected{% endif %}>Last 24 Hours</option>
-                                        <option value="7d" {% if request.args.get('date_range') == '7d' %}selected{% endif %}>Last 7 Days</option>
-                                        <option value="30d" {% if request.args.get('date_range') == '30d' or not request.args.get('date_range') %}selected{% endif %}>Last 30 Days</option>
-                                        <option value="all" {% if request.args.get('date_range') == 'all' %}selected{% endif %}>All Time</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-filter me-1"></i>Apply Filters
-                                </button>
-                                <a href="{{ url_for('alarms') }}" class="btn btn-outline-secondary ms-2">
-                                    <i class="fas fa-times me-1"></i>Clear Filters
-                                </a>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
+    <div class="bg-white rounded-xl shadow-sm border p-5">
+        <div class="flex flex-wrap items-center gap-4 mb-4">
+            <select id="filter-level" class="px-3 py-1.5 text-sm rounded-lg border border-gray-300" onchange="loadAlarms()">
+                <option value="">All Levels</option>
+                <option value="critical">Critical</option>
+                <option value="warning">Warning</option>
+                <option value="info">Info</option>
+            </select>
+            <select id="filter-status" class="px-3 py-1.5 text-sm rounded-lg border border-gray-300" onchange="loadAlarms()">
+                <option value="">All Status</option>
+                <option value="unacknowledged">Unacknowledged</option>
+                <option value="acknowledged">Acknowledged</option>
+            </select>
         </div>
-    </div>
-
-    <!-- Alarms Table -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <h5 class="mb-0">Alarms</h5>
-                    <div>
-                        <button id="acknowledge-all-btn" class="btn btn-outline-primary btn-sm" {% if not alarms or acknowledged == 'true' %}disabled{% endif %}>
-                            <i class="fas fa-check-double me-1"></i>Acknowledge All
-                        </button>
-                        <button id="export-csv-btn" class="btn btn-outline-success btn-sm ms-2">
-                            <i class="fas fa-download me-1"></i>Export CSV
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    {% if alarms %}
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead>
-                                <tr>
-                                    <th class="d-none d-md-table-cell">Time</th>
-                                    <th>Tank</th>
-                                    <th>Type</th>
-                                    <th class="d-none d-lg-table-cell">Message</th>
-                                    <th class="d-none d-md-table-cell">Value</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for alarm in alarms %}
-                                <tr>
-                                    <td class="d-none d-md-table-cell text-nowrap">{{ alarm.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                                    <td>
-                                        <a href="{{ url_for('tank_detail', tank_id=alarm.tank_id) }}" class="text-truncate d-inline-block" style="max-width: 120px;" title="{{ alarm.tank.name }}">
-                                            {{ alarm.tank.name }}
-                                        </a>
-                                        <div class="d-md-none small text-muted">
-                                            {{ alarm.timestamp.strftime('%Y-%m-%d %H:%M') }}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {% if alarm.type == 'low_level' %}
-                                        <span class="badge bg-warning">Low Level</span>
-                                        {% elif alarm.type == 'critical_level' %}
-                                        <span class="badge bg-danger">Critical Level</span>
-                                        {% elif alarm.type == 'high_level' %}
-                                        <span class="badge bg-primary">High Level</span>
-                                        {% elif alarm.type == 'sensor_error' %}
-                                        <span class="badge bg-danger">Sensor Error</span>
-                                        {% else %}
-                                        <span class="badge bg-secondary">{{ alarm.type }}</span>
-                                        {% endif %}
-                                        <div class="d-lg-none small mt-1">
-                                            {{ alarm.message }}
-                                        </div>
-                                    </td>
-                                    <td class="d-none d-lg-table-cell">{{ alarm.message }}</td>
-                                    <td class="d-none d-md-table-cell">{{ alarm.value }}</td>
-                                    <td>
-                                        {% if alarm.acknowledged %}
-                                        <span class="badge bg-success">Acknowledged</span>
-                                        {% else %}
-                                        <span class="badge bg-danger">Active</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if not alarm.acknowledged %}
-                                        <form method="POST" action="{{ url_for('acknowledge_alarm', alarm_id=alarm.id) }}" class="d-inline">
-                                            <button type="submit" class="btn btn-sm btn-outline-success">
-                                                <i class="fas fa-check me-1 d-none d-sm-inline"></i>Ack
-                                            </button>
-                                        </form>
-                                        {% else %}
-                                        <span class="text-muted small d-none d-lg-inline">
-                                            Acknowledged by {{ alarm.acknowledged_by_user.username if alarm.acknowledged_by_user else 'Unknown' }}
-                                            at {{ alarm.acknowledged_at.strftime('%Y-%m-%d %H:%M:%S') if alarm.acknowledged_at else 'Unknown' }}
-                                        </span>
-                                        <span class="text-muted small d-lg-none">
-                                            By: {{ alarm.acknowledged_by_user.username if alarm.acknowledged_by_user else 'Unknown' }}
-                                        </span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>No alarms found matching the current filters.
-                    </div>
-                    {% endif %}
-                </div>
-                {% if alarms %}
-                <div class="card-footer">
-                    <nav aria-label="Alarms pagination">
-                        <ul class="pagination pagination-sm flex-wrap justify-content-center">
-                            <!-- Pagination would go here -->
-                            <li class="page-item disabled">
-                                <a class="page-link" href="#" tabindex="-1">Previous</a>
-                            </li>
-                            <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                            <li class="page-item"><a class="page-link" href="#">2</a></li>
-                            <li class="page-item"><a class="page-link" href="#">3</a></li>
-                            <li class="page-item">
-                                <a class="page-link" href="#">Next</a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
-                {% endif %}
-            </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead><tr class="border-b border-gray-200 text-left text-gray-500">
+                    <th class="pb-2 font-medium">Tank</th>
+                    <th class="pb-2 font-medium">Type</th>
+                    <th class="pb-2 font-medium">Level</th>
+                    <th class="pb-2 font-medium">Value</th>
+                    <th class="pb-2 font-medium">Time</th>
+                    <th class="pb-2 font-medium">Status</th>
+                </tr></thead>
+                <tbody id="alarms-body" class="divide-y divide-gray-100"></tbody>
+            </table>
         </div>
+        <div id="pagination" class="flex items-center justify-between mt-4 text-sm"></div>
     </div>
 </div>
 {% endblock %}
-
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Auto-submit form when filters change
-    document.querySelectorAll('#filter-form select').forEach(select => {
-        select.addEventListener('change', function() {
-            document.getElementById('filter-form').submit();
+let currentPage = 1;
+async function loadAlarms(page = 1) {
+    currentPage = page;
+    const level = document.getElementById('filter-level').value;
+    const status = document.getElementById('filter-status').value;
+    let url = `/api/alarms?page=${page}&per_page=20`;
+    if (level) url += `&level=${level}`;
+    if (status === 'unacknowledged') url += '&acknowledged=0';
+    if (status === 'acknowledged') url += '&acknowledged=1';
+    try {
+        const resp = await fetch(url);
+        const data = await resp.json();
+        const tbody = document.getElementById('alarms-body');
+        tbody.innerHTML = '';
+        (data.alarms || []).forEach(a => {
+            const badge = a.level === 'critical' ? 'bg-red-100 text-red-800' : a.level === 'warning' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800';
+            tbody.innerHTML += `<tr class="hover:bg-gray-50">
+                <td class="py-2">${a.tank_name||''}</td>
+                <td class="py-2"><span class="px-2 py-0.5 rounded text-xs font-medium ${badge}">${a.type||''}</span></td>
+                <td class="py-2 capitalize">${a.level||''}</td>
+                <td class="py-2">${a.value||''}</td>
+                <td class="py-2 text-gray-500">${a.timestamp ? new Date(a.timestamp).toLocaleString() : ''}</td>
+                <td class="py-2">${a.acknowledged ? '<span class="text-green-600">Acked</span>' : '<span class="text-red-600">Active</span>'}</td>
+            </tr>`;
         });
-    });
-    
-    // Acknowledge all button
-    document.getElementById('acknowledge-all-btn').addEventListener('click', function() {
-        if (confirm('Are you sure you want to acknowledge all active alarms?')) {
-            // Create a form to submit
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/alarms/acknowledge-all';
-            document.body.appendChild(form);
-            form.submit();
-        }
-    });
-    
-    // Export CSV button
-    document.getElementById('export-csv-btn').addEventListener('click', function() {
-        // Get current filter parameters
-        const acknowledged = document.getElementById('acknowledged').value;
-        const level = document.getElementById('level').value;
-        const tankId = document.getElementById('tank_id').value;
-        const dateRange = document.getElementById('date_range').value;
-        
-        // Build URL with current filters
-        let url = '/alarms/export-csv?';
-        url += `acknowledged=${acknowledged}`;
-        url += `&level=${level}`;
-        url += `&tank_id=${tankId}`;
-        url += `&date_range=${dateRange}`;
-        
-        // Redirect to download URL
-        window.location.href = url;
-    });
-    
-    // Highlight active alarms
-    document.querySelectorAll('tr').forEach(row => {
-        const statusCell = row.querySelector('td:nth-child(6)');
-        if (statusCell && statusCell.textContent.trim() === 'Active') {
-            row.classList.add('table-danger');
-        }
-    });
-    
-    // Add responsive behavior for filter collapse
-    const filterToggle = document.querySelector('[data-bs-toggle="collapse"]');
-    if (filterToggle) {
-        filterToggle.addEventListener('click', function() {
-            const target = document.querySelector(this.getAttribute('data-bs-target'));
-            if (target) {
-                if (target.classList.contains('show') || target.classList.contains('collapsing')) {
-                    target.classList.remove('show');
-                    target.classList.add('collapse');
-                } else {
-                    target.classList.add('show');
-                }
-            }
-        });
-    }
-    
-    // Ensure table is responsive on window resize
-    window.addEventListener('resize', function() {
-        const tableContainer = document.querySelector('.table-responsive');
-        if (tableContainer) {
-            tableContainer.style.width = '100%';
-        }
-    });
-});
+        const total = data.total || 0;
+        const pages = Math.ceil(total / 20);
+        const pag = document.getElementById('pagination');
+        pag.innerHTML = `<span class="text-gray-500">Showing ${(page-1)*20+1}-${Math.min(page*20,total)} of ${total}</span><div class="flex gap-2">${page > 1 ? `<button onclick="loadAlarms(${page-1})" class="px-3 py-1 rounded border hover:bg-gray-50">Prev</button>` : ''}${page < pages ? `<button onclick="loadAlarms(${page+1})" class="px-3 py-1 rounded border hover:bg-gray-50">Next</button>` : ''}</div>`;
+    } catch(e) { console.error('Load failed:', e); }
+}
+function exportAlarmsCSV() { window.open('/api/alarms?format=csv', '_blank'); }
+document.addEventListener('DOMContentLoaded', () => { lucide.createIcons(); loadAlarms(); });
 </script>
 {% endblock %}
