@@ -3,916 +3,558 @@
 {% block title %}Admin Dashboard - Fuel Tank Monitoring System{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="bi bi-speedometer2"></i> Admin Dashboard</h1>
-        <div>
-            <button class="btn btn-outline-primary me-2" id="refresh-dashboard">
-                <i class="bi bi-arrow-clockwise"></i> Refresh
+<div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold flex items-center gap-2">
+            <i data-lucide="gauge" class="h-6 w-6 text-primary-600"></i> Admin Dashboard
+        </h1>
+        <div class="flex items-center gap-2">
+            <button class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 transition" id="refresh-dashboard">
+                <i data-lucide="refresh-cw" class="h-4 w-4"></i> Refresh
             </button>
-            <div class="btn-group">
-                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-gear"></i> Actions
+            <div class="relative" id="actions-dropdown-wrap">
+                <button class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700 transition" id="actions-dropdown-btn">
+                    <i data-lucide="settings" class="h-4 w-4"></i> Actions
+                    <i data-lucide="chevron-down" class="h-4 w-4"></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="{{ url_for('admin.backup_database') }}"><i class="bi bi-database-fill-check"></i> Backup Database</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('admin.start_all_monitoring') }}"><i class="bi bi-play-circle"></i> Start All Monitoring</a></li>
-                    <li><a class="dropdown-item" href="{{ url_for('admin.stop_all_monitoring') }}"><i class="bi bi-stop-circle"></i> Stop All Monitoring</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="#" id="reset-all-stats"><i class="bi bi-arrow-counterclockwise"></i> Reset All Statistics</a></li>
-                </ul>
-            </div>
-        </div>
-    </div>
-    
-    <!-- System Overview Cards -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase text-primary fw-bold">Users</h6>
-                            <h2 class="mb-0 fw-bold">{{ user_count }}</h2>
-                        </div>
-                        <i class="bi bi-people-fill fs-1 text-primary opacity-50"></i>
-                    </div>
-                    <div class="mt-3">
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-primary" role="progressbar" style="width: 100%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between bg-light">
-                    <a href="{{ url_for('admin.users') }}" class="text-primary text-decoration-none small">View Details</a>
-                    <div class="small text-primary"><i class="bi bi-arrow-right"></i></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase text-success fw-bold">Companies</h6>
-                            <h2 class="mb-0 fw-bold">{{ company_count }}</h2>
-                        </div>
-                        <i class="bi bi-building fs-1 text-success opacity-50"></i>
-                    </div>
-                    <div class="mt-3">
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between bg-light">
-                    <a href="{{ url_for('admin.companies') }}" class="text-success text-decoration-none small">View Details</a>
-                    <div class="small text-success"><i class="bi bi-arrow-right"></i></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase text-info fw-bold">Sites</h6>
-                            <h2 class="mb-0 fw-bold">{{ site_count }}</h2>
-                        </div>
-                        <i class="bi bi-geo-alt-fill fs-1 text-info opacity-50"></i>
-                    </div>
-                    <div class="mt-3">
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-info" role="progressbar" style="width: 100%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between bg-light">
-                    <a href="{{ url_for('admin.sites') }}" class="text-info text-decoration-none small">View Details</a>
-                    <div class="small text-info"><i class="bi bi-arrow-right"></i></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase text-warning fw-bold">Tanks</h6>
-                            <h2 class="mb-0 fw-bold">{{ tank_count }}</h2>
-                        </div>
-                        <i class="bi bi-fuel-pump fs-1 text-warning opacity-50"></i>
-                    </div>
-                    <div class="mt-3">
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-warning" role="progressbar" style="width: 100%"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card-footer d-flex align-items-center justify-content-between bg-light">
-                    <a href="{{ url_for('admin.tanks_index') }}" class="text-warning text-decoration-none small">View Details</a>
-                    <div class="small text-warning"><i class="bi bi-arrow-right"></i></div>
+                <div id="actions-dropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+                    <a href="{{ url_for('admin.backup_database') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <i data-lucide="database" class="h-4 w-4"></i> Backup Database
+                    </a>
+                    <a href="{{ url_for('admin.start_all_monitoring') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <i data-lucide="play-circle" class="h-4 w-4"></i> Start All Monitoring
+                    </a>
+                    <a href="{{ url_for('admin.stop_all_monitoring') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        <i data-lucide="stop-circle" class="h-4 w-4"></i> Stop All Monitoring
+                    </a>
+                    <hr class="border-gray-200">
+                    <a href="#" class="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50" id="reset-all-stats">
+                        <i data-lucide="rotate-ccw" class="h-4 w-4"></i> Reset All Statistics
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-danger shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase text-danger fw-bold">Active Alarms</h6>
-                            <h2 class="mb-0 fw-bold">{{ alarm_count }}</h2>
-                        </div>
-                        <i class="bi bi-bell-fill fs-1 text-danger opacity-50"></i>
-                    </div>
-                    <div class="mt-3">
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-danger" role="progressbar" style="width: 100%"></div>
-                        </div>
-                    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-sm border-l-4 border-primary-500 p-5 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Users</p>
+                    <p class="text-2xl font-bold mt-1">{{ user_count }}</p>
                 </div>
-                <div class="card-footer d-flex align-items-center justify-content-between bg-light">
-                    <a href="{{ url_for('admin.alarms_index') }}" class="text-danger text-decoration-none small">View Details</a>
-                    <div class="small text-danger"><i class="bi bi-arrow-right"></i></div>
-                </div>
+                <i data-lucide="users" class="h-10 w-10 text-primary-400 opacity-60"></i>
+            </div>
+            <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-primary-500 rounded-full" style="width:100%"></div>
+            </div>
+            <div class="mt-3">
+                <a href="{{ url_for('admin.users') }}" class="text-xs text-primary-600 hover:underline flex items-center gap-1">
+                    View Details <i data-lucide="arrow-right" class="h-3 w-3"></i>
+                </a>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase text-primary fw-bold">Connected Tanks</h6>
-                            <h2 class="mb-0 fw-bold">{{ connected_tank_count }}</h2>
-                        </div>
-                        <i class="bi bi-wifi fs-1 text-primary opacity-50"></i>
-                    </div>
-                    <div class="mt-3">
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-primary" role="progressbar" 
-                                 style="width: {{ (connected_tank_count / tank_count * 100) if tank_count > 0 else 0 }}%"></div>
-                        </div>
-                    </div>
+
+        <div class="bg-white rounded-lg shadow-sm border-l-4 border-emerald-500 p-5 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Companies</p>
+                    <p class="text-2xl font-bold mt-1">{{ company_count }}</p>
                 </div>
-                <div class="card-footer d-flex align-items-center justify-content-between bg-light">
-                    <span class="text-primary text-decoration-none small">{{ (connected_tank_count / tank_count * 100)|round|int if tank_count > 0 else 0 }}% Connected</span>
-                    <div class="small text-primary"><i class="bi bi-lightning-charge"></i></div>
-                </div>
+                <i data-lucide="building-2" class="h-10 w-10 text-emerald-400 opacity-60"></i>
+            </div>
+            <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-500 rounded-full" style="width:100%"></div>
+            </div>
+            <div class="mt-3">
+                <a href="{{ url_for('admin.companies') }}" class="text-xs text-emerald-600 hover:underline flex items-center gap-1">
+                    View Details <i data-lucide="arrow-right" class="h-3 w-3"></i>
+                </a>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-secondary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase text-secondary fw-bold">Disconnected Tanks</h6>
-                            <h2 class="mb-0 fw-bold">{{ tank_count - connected_tank_count }}</h2>
-                        </div>
-                        <i class="bi bi-wifi-off fs-1 text-secondary opacity-50"></i>
-                    </div>
-                    <div class="mt-3">
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-secondary" role="progressbar" 
-                                 style="width: {{ ((tank_count - connected_tank_count) / tank_count * 100) if tank_count > 0 else 0 }}%"></div>
-                        </div>
-                    </div>
+
+        <div class="bg-white rounded-lg shadow-sm border-l-4 border-cyan-500 p-5 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Sites</p>
+                    <p class="text-2xl font-bold mt-1">{{ site_count }}</p>
                 </div>
-                <div class="card-footer d-flex align-items-center justify-content-between bg-light">
-                    <span class="text-secondary text-decoration-none small">{{ ((tank_count - connected_tank_count) / tank_count * 100)|round|int if tank_count > 0 else 0 }}% Disconnected</span>
-                    <div class="small text-secondary"><i class="bi bi-x-circle"></i></div>
-                </div>
+                <i data-lucide="map-pin" class="h-10 w-10 text-cyan-400 opacity-60"></i>
+            </div>
+            <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-cyan-500 rounded-full" style="width:100%"></div>
+            </div>
+            <div class="mt-3">
+                <a href="{{ url_for('admin.sites') }}" class="text-xs text-cyan-600 hover:underline flex items-center gap-1">
+                    View Details <i data-lucide="arrow-right" class="h-3 w-3"></i>
+                </a>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase text-success fw-bold">System Status</h6>
-                            <h2 class="mb-0 fw-bold">Online</h2>
-                        </div>
-                        <i class="bi bi-check-circle-fill fs-1 text-success opacity-50"></i>
-                    </div>
-                    <div class="mt-3">
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
-                        </div>
-                    </div>
+
+        <div class="bg-white rounded-lg shadow-sm border-l-4 border-amber-500 p-5 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tanks</p>
+                    <p class="text-2xl font-bold mt-1">{{ tank_count }}</p>
                 </div>
-                <div class="card-footer d-flex align-items-center justify-content-between bg-light">
-                    <span class="text-success text-decoration-none small">All Systems Operational</span>
-                    <div class="small text-success"><i class="bi bi-heart-pulse"></i></div>
-                </div>
+                <i data-lucide="fuel" class="h-10 w-10 text-amber-400 opacity-60"></i>
+            </div>
+            <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-amber-500 rounded-full" style="width:100%"></div>
+            </div>
+            <div class="mt-3">
+                <a href="{{ url_for('admin.tanks_index') }}" class="text-xs text-amber-600 hover:underline flex items-center gap-1">
+                    View Details <i data-lucide="arrow-right" class="h-3 w-3"></i>
+                </a>
             </div>
         </div>
     </div>
-    
-    <!-- System Status and Alarms -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-info-circle"></i> System Information</h5>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-sm border-l-4 border-red-500 p-5 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Alarms</p>
+                    <p class="text-2xl font-bold mt-1">{{ alarm_count }}</p>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card mb-3 bg-light">
-                                <div class="card-body p-3">
-                                    <h6 class="card-title text-muted mb-3">System Details</h6>
-                                    <table class="table table-sm table-borderless mb-0">
-                                        <tr>
-                                            <th class="text-muted">System Version:</th>
-                                            <td class="text-end">{{ system_version }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th class="text-muted">Server Time:</th>
-                                            <td class="text-end" id="server-time">{{ server_time }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th class="text-muted">Database Size:</th>
-                                            <td class="text-end">{{ db_size }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th class="text-muted">Uptime:</th>
-                                            <td class="text-end" id="uptime">Calculating...</td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card mb-3 bg-light">
-                                <div class="card-body p-3">
-                                    <h6 class="card-title text-muted mb-3">Monitoring Status</h6>
-                                    <table class="table table-sm table-borderless mb-0">
-                                        <tr>
-                                            <th class="text-muted">Active Alarms:</th>
-                                            <td class="text-end">
-                                                <span class="badge bg-danger">{{ active_alarm_count }}</span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th class="text-muted">Connected Tanks:</th>
-                                            <td class="text-end">
-                                                <span class="badge bg-success">{{ connected_tank_count }}</span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th class="text-muted">Disconnected Tanks:</th>
-                                            <td class="text-end">
-                                                <span class="badge bg-secondary">{{ tank_count - connected_tank_count }}</span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th class="text-muted">Connection Rate:</th>
-                                            <td class="text-end">
-                                                <div class="progress" style="height: 6px;">
-                                                    <div class="progress-bar bg-success" role="progressbar" 
-                                                         style="width: {{ (connected_tank_count / tank_count * 100) if tank_count > 0 else 0 }}%"></div>
-                                                </div>
-                                                <small>{{ (connected_tank_count / tank_count * 100)|round|int if tank_count > 0 else 0 }}%</small>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
+                <i data-lucide="bell-ring" class="h-10 w-10 text-red-400 opacity-60"></i>
+            </div>
+            <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-red-500 rounded-full" style="width:100%"></div>
+            </div>
+            <div class="mt-3">
+                <a href="{{ url_for('admin.alarms_index') }}" class="text-xs text-red-600 hover:underline flex items-center gap-1">
+                    View Details <i data-lucide="arrow-right" class="h-3 w-3"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border-l-4 border-primary-500 p-5 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Connected Tanks</p>
+                    <p class="text-2xl font-bold mt-1">{{ connected_tank_count }}</p>
+                </div>
+                <i data-lucide="wifi" class="h-10 w-10 text-primary-400 opacity-60"></i>
+            </div>
+            <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-primary-500 rounded-full" style="width:{{ (connected_tank_count / tank_count * 100) if tank_count > 0 else 0 }}%"></div>
+            </div>
+            <div class="mt-3">
+                <span class="text-xs text-primary-600">{{ (connected_tank_count / tank_count * 100)|round|int if tank_count > 0 else 0 }}% Connected</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border-l-4 border-gray-400 p-5 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Disconnected Tanks</p>
+                    <p class="text-2xl font-bold mt-1">{{ tank_count - connected_tank_count }}</p>
+                </div>
+                <i data-lucide="wifi-off" class="h-10 w-10 text-gray-400 opacity-60"></i>
+            </div>
+            <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-gray-400 rounded-full" style="width:{{ ((tank_count - connected_tank_count) / tank_count * 100) if tank_count > 0 else 0 }}%"></div>
+            </div>
+            <div class="mt-3">
+                <span class="text-xs text-gray-500">{{ ((tank_count - connected_tank_count) / tank_count * 100)|round|int if tank_count > 0 else 0 }}% Disconnected</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border-l-4 border-emerald-500 p-5 hover:shadow-md transition">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">System Status</p>
+                    <p class="text-2xl font-bold mt-1">Online</p>
+                </div>
+                <i data-lucide="check-circle" class="h-10 w-10 text-emerald-400 opacity-60"></i>
+            </div>
+            <div class="mt-3 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-500 rounded-full" style="width:100%"></div>
+            </div>
+            <div class="mt-3">
+                <span class="text-xs text-emerald-600">All Systems Operational</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-lg shadow-sm">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h5 class="font-semibold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="info" class="h-5 w-5 text-primary-600"></i> System Information
+                </h5>
+            </div>
+            <div class="p-6 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h6 class="text-sm font-medium text-gray-500 mb-3">System Details</h6>
+                        <table class="w-full text-sm">
+                            <tr><td class="py-1 text-gray-500">System Version:</td><td class="py-1 text-right font-medium">{{ system_version }}</td></tr>
+                            <tr><td class="py-1 text-gray-500">Server Time:</td><td class="py-1 text-right font-medium" id="server-time">{{ server_time }}</td></tr>
+                            <tr><td class="py-1 text-gray-500">Database Size:</td><td class="py-1 text-right font-medium">{{ db_size }}</td></tr>
+                            <tr><td class="py-1 text-gray-500">Uptime:</td><td class="py-1 text-right font-medium" id="uptime">Calculating...</td></tr>
+                        </table>
                     </div>
-                    
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="card bg-light">
-                                <div class="card-body p-3">
-                                    <h6 class="card-title text-muted mb-3">System Resources</h6>
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <h6 class="text-center mb-2">CPU Usage</h6>
-                                            <div class="progress-circle mx-auto" id="cpu-usage" data-value="0">
-                                                <span class="progress-circle-left">
-                                                    <span class="progress-circle-bar border-primary"></span>
-                                                </span>
-                                                <span class="progress-circle-right">
-                                                    <span class="progress-circle-bar border-primary"></span>
-                                                </span>
-                                                <div class="progress-circle-value">
-                                                    <div class="h2 fw-bold">0<span class="small">%</span></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <h6 class="text-center mb-2">Memory Usage</h6>
-                                            <div class="progress-circle mx-auto" id="memory-usage" data-value="0">
-                                                <span class="progress-circle-left">
-                                                    <span class="progress-circle-bar border-success"></span>
-                                                </span>
-                                                <span class="progress-circle-right">
-                                                    <span class="progress-circle-bar border-success"></span>
-                                                </span>
-                                                <div class="progress-circle-value">
-                                                    <div class="h2 fw-bold">0<span class="small">%</span></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <h6 class="text-center mb-2">Disk Usage</h6>
-                                            <div class="progress-circle mx-auto" id="disk-usage" data-value="0">
-                                                <span class="progress-circle-left">
-                                                    <span class="progress-circle-bar border-warning"></span>
-                                                </span>
-                                                <span class="progress-circle-right">
-                                                    <span class="progress-circle-bar border-warning"></span>
-                                                </span>
-                                                <div class="progress-circle-value">
-                                                    <div class="h2 fw-bold">0<span class="small">%</span></div>
-                                                </div>
-                                            </div>
-                                        </div>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h6 class="text-sm font-medium text-gray-500 mb-3">Monitoring Status</h6>
+                        <table class="w-full text-sm">
+                            <tr>
+                                <td class="py-1 text-gray-500">Active Alarms:</td>
+                                <td class="py-1 text-right"><span class="inline-block px-2 py-0.5 text-xs font-semibold text-white bg-red-500 rounded-full">{{ active_alarm_count }}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-1 text-gray-500">Connected Tanks:</td>
+                                <td class="py-1 text-right"><span class="inline-block px-2 py-0.5 text-xs font-semibold text-white bg-emerald-500 rounded-full">{{ connected_tank_count }}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-1 text-gray-500">Disconnected Tanks:</td>
+                                <td class="py-1 text-right"><span class="inline-block px-2 py-0.5 text-xs font-semibold text-white bg-gray-400 rounded-full">{{ tank_count - connected_tank_count }}</span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-1 text-gray-500">Connection Rate:</td>
+                                <td class="py-1 text-right">
+                                    <div class="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                        <div class="h-full bg-emerald-500 rounded-full" style="width:{{ (connected_tank_count / tank_count * 100) if tank_count > 0 else 0 }}%"></div>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-danger fw-bold"><i class="bi bi-exclamation-triangle"></i> Active Alarms</h5>
-                </div>
-                <div class="card-body">
-                    {% if active_alarm_count > 0 %}
-                    <div class="list-group">
-                        {% for alarm in active_alarms %}
-                        <a href="{{ url_for('admin.alarms_index') }}" class="list-group-item list-group-item-action">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">{{ alarm.tank.name }}</h6>
-                                <small>{{ alarm.timestamp.strftime('%H:%M:%S') }}</small>
-                            </div>
-                            <p class="mb-1">{{ alarm.message }}</p>
-                            <small>
-                                {% if alarm.type == 'low_level' %}
-                                <span class="badge bg-warning">Low Level</span>
-                                {% elif alarm.type == 'critical_level' %}
-                                <span class="badge bg-danger">Critical Level</span>
-                                {% elif alarm.type == 'high_level' %}
-                                <span class="badge bg-warning">High Level</span>
-                                {% elif alarm.type == 'connection' %}
-                                <span class="badge bg-danger">Connection</span>
-                                {% else %}
-                                <span class="badge bg-secondary">{{ alarm.type }}</span>
-                                {% endif %}
-                            </small>
-                        </a>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="alert alert-success">
-                        <i class="bi bi-check-circle"></i> No active alarms.
-                    </div>
-                    {% endif %}
-                    <div class="d-grid gap-2 mt-3">
-                        <a href="{{ url_for('admin.alarms_index') }}" class="btn btn-outline-danger">View All Alarms</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Charts and Statistics -->
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-graph-up"></i> Tank Fill Levels</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="tankLevelsChart" height="300"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card shadow">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-success fw-bold"><i class="bi bi-bar-chart"></i> Daily Usage</h5>
-                </div>
-                <div class="card-body">
-                    <canvas id="dailyUsageChart" height="300"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Recent Activity and Quick Actions -->
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-info fw-bold"><i class="bi bi-activity"></i> Recent Activity</h5>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Time</th>
-                                    <th>User</th>
-                                    <th>Action</th>
-                                    <th>Details</th>
-                                </tr>
-                            </thead>
-                            <tbody id="activity-log">
-                                <!-- Activity log will be populated by JavaScript -->
-                                <tr>
-                                    <td colspan="4" class="text-center">Loading activity log...</td>
-                                </tr>
-                            </tbody>
+                                    <span class="text-xs text-gray-500">{{ (connected_tank_count / tank_count * 100)|round|int if tank_count > 0 else 0 }}%</span>
+                                </td>
+                            </tr>
                         </table>
                     </div>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 text-secondary fw-bold"><i class="bi bi-lightning"></i> Quick Actions</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="{{ url_for('admin.new_user') }}" class="btn btn-primary">
-                            <i class="bi bi-person-plus"></i> Add New User
-                        </a>
-                        <a href="{{ url_for('admin.create_company') }}" class="btn btn-success">
-                            <i class="bi bi-building-add"></i> Add New Company
-                        </a>
-                        <a href="{{ url_for('admin.create_site') }}" class="btn btn-info text-white">
-                            <i class="bi bi-geo-alt"></i> Add New Site
-                        </a>
-                        <a href="{{ url_for('admin.create_tank') }}" class="btn btn-warning text-white">
-                            <i class="bi bi-fuel-pump"></i> Add New Tank
-                        </a>
-                        <a href="{{ url_for('admin.alarms_index') }}" class="btn btn-danger">
-                            <i class="bi bi-bell"></i> Manage Alarms
-                        </a>
+
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h6 class="text-sm font-medium text-gray-500 mb-3">System Resources</h6>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <p class="text-sm font-medium text-gray-600 mb-2">CPU Usage</p>
+                            <div class="relative mx-auto w-28 h-28">
+                                <svg class="w-28 h-28 -rotate-90" viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="42" fill="none" stroke="#e5e7eb" stroke-width="8"/>
+                                    <circle id="cpu-circle" cx="50" cy="50" r="42" fill="none" stroke="#3b82f6" stroke-width="8" stroke-dasharray="0 264" stroke-linecap="round"/>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span id="cpu-usage" class="text-lg font-bold">0<span class="text-xs">%</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm font-medium text-gray-600 mb-2">Memory Usage</p>
+                            <div class="relative mx-auto w-28 h-28">
+                                <svg class="w-28 h-28 -rotate-90" viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="42" fill="none" stroke="#e5e7eb" stroke-width="8"/>
+                                    <circle id="memory-circle" cx="50" cy="50" r="42" fill="none" stroke="#10b981" stroke-width="8" stroke-dasharray="0 264" stroke-linecap="round"/>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span id="memory-usage" class="text-lg font-bold">0<span class="text-xs">%</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-sm font-medium text-gray-600 mb-2">Disk Usage</p>
+                            <div class="relative mx-auto w-28 h-28">
+                                <svg class="w-28 h-28 -rotate-90" viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="42" fill="none" stroke="#e5e7eb" stroke-width="8"/>
+                                    <circle id="disk-circle" cx="50" cy="50" r="42" fill="none" stroke="#f59e0b" stroke-width="8" stroke-dasharray="0 264" stroke-linecap="round"/>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span id="disk-usage" class="text-lg font-bold">0<span class="text-xs">%</span></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h5 class="font-semibold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="h-5 w-5 text-red-500"></i> Active Alarms
+                </h5>
+            </div>
+            <div class="p-6">
+                {% if active_alarm_count > 0 %}
+                <div class="space-y-3 max-h-96 overflow-y-auto">
+                    {% for alarm in active_alarms %}
+                    <a href="{{ url_for('admin.alarms_index') }}" class="block p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
+                        <div class="flex items-center justify-between">
+                            <h6 class="text-sm font-semibold text-gray-800">{{ alarm.tank.name }}</h6>
+                            <span class="text-xs text-gray-500">{{ alarm.timestamp.strftime('%H:%M:%S') }}</span>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-1">{{ alarm.message }}</p>
+                        <div class="mt-1">
+                            {% if alarm.type == 'low_level' %}
+                            <span class="inline-block px-2 py-0.5 text-xs font-semibold text-white bg-amber-500 rounded-full">Low Level</span>
+                            {% elif alarm.type == 'critical_level' %}
+                            <span class="inline-block px-2 py-0.5 text-xs font-semibold text-white bg-red-500 rounded-full">Critical Level</span>
+                            {% elif alarm.type == 'high_level' %}
+                            <span class="inline-block px-2 py-0.5 text-xs font-semibold text-white bg-amber-500 rounded-full">High Level</span>
+                            {% elif alarm.type == 'connection' %}
+                            <span class="inline-block px-2 py-0.5 text-xs font-semibold text-white bg-red-500 rounded-full">Connection</span>
+                            {% else %}
+                            <span class="inline-block px-2 py-0.5 text-xs font-semibold text-white bg-gray-400 rounded-full">{{ alarm.type }}</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="bg-emerald-50 text-emerald-700 rounded-lg p-4 flex items-center gap-2">
+                    <i data-lucide="check-circle" class="h-5 w-5"></i>
+                    <span class="text-sm">No active alarms.</span>
+                </div>
+                {% endif %}
+                <div class="mt-4">
+                    <a href="{{ url_for('admin.alarms_index') }}" class="block w-full text-center px-4 py-2 border border-red-300 text-red-600 rounded-md text-sm hover:bg-red-50 transition">View All Alarms</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-lg shadow-sm">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h5 class="font-semibold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="bar-chart-3" class="h-5 w-5 text-primary-600"></i> Tank Fill Levels
+                </h5>
+            </div>
+            <div class="p-6">
+                <div class="relative" style="height:300px"><canvas id="tankLevelsChart"></canvas></div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h5 class="font-semibold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="trending-up" class="h-5 w-5 text-emerald-600"></i> Daily Usage
+                </h5>
+            </div>
+            <div class="p-6">
+                <div class="relative" style="height:300px"><canvas id="dailyUsageChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-lg shadow-sm">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h5 class="font-semibold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="activity" class="h-5 w-5 text-cyan-600"></i> Recent Activity
+                </h5>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="text-left py-3 px-2 font-semibold text-gray-600">Time</th>
+                                <th class="text-left py-3 px-2 font-semibold text-gray-600">User</th>
+                                <th class="text-left py-3 px-2 font-semibold text-gray-600">Action</th>
+                                <th class="text-left py-3 px-2 font-semibold text-gray-600">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activity-log">
+                            <tr><td colspan="4" class="py-6 text-center text-gray-400">Loading activity log...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white rounded-lg shadow-sm">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h5 class="font-semibold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="zap" class="h-5 w-5 text-gray-600"></i> Quick Actions
+                </h5>
+            </div>
+            <div class="p-6 space-y-2">
+                <a href="{{ url_for('admin.new_user') }}" class="flex items-center gap-2 w-full px-4 py-2.5 bg-primary-600 text-white rounded-md text-sm hover:bg-primary-700 transition">
+                    <i data-lucide="user-plus" class="h-4 w-4"></i> Add New User
+                </a>
+                <a href="{{ url_for('admin.create_company') }}" class="flex items-center gap-2 w-full px-4 py-2.5 bg-emerald-600 text-white rounded-md text-sm hover:bg-emerald-700 transition">
+                    <i data-lucide="building" class="h-4 w-4"></i> Add New Company
+                </a>
+                <a href="{{ url_for('admin.create_site') }}" class="flex items-center gap-2 w-full px-4 py-2.5 bg-cyan-600 text-white rounded-md text-sm hover:bg-cyan-700 transition">
+                    <i data-lucide="map-pin" class="h-4 w-4"></i> Add New Site
+                </a>
+                <a href="{{ url_for('admin.create_tank') }}" class="flex items-center gap-2 w-full px-4 py-2.5 bg-amber-600 text-white rounded-md text-sm hover:bg-amber-700 transition">
+                    <i data-lucide="fuel" class="h-4 w-4"></i> Add New Tank
+                </a>
+                <a href="{{ url_for('admin.alarms_index') }}" class="flex items-center gap-2 w-full px-4 py-2.5 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 transition">
+                    <i data-lucide="bell" class="h-4 w-4"></i> Manage Alarms
+                </a>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block styles %}
-<style>
-/* Progress Circle Styles */
-.progress-circle {
-    position: relative;
-    height: 120px;
-    width: 120px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.progress-circle::before {
-    content: "";
-    position: absolute;
-    height: 84%;
-    width: 84%;
-    background-color: #fff;
-    border-radius: 50%;
-}
-.progress-circle-bar {
-    position: absolute;
-    height: 100%;
-    width: 100%;
-    background: none;
-    border-width: 8px;
-    border-style: solid;
-    border-color: #eee;
-    border-radius: 50%;
-}
-.progress-circle-left, .progress-circle-right {
-    position: absolute;
-    height: 100%;
-    width: 50%;
-    top: 0;
-    overflow: hidden;
-}
-.progress-circle-left {
-    left: 0;
-}
-.progress-circle-right {
-    right: 0;
-}
-.progress-circle-value {
-    position: relative;
-    text-align: center;
-}
-
-/* Card border styles */
-.border-left-primary {
-    border-left: 4px solid #4e73df !important;
-}
-.border-left-success {
-    border-left: 4px solid #1cc88a !important;
-}
-.border-left-info {
-    border-left: 4px solid #36b9cc !important;
-}
-.border-left-warning {
-    border-left: 4px solid #f6c23e !important;
-}
-.border-left-danger {
-    border-left: 4px solid #e74a3b !important;
-}
-.border-left-secondary {
-    border-left: 4px solid #858796 !important;
-}
-
-/* Card hover effect */
-.card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-.card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-}
-</style>
-{% endblock %}
-
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize charts
-    createTankLevelsChart();
-    createDailyUsageChart();
-    
-    // Load activity log
-    loadActivityLog();
-    
-    // Set up refresh button
+    const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * 42;
+    let tankLevelsChart = null;
+    let dailyUsageChart = null;
+
+    // Actions dropdown toggle
+    document.getElementById('actions-dropdown-btn').addEventListener('click', function() {
+        document.getElementById('actions-dropdown').classList.toggle('hidden');
+    });
+    document.addEventListener('click', function(e) {
+        const wrap = document.getElementById('actions-dropdown-wrap');
+        if (!wrap.contains(e.target)) {
+            document.getElementById('actions-dropdown').classList.add('hidden');
+        }
+    });
+
+    // Refresh button
     document.getElementById('refresh-dashboard').addEventListener('click', function() {
         this.disabled = true;
-        this.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refreshing...';
-        
-        // Refresh data
+        this.innerHTML = '<i data-lucide="refresh-cw" class="h-4 w-4 animate-spin"></i> Refreshing...';
+        lucide.createIcons();
+        refreshAll();
+        setTimeout(() => {
+            this.disabled = false;
+            this.innerHTML = '<i data-lucide="refresh-cw" class="h-4 w-4"></i> Refresh';
+            lucide.createIcons();
+        }, 1000);
+    });
+
+    // Reset all stats
+    document.getElementById('reset-all-stats').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (confirm('Are you sure you want to reset all tank statistics? This action cannot be undone.')) {
+            fetch('/api/admin/reset-all-statistics', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+                .then(r => r.json())
+                .then(data => { if (data.success) { alert('All tank statistics have been reset successfully.'); location.reload(); } else { alert('Error: ' + data.message); } })
+                .catch(() => alert('An error occurred while resetting statistics.'));
+        }
+    });
+
+    function updateCircle(id, value) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.innerHTML = value + '<span class="text-xs">%</span>';
+        const dash = (value / 100) * CIRCLE_CIRCUMFERENCE;
+        const circle = document.getElementById(id.replace('-usage', '-circle'));
+        if (circle) {
+            circle.setAttribute('stroke-dasharray', dash + ' ' + CIRCLE_CIRCUMFERENCE);
+            circle.setAttribute('stroke', value >= 90 ? '#ef4444' : value >= 70 ? '#f59e0b' : value >= 50 ? '#06b6d4' : id === 'memory-usage' ? '#10b981' : id === 'disk-usage' ? '#f59e0b' : '#3b82f6');
+        }
+    }
+
+    function updateServerTime() {
+        document.getElementById('server-time').textContent = new Date().toLocaleString();
+    }
+
+    function updateSystemResources() {
+        fetch('/admin/api/system-resources')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    updateCircle('cpu-usage', Math.round(data.cpu_usage));
+                    updateCircle('memory-usage', Math.round(data.memory_usage));
+                    updateCircle('disk-usage', Math.round(data.disk_usage));
+                    document.getElementById('uptime').textContent = data.uptime;
+                }
+            })
+            .catch(() => {});
+    }
+
+    function pollSystemStatus() {
+        fetch('/admin/api/system-status')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    updateCircle('cpu-usage', Math.round(data.cpu_usage || 0));
+                    updateCircle('memory-usage', Math.round(data.memory_usage || 0));
+                    updateCircle('disk-usage', Math.round(data.disk_usage || 0));
+                    if (data.uptime) document.getElementById('uptime').textContent = data.uptime;
+                }
+            })
+            .catch(() => {});
+    }
+
+    function createTankLevelsChart() {
+        fetch('/admin/api/tanks')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                const tanks = data.tanks.slice(0, 10);
+                const labels = tanks.map(t => t.name);
+                const values = tanks.map(t => t.measurement && t.measurement.fill_percent !== undefined ? t.measurement.fill_percent : 0);
+                const colors = values.map(v => v <= 10 ? 'rgba(239,68,68,0.7)' : v <= 20 ? 'rgba(245,158,11,0.7)' : 'rgba(16,185,129,0.7)');
+                const borderColors = colors.map(c => c.replace('0.7', '1'));
+
+                if (tankLevelsChart) tankLevelsChart.destroy();
+                const ctx = document.getElementById('tankLevelsChart').getContext('2d');
+                tankLevelsChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels, datasets: [{ label: 'Fill Level (%)', data: values, backgroundColor: colors, borderColor: borderColors, borderWidth: 1 }] },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: 'Fill Level (%)' } }, x: { title: { display: true, text: 'Tank' }, ticks: { maxRotation: 45, minRotation: 45 } } },
+                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => 'Fill Level: ' + ctx.parsed.y.toFixed(1) + '%' } } }
+                    }
+                });
+            })
+            .catch(() => {});
+    }
+
+    function createDailyUsageChart() {
+        fetch('/admin/api/statistics/daily-usage')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) return;
+                if (dailyUsageChart) dailyUsageChart.destroy();
+                const ctx = document.getElementById('dailyUsageChart').getContext('2d');
+                dailyUsageChart = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: data.dates, datasets: [{ label: 'Daily Usage (L)', data: data.values, borderColor: 'rgba(54,162,235,1)', backgroundColor: 'rgba(54,162,235,0.2)', tension: 0.1, fill: true }] },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, title: { display: true, text: 'Volume (L)' } }, x: { title: { display: true, text: 'Date' } } },
+                        plugins: { tooltip: { callbacks: { label: ctx => 'Usage: ' + ctx.parsed.y.toFixed(1) + ' L' } } }
+                    }
+                });
+            })
+            .catch(() => {});
+    }
+
+    function loadActivityLog() {
+        fetch('/admin/api/activity-log')
+            .then(r => r.json())
+            .then(data => {
+                const tbody = document.getElementById('activity-log');
+                if (!data.success || data.activities.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="py-6 text-center text-gray-400">No recent activity</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.activities.map(a =>
+                    '<tr class="border-b border-gray-100">' +
+                    '<td class="py-2 px-2">' + new Date(a.timestamp).toLocaleString() + '</td>' +
+                    '<td class="py-2 px-2">' + a.user + '</td>' +
+                    '<td class="py-2 px-2">' + a.action + '</td>' +
+                    '<td class="py-2 px-2">' + a.details + '</td></tr>'
+                ).join('');
+            })
+            .catch(() => { document.getElementById('activity-log').innerHTML = '<tr><td colspan="4" class="py-6 text-center text-red-400">Error loading activity log</td></tr>'; });
+    }
+
+    function refreshAll() {
         createTankLevelsChart();
         createDailyUsageChart();
         loadActivityLog();
         updateSystemResources();
-        
-        // Re-enable button after 1 second
-        setTimeout(() => {
-            this.disabled = false;
-            this.innerHTML = '<i class="bi bi-arrow-clockwise"></i> Refresh';
-        }, 1000);
-    });
-    
-    // Set up reset stats button
-    document.getElementById('reset-all-stats').addEventListener('click', function(e) {
-        e.preventDefault();
-        if (confirm('Are you sure you want to reset all tank statistics? This action cannot be undone.')) {
-            fetch('/api/admin/reset-all-statistics', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('All tank statistics have been reset successfully.');
-                    location.reload();
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An error occurred while resetting statistics.');
-            });
-        }
-    });
-    
-    // Update server time
+    }
+
     updateServerTime();
     setInterval(updateServerTime, 1000);
-    
-    // Update system resources
     updateSystemResources();
-    setInterval(updateSystemResources, 30000); // Update every 30 seconds
-    
-    // Initialize progress circles
-    initProgressCircles();
-    
-    // Function to create tank levels chart
-    function createTankLevelsChart() {
-        fetch('/admin/api/tanks')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const tanks = data.tanks.slice(0, 10); // Limit to 10 tanks
-                    
-                    const tankNames = tanks.map(tank => tank.name);
-                    const fillLevels = tanks.map(tank => {
-                        if (tank.measurement && tank.measurement.fill_percent !== undefined) {
-                            return tank.measurement.fill_percent;
-                        }
-                        return 0;
-                    });
-                    
-                    // Generate colors based on fill level
-                    const backgroundColors = fillLevels.map(level => {
-                        if (level <= 10) {
-                            return 'rgba(220, 53, 69, 0.7)'; // Danger
-                        } else if (level <= 20) {
-                            return 'rgba(255, 193, 7, 0.7)'; // Warning
-                        } else {
-                            return 'rgba(40, 167, 69, 0.7)'; // Success
-                        }
-                    });
-                    
-                    // If chart already exists, destroy it
-                    if (window.tankLevelsChart) {
-                        window.tankLevelsChart.destroy();
-                    }
-                    
-                    const ctx = document.getElementById('tankLevelsChart').getContext('2d');
-                    window.tankLevelsChart = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: tankNames,
-                            datasets: [{
-                                label: 'Fill Level (%)',
-                                data: fillLevels,
-                                backgroundColor: backgroundColors,
-                                borderColor: backgroundColors.map(color => color.replace('0.7', '1')),
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    max: 100,
-                                    title: {
-                                        display: true,
-                                        text: 'Fill Level (%)'
-                                    }
-                                },
-                                x: {
-                                    title: {
-                                        display: true,
-                                        text: 'Tank'
-                                    },
-                                    ticks: {
-                                        maxRotation: 45,
-                                        minRotation: 45
-                                    }
-                                }
-                            },
-                            plugins: {
-                                legend: {
-                                    display: false
-                                },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            return `Fill Level: ${context.parsed.y.toFixed(1)}%`;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching tank data:', error);
-            });
-    }
-    
-    // Function to create daily usage chart
-    function createDailyUsageChart() {
-        // Fetch daily usage data from API
-        fetch('/admin/api/statistics/daily-usage')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // If chart already exists, destroy it
-                    if (window.dailyUsageChart) {
-                        window.dailyUsageChart.destroy();
-                    }
-                    
-                    const ctx = document.getElementById('dailyUsageChart').getContext('2d');
-                    window.dailyUsageChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: data.dates,
-                            datasets: [{
-                                label: 'Daily Usage (L)',
-                                data: data.values,
-                                borderColor: 'rgba(54, 162, 235, 1)',
-                                backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                                tension: 0.1,
-                                fill: true
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    title: {
-                                        display: true,
-                                        text: 'Volume (L)'
-                                    }
-                                },
-                                x: {
-                                    title: {
-                                        display: true,
-                                        text: 'Date'
-                                    }
-                                }
-                            },
-                            plugins: {
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            return `Usage: ${context.parsed.y.toFixed(1)} L`;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching usage data:', error);
-                // Show error message in chart container
-                document.getElementById('dailyUsageChart').innerHTML = 
-                    '<div class="alert alert-danger">Error loading usage data</div>';
-            });
-    }
-    
-    // Function to load activity log
-    function loadActivityLog() {
-        // Fetch activity log data from API
-        fetch('/admin/api/activity-log')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const activityLog = document.getElementById('activity-log');
-                    activityLog.innerHTML = '';
-                    
-                    if (data.activities.length === 0) {
-                        const row = document.createElement('tr');
-                        row.innerHTML = '<td colspan="4" class="text-center">No recent activity</td>';
-                        activityLog.appendChild(row);
-                    } else {
-                        data.activities.forEach(activity => {
-                            const row = document.createElement('tr');
-                            row.innerHTML = `
-                                <td>${new Date(activity.timestamp).toLocaleString()}</td>
-                                <td>${activity.user}</td>
-                                <td>${activity.action}</td>
-                                <td>${activity.details}</td>
-                            `;
-                            activityLog.appendChild(row);
-                        });
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching activity log:', error);
-                const activityLog = document.getElementById('activity-log');
-                activityLog.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error loading activity log</td></tr>';
-            });
-    }
-    
-    // Function to update server time
-    function updateServerTime() {
-        const serverTimeElement = document.getElementById('server-time');
-        const now = new Date();
-        serverTimeElement.textContent = now.toLocaleString();
-    }
-    
-    // Function to update system resources
-    function updateSystemResources() {
-        // In a real application, this would fetch data from the server
-        // For demo purposes, we'll use random values
-        fetch('/admin/api/system-resources')
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    updateProgressCircle('cpu-usage', data.cpu_usage);
-                    updateProgressCircle('memory-usage', data.memory_usage);
-                    updateProgressCircle('disk-usage', data.disk_usage);
-                    
-                    // Update uptime
-                    document.getElementById('uptime').textContent = data.uptime;
-                } else {
-                    // Use random values as fallback
-                    updateProgressCircle('cpu-usage', Math.floor(Math.random() * 100));
-                    updateProgressCircle('memory-usage', Math.floor(Math.random() * 100));
-                    updateProgressCircle('disk-usage', Math.floor(Math.random() * 100));
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching system resources:', error);
-                // Use random values as fallback
-                updateProgressCircle('cpu-usage', Math.floor(Math.random() * 100));
-                updateProgressCircle('memory-usage', Math.floor(Math.random() * 100));
-                updateProgressCircle('disk-usage', Math.floor(Math.random() * 100));
-            });
-    }
-    
-    // Function to initialize progress circles
-    function initProgressCircles() {
-        const circles = document.querySelectorAll('.progress-circle');
-        circles.forEach(circle => {
-            const value = parseInt(circle.getAttribute('data-value'));
-            updateProgressCircle(circle.id, value);
-        });
-    }
-    
-    // Function to update progress circle
-    function updateProgressCircle(id, value) {
-        const circle = document.getElementById(id);
-        if (!circle) return;
-        
-        // Update data-value attribute
-        circle.setAttribute('data-value', value);
-        
-        // Update the text
-        const valueDiv = circle.querySelector('.progress-circle-value div');
-        valueDiv.innerHTML = `${value}<span class="small">%</span>`;
-        
-        // Update the circle
-        const leftBar = circle.querySelector('.progress-circle-left .progress-circle-bar');
-        const rightBar = circle.querySelector('.progress-circle-right .progress-circle-bar');
-        
-        if (value <= 50) {
-            rightBar.style.transform = `rotate(${value * 3.6}deg)`;
-            leftBar.style.transform = 'rotate(0deg)';
-        } else {
-            rightBar.style.transform = 'rotate(180deg)';
-            leftBar.style.transform = `rotate(${(value - 50) * 3.6}deg)`;
-        }
-        
-        // Update color based on value
-        let color = 'primary';
-        if (value >= 90) {
-            color = 'danger';
-        } else if (value >= 70) {
-            color = 'warning';
-        } else if (value >= 50) {
-            color = 'info';
-        }
-        
-        // Remove all color classes
-        leftBar.classList.remove('border-primary', 'border-success', 'border-info', 'border-warning', 'border-danger');
-        rightBar.classList.remove('border-primary', 'border-success', 'border-info', 'border-warning', 'border-danger');
-        
-        // Add appropriate color class
-        leftBar.classList.add(`border-${color}`);
-        rightBar.classList.add(`border-${color}`);
-    }
-    
-    // Connect to Socket.IO for real-time updates
-    if (typeof io !== 'undefined') {
-        const socket = io('/admin');
-        
-        socket.on('connect', function() {
-            //console.log('Connected to admin namespace');
-        });
-        
-        socket.on('system_stats', function(data) {
-            //console.log('Received system stats:', data);
-            
-            // Update system resources
-            updateProgressCircle('cpu-usage', Math.round(data.cpu_usage));
-            updateProgressCircle('memory-usage', Math.round(data.memory_usage));
-            updateProgressCircle('disk-usage', Math.round(data.disk_usage));
-            
-            // Update other stats
-            document.getElementById('uptime').textContent = data.uptime || 'Unknown';
-        });
-        
-        socket.on('disconnect', function() {
-            //console.log('Disconnected from admin namespace');
-        });
-    }
+    setInterval(updateSystemResources, 30000);
+    pollSystemStatus();
+    setInterval(pollSystemStatus, 10000);
+    refreshAll();
 });
 </script>
 {% endblock %}
