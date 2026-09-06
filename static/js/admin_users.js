@@ -3,26 +3,17 @@
  * Handles functionality for the admin users management page
  */
 
-$(document).ready(function() {
-    // Initialize variables
+document.addEventListener('DOMContentLoaded', function() {
     let currentPage = 1;
     let itemsPerPage = 10;
     let totalUsers = 0;
     let users = [];
 
-    // Function to fetch users
     function fetchUsers(page, search, role, status) {
-        $.ajax({
-            url: '/admin/api/users',
-            method: 'GET',
-            data: { 
-                page: page, 
-                search: search, 
-                role: role, 
-                status: status 
-            },
-            dataType: 'json',
-            success: function(response) {
+        const params = new URLSearchParams({ page: page, search: search, role: role, status: status });
+        fetch('/admin/api/users?' + params.toString())
+            .then(response => response.json())
+            .then(response => {
                 if (response.success) {
                     users = response.users;
                     totalUsers = response.total;
@@ -32,29 +23,25 @@ $(document).ready(function() {
                     alert('Error fetching users: ' + response.message);
                     console.error('Error fetching users:', response);
                 }
-            },
-            error: function(error) {
-                alert('Error fetching users: ' + error.responseText);
+            })
+            .catch(error => {
+                alert('Error fetching users: ' + error);
                 console.error('Error fetching users:', error);
-            }
-        });
+            });
     }
 
-    // Function to render users
     function renderUsers(users) {
-        let userList = $('#user-list');
-        userList.empty();
-        
+        const userList = document.getElementById('user-list');
+        userList.innerHTML = '';
+
         if (users.length === 0) {
-            userList.append('<tr><td colspan="7" class="text-center">No users found</td></tr>');
+            userList.innerHTML = '<tr><td colspan="7" class="text-center">No users found</td></tr>';
             return;
         }
-        
+
         users.forEach(user => {
-            // Format last login
-            let lastLogin = user.last_login ? new Date(user.last_login).toLocaleString() : 'Never';
-            
-            // Create role badge
+            const lastLogin = user.last_login ? new Date(user.last_login).toLocaleString() : 'Never';
+
             let roleBadge = '';
             switch (user.role) {
                 case 'admin':
@@ -69,280 +56,224 @@ $(document).ready(function() {
                 default:
                     roleBadge = `<span class="badge bg-secondary">${user.role}</span>`;
             }
-            
-            // Create active status badge
-            let activeBadge = user.is_active ? 
-                '<span class="badge bg-success">Active</span>' : 
+
+            const activeBadge = user.is_active ?
+                '<span class="badge bg-success">Active</span>' :
                 '<span class="badge bg-danger">Inactive</span>';
-            
-            let row = $('<tr>');
-            row.append(`<td>${user.username}</td>`);
-            row.append(`<td>${user.full_name || 'N/A'}</td>`);
-            row.append(`<td>${user.email}</td>`);
-            row.append(`<td>${roleBadge}</td>`);
-            row.append(`<td>${activeBadge}</td>`);
-            row.append(`<td>${lastLogin}</td>`);
-            row.append(`<td>
-                <div class="btn-group btn-group-sm">
-                    <button type="button" class="btn btn-primary edit-user-btn" data-user-id="${user.id}" data-bs-toggle="modal" data-bs-target="#editUserModal">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <a href="/admin/users/access/${user.id}" class="btn btn-info">
-                        <i class="bi bi-key"></i>
-                    </a>
-                    <button type="button" class="btn btn-danger delete-user-btn" data-user-id="${user.id}" data-username="${user.username}">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            </td>`);
-            userList.append(row);
+
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${user.username}</td><td>${user.full_name || 'N/A'}</td><td>${user.email}</td><td>${roleBadge}</td><td>${activeBadge}</td><td>${lastLogin}</td><td><div class="btn-group btn-group-sm"><button type="button" class="btn btn-primary edit-user-btn" data-user-id="${user.id}" data-bs-toggle="modal" data-bs-target="#editUserModal"><i class="bi bi-pencil"></i></button><a href="/admin/users/access/${user.id}" class="btn btn-info"><i class="bi bi-key"></i></a><button type="button" class="btn btn-danger delete-user-btn" data-user-id="${user.id}" data-username="${user.username}"><i class="bi bi-trash"></i></button></div></td>`;
+            userList.appendChild(row);
         });
     }
 
-    // Function to render pagination
     function renderPagination(total, currentPage, itemsPerPage) {
-        let totalPages = Math.ceil(total / itemsPerPage);
-        let pagination = $('#pagination');
-        pagination.empty();
-        
+        const totalPages = Math.ceil(total / itemsPerPage);
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+
         if (totalPages <= 1) {
             return;
         }
-        
-        // Previous button
-        let prevLi = $('<li class="page-item">');
+
+        const prevLi = document.createElement('li');
+        prevLi.className = 'page-item';
         if (currentPage === 1) {
-            prevLi.addClass('disabled');
+            prevLi.classList.add('disabled');
         }
-        let prevA = $('<a class="page-link" href="#">Previous</a>');
-        prevA.click(function(e) {
+        const prevA = document.createElement('a');
+        prevA.className = 'page-link';
+        prevA.href = '#';
+        prevA.textContent = 'Previous';
+        prevA.addEventListener('click', function(e) {
             e.preventDefault();
             if (currentPage > 1) {
                 currentPage--;
-                fetchUsers(
-                    currentPage, 
-                    $('#user-search').val(), 
-                    $('#role-filter').val(), 
-                    $('#status-filter').val()
-                );
+                fetchUsers(currentPage, document.getElementById('user-search').value, document.getElementById('role-filter').value, document.getElementById('status-filter').value);
             }
         });
-        prevLi.append(prevA);
-        pagination.append(prevLi);
-        
-        // Page numbers
+        prevLi.appendChild(prevA);
+        pagination.appendChild(prevLi);
+
         for (let i = 1; i <= totalPages; i++) {
-            let li = $('<li class="page-item">');
+            const li = document.createElement('li');
+            li.className = 'page-item';
             if (i === currentPage) {
-                li.addClass('active');
+                li.classList.add('active');
             }
-            let a = $('<a class="page-link" href="#">' + i + '</a>');
-            a.click(function(e) {
+            const a = document.createElement('a');
+            a.className = 'page-link';
+            a.href = '#';
+            a.textContent = i;
+            a.addEventListener('click', function(e) {
                 e.preventDefault();
                 currentPage = i;
-                fetchUsers(
-                    currentPage, 
-                    $('#user-search').val(), 
-                    $('#role-filter').val(), 
-                    $('#status-filter').val()
-                );
+                fetchUsers(currentPage, document.getElementById('user-search').value, document.getElementById('role-filter').value, document.getElementById('status-filter').value);
             });
-            li.append(a);
-            pagination.append(li);
+            li.appendChild(a);
+            pagination.appendChild(li);
         }
-        
-        // Next button
-        let nextLi = $('<li class="page-item">');
+
+        const nextLi = document.createElement('li');
+        nextLi.className = 'page-item';
         if (currentPage === totalPages) {
-            nextLi.addClass('disabled');
+            nextLi.classList.add('disabled');
         }
-        let nextA = $('<a class="page-link" href="#">Next</a>');
-        nextA.click(function(e) {
+        const nextA = document.createElement('a');
+        nextA.className = 'page-link';
+        nextA.href = '#';
+        nextA.textContent = 'Next';
+        nextA.addEventListener('click', function(e) {
             e.preventDefault();
             if (currentPage < totalPages) {
                 currentPage++;
-                fetchUsers(
-                    currentPage, 
-                    $('#user-search').val(), 
-                    $('#role-filter').val(), 
-                    $('#status-filter').val()
-                );
+                fetchUsers(currentPage, document.getElementById('user-search').value, document.getElementById('role-filter').value, document.getElementById('status-filter').value);
             }
         });
-        nextLi.append(nextA);
-        pagination.append(nextLi);
+        nextLi.appendChild(nextA);
+        pagination.appendChild(nextLi);
     }
 
-    // Initial fetch
     fetchUsers(currentPage, '', 'all', 'all');
 
-    // Search and filter
-    $('#user-search, #role-filter, #status-filter').change(function() {
+    document.getElementById('user-search').addEventListener('change', function() {
         currentPage = 1;
-        fetchUsers(
-            currentPage, 
-            $('#user-search').val(), 
-            $('#role-filter').val(), 
-            $('#status-filter').val()
-        );
+        fetchUsers(currentPage, document.getElementById('user-search').value, document.getElementById('role-filter').value, document.getElementById('status-filter').value);
     });
 
-    // Add user
-    $('#save-new-user-btn').click(function() {
-        // Validate form
-        let form = $('#add-user-form');
-        
-        if (!form[0].checkValidity()) {
-            form[0].reportValidity();
+    document.getElementById('role-filter').addEventListener('change', function() {
+        currentPage = 1;
+        fetchUsers(currentPage, document.getElementById('user-search').value, document.getElementById('role-filter').value, document.getElementById('status-filter').value);
+    });
+
+    document.getElementById('status-filter').addEventListener('change', function() {
+        currentPage = 1;
+        fetchUsers(currentPage, document.getElementById('user-search').value, document.getElementById('role-filter').value, document.getElementById('status-filter').value);
+    });
+
+    document.getElementById('save-new-user-btn').addEventListener('click', function() {
+        const form = document.getElementById('add-user-form');
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
             return;
         }
-        
-        // Check if passwords match
-        let password = $('#add-password').val();
-        let confirmPassword = $('#add-confirm-password').val();
-        
+
+        const password = document.getElementById('add-password').value;
+        const confirmPassword = document.getElementById('add-confirm-password').value;
+
         if (password !== confirmPassword) {
             alert('Passwords do not match');
             return;
         }
-        
-        $.ajax({
-            url: '/admin/api/users/create',
+
+        fetch('/admin/api/users/create', {
             method: 'POST',
-            data: form.serialize(),
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    $('#addUserModal').modal('hide');
-                    fetchUsers(
-                        currentPage, 
-                        $('#user-search').val(), 
-                        $('#role-filter').val(), 
-                        $('#status-filter').val()
-                    );
-                    alert(response.message);
-                    
-                    // Reset form
-                    form[0].reset();
-                } else {
-                    alert('Error adding user: ' + response.message);
-                }
-            },
-            error: function(error) {
-                alert('Error adding user: ' + error.responseText);
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(new FormData(form)).toString()
+        })
+        .then(response => response.json())
+        .then(response => {
+            if (response.success) {
+                document.getElementById('addUserModal').classList.add('hidden');
+                fetchUsers(currentPage, document.getElementById('user-search').value, document.getElementById('role-filter').value, document.getElementById('status-filter').value);
+                alert(response.message);
+                form.reset();
+            } else {
+                alert('Error adding user: ' + response.message);
             }
+        })
+        .catch(error => {
+            alert('Error adding user: ' + error);
         });
     });
 
-    // Edit user - load data
-    $(document).on('click', '.edit-user-btn', function() {
-        let userId = $(this).data('user-id');
-        
-        $.ajax({
-            url: `/admin/api/users/${userId}`,
-            method: 'GET',
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    let user = response.user;
-                    
-                    $('#edit-user-id').val(user.id);
-                    $('#edit-username').val(user.username);
-                    $('#edit-email').val(user.email);
-                    $('#edit-first-name').val(user.first_name);
-                    $('#edit-last-name').val(user.last_name);
-                    $('#edit-role').val(user.role);
-                    $('#edit-is-active').prop('checked', user.is_active);
-                    
-                    // Clear password fields
-                    $('#edit-password').val('');
-                    $('#edit-confirm-password').val('');
-                } else {
-                    alert('Error fetching user: ' + response.message);
-                }
-            },
-            error: function(error) {
-                alert('Error fetching user: ' + error.responseText);
+    document.addEventListener('click', function(e) {
+        const editBtn = e.target.closest('.edit-user-btn');
+        if (editBtn) {
+            const userId = editBtn.dataset.userId;
+            fetch(`/admin/api/users/${userId}`)
+                .then(response => response.json())
+                .then(response => {
+                    if (response.success) {
+                        const user = response.user;
+                        document.getElementById('edit-user-id').value = user.id;
+                        document.getElementById('edit-username').value = user.username;
+                        document.getElementById('edit-email').value = user.email;
+                        document.getElementById('edit-first-name').value = user.first_name;
+                        document.getElementById('edit-last-name').value = user.last_name;
+                        document.getElementById('edit-role').value = user.role;
+                        document.getElementById('edit-is-active').checked = user.is_active;
+                        document.getElementById('edit-password').value = '';
+                        document.getElementById('edit-confirm-password').value = '';
+                    } else {
+                        alert('Error fetching user: ' + response.message);
+                    }
+                })
+                .catch(error => {
+                    alert('Error fetching user: ' + error);
+                });
+        }
+
+        const deleteBtn = e.target.closest('.delete-user-btn');
+        if (deleteBtn) {
+            const userId = deleteBtn.dataset.userId;
+            const username = deleteBtn.dataset.username;
+            if (confirm(`Are you sure you want to delete user "${username}"?`)) {
+                fetch(`/admin/api/users/delete/${userId}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(response => {
+                        if (response.success) {
+                            fetchUsers(currentPage, document.getElementById('user-search').value, document.getElementById('role-filter').value, document.getElementById('status-filter').value);
+                            alert(response.message);
+                        } else {
+                            alert('Error deleting user: ' + response.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('Error deleting user: ' + error);
+                    });
             }
-        });
+        }
     });
 
-    // Edit user - save changes
-    $('#update-user-btn').click(function() {
-        // Validate form
-        let form = $('#edit-user-form');
-        
-        if (!form[0].checkValidity()) {
-            form[0].reportValidity();
+    document.getElementById('update-user-btn').addEventListener('click', function() {
+        const form = document.getElementById('edit-user-form');
+
+        if (!form.checkValidity()) {
+            form.reportValidity();
             return;
         }
-        
-        // Check if passwords match if provided
-        let password = $('#edit-password').val();
-        let confirmPassword = $('#edit-confirm-password').val();
-        
+
+        const password = document.getElementById('edit-password').value;
+        const confirmPassword = document.getElementById('edit-confirm-password').value;
+
         if (password && password !== confirmPassword) {
             alert('Passwords do not match');
             return;
         }
-        
-        $.ajax({
-            url: '/admin/api/users/update',
+
+        fetch('/admin/api/users/update', {
             method: 'POST',
-            data: form.serialize(),
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    $('#editUserModal').modal('hide');
-                    fetchUsers(
-                        currentPage, 
-                        $('#user-search').val(), 
-                        $('#role-filter').val(), 
-                        $('#status-filter').val()
-                    );
-                    alert(response.message);
-                } else {
-                    alert('Error updating user: ' + response.message);
-                }
-            },
-            error: function(error) {
-                alert('Error updating user: ' + error.responseText);
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(new FormData(form)).toString()
+        })
+        .then(response => response.json())
+        .then(response => {
+            if (response.success) {
+                document.getElementById('editUserModal').classList.add('hidden');
+                fetchUsers(currentPage, document.getElementById('user-search').value, document.getElementById('role-filter').value, document.getElementById('status-filter').value);
+                alert(response.message);
+            } else {
+                alert('Error updating user: ' + response.message);
             }
+        })
+        .catch(error => {
+            alert('Error updating user: ' + error);
         });
     });
 
-    // Delete user
-    $(document).on('click', '.delete-user-btn', function() {
-        let userId = $(this).data('user-id');
-        let username = $(this).data('username');
-        
-        if (confirm(`Are you sure you want to delete user "${username}"?`)) {
-            $.ajax({
-                url: `/admin/api/users/delete/${userId}`,
-                method: 'POST',
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        fetchUsers(
-                            currentPage, 
-                            $('#user-search').val(), 
-                            $('#role-filter').val(), 
-                            $('#status-filter').val()
-                        );
-                        alert(response.message);
-                    } else {
-                        alert('Error deleting user: ' + response.message);
-                    }
-                },
-                error: function(error) {
-                    alert('Error deleting user: ' + error.responseText);
-                }
-            });
-        }
-    });
-
-    // Reset add user form when modal is closed
-    $('#addUserModal').on('hidden.bs.modal', function() {
-        $('#add-user-form')[0].reset();
+    document.getElementById('addUserModal').addEventListener('hidden.bs.modal', function() {
+        document.getElementById('add-user-form').reset();
     });
 });
