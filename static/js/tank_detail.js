@@ -148,8 +148,17 @@ function initializeLevelHistoryChart(tankId) {
  * Acknowledge an alarm
  */
 function acknowledgeAlarm(alarmId) {
-    fetch(`/alarm/${alarmId}/acknowledge`, {
-        method: 'POST'
+    // Gather CSRF token from the meta tag or a hidden form field
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
+        || document.querySelector('input[name="csrf_token"]')?.value
+        || '';
+
+    fetch(`/alarms/acknowledge/${alarmId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken,
+        },
     })
         .then(response => {
             if (!response.ok) {

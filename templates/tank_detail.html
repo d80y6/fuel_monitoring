@@ -352,10 +352,10 @@
 <!-- Your custom scripts -->
 <script>
 // Create a JavaScript object with the tank data from the Flask template
+// Use tojson filter to prevent XSS — renders as a JSON literal, never as raw HTML/JS.
 const tank = {
     id: {{ tank.id }},
-    name: "{{ tank.name }}",
-    // Add any other tank properties you need
+    name: {{ tank.name|tojson }},
 };
 
 // Define currentRange variable

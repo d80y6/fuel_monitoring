@@ -1,0 +1,55 @@
+{
+    "name": "fuel-gateway",
+    "version": "2.0.0",
+    "board": "ESP32-S3",
+    "flash_size": 4194304,
+    "partition_table": {
+        "nvs": {"offset": 4096, "size": 32768},
+        "otadata": {"offset": 36864, "size": 8192},
+        "app0": {"offset": 45056, "size": 2097152},
+        "app1": {"offset": 2142208, "size": 2097152},
+        "spiffs": {"offset": 4292608, "size": 1835008}
+    },
+    "gateway": {
+        "mac": "AA:BB:CC:11:22:33",
+        "reading_interval": 300,
+        "max_buffered": 10000,
+        "buffer_file": "/buffer/readings.json"
+    },
+    "wifi": {
+        "ssid": "FUEL_WIFI",
+        "pass": "secure_password",
+        "timeout": 30,
+        "max_retries": 10,
+        "backoff_base": 2,
+        "backoff_max": 300
+    },
+    "mqtt": {
+        "broker": "fuel-mqtt.example.com",
+        "port": 8883,
+        "ssl": true,
+        "keepalive": 60,
+        "max_reconnect_delay": 300,
+        "topic_prefix": "fuel"
+    },
+    "uart": {
+        "id": 0,
+        "baudrate": 9600,
+        "tx_pin": 17,
+        "rx_pin": 16,
+        "de_pin": 4
+    },
+    "sensors": [
+        {"serial_number": 12345678, "address": 1, "pressure_ch": 1, "temp_ch": 4},
+        {"serial_number": 87654321, "address": 2, "pressure_ch": 2, "temp_ch": 3}
+    ],
+    "watchdog": {
+        "timeout_ms": 30000
+    },
+    "ota": {
+        "url": "https://ota.fuel-monitoring.local/firmware/",
+        "verify_ssl": true,
+        "rollback_on_failure": true,
+        "max_retries": 3
+    }
+}

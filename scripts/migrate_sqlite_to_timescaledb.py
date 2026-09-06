@@ -341,7 +341,7 @@ def convert_to_timescaledb():
         
         # Set retention policy
         cursor.execute(
-            "SELECT add_retention_policy('measurement', INTERVAL '30 days');"
+            "SELECT add_retention_policy('measurement', INTERVAL '90 days');"
         )
         
         conn.commit()
