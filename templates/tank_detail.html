@@ -1,979 +1,178 @@
 {% extends "base.html" %}
-
-{% block title %}{{ tank.name }} - Tank Details{% endblock %}
+{% block title %}{{ tank.name }} - Fuel Monitor{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <!-- Header with breadcrumb -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ url_for('tanks') }}">Tanks</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">{{ tank.name }}</li>
-                </ol>
-            </nav>
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                <h1  class="h2">{{ tank.name }}</h1>
-                <div class="btn-group btn-group-sm flex-wrap">
-                    <a href="{{ url_for('tank_history', tank_id=tank.id) }}" class="btn btn-outline-primary">
-                        <i class="fas fa-history me-1"></i>History
-                    </a>
-                    <a href="{{ url_for('tank_calibration', tank_id=tank.id) }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-sliders-h me-1"></i>Calibration
-                    </a>
-                    <a href="{{ url_for('tank_consumption', tank_id=tank.id) }}" class="btn btn-info">
-                        <i class="bi bi-graph-down"></i> Consumption
-                    </a>
+<nav class="flex items-center gap-2 text-sm text-gray-500 mb-6">
+    <a href="{{ url_for('dashboard') }}" class="hover:text-primary-600">Dashboard</a>
+    <i data-lucide="chevron-right" class="h-4 w-4"></i>
+    <span class="text-gray-900 font-medium">{{ tank.name }}</span>
+</nav>
+
+<div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+    <!-- Tank Info Sidebar -->
+    <div class="lg:col-span-1 space-y-4">
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+            <h2 class="font-semibold mb-3">Tank Info</h2>
+            <dl class="space-y-2 text-sm">
+                <div class="flex justify-between"><dt class="text-gray-500">Gateway</dt><dd class="font-mono text-xs">{{ tank.gateway_mac|default('--') }}</dd></div>
+                <div class="flex justify-between"><dt class="text-gray-500">Serial</dt><dd class="font-mono text-xs">{{ tank.sensor_serial_number|default('--') }}</dd></div>
+                <div class="flex justify-between"><dt class="text-gray-500">Status</dt><dd><span class="px-2 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800' if tank.connection_status == 'connected' else 'bg-red-100 text-red-800' }}">{{ tank.connection_status|default('disconnected') }}</span></dd></div>
+                <div class="flex justify-between"><dt class="text-gray-500">Height</dt><dd>{{ tank.tank_height|default(2.0) }} m</dd></div>
+                <div class="flex justify-between"><dt class="text-gray-500">Diameter</dt><dd>{{ tank.tank_diameter|default(1.5) }} m</dd></div>
+            </dl>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+            <h2 class="font-semibold mb-3">Current Status</h2>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-2"><i data-lucide="gauge" class="h-4 w-4 text-primary-600"></i><span class="text-sm">Level</span></div>
+                    <span class="font-semibold" id="current-level">{{ "%.3f"|format(tank.level|default(0)) }} m</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-2"><i data-lucide="droplets" class="h-4 w-4 text-primary-600"></i><span class="text-sm">Volume</span></div>
+                    <span class="font-semibold" id="current-volume">{{ "%.1f"|format(tank.volume|default(0)) }} L</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-2"><i data-lucide="percent" class="h-4 w-4 text-primary-600"></i><span class="text-sm">Fill</span></div>
+                    <span class="font-semibold" id="current-fill">{{ "%.0f"|format(tank.fill_percent|default(0)) }}%</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-2"><i data-lucide="thermometer" class="h-4 w-4 text-primary-600"></i><span class="text-sm">Temperature</span></div>
+                    <span class="font-semibold" id="current-temp">{{ "%.1f"|format(tank.temperature|default(0)) }} C</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-2"><i data-lucide="activity" class="h-4 w-4 text-primary-600"></i><span class="text-sm">Flow Rate</span></div>
+                    <span class="font-semibold" id="current-flow">{{ "%.2f"|format(tank.flow_rate|default(0)) }} L/h</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Tank Information -->
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-md-4">
-            <div class="card h-100">
-                <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <h5 class="mb-0">Tank Information</h5>
-                    <span class="badge {% if tank.get_connection_status() == 'Connected' %}bg-success{% else %}bg-secondary{% endif %}" id="connection-status">
-                        {{ tank.get_connection_status() }}
-                    </span>
-                </div>
-                <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-6">
-                            <p><strong>Site:</strong> {{ tank.site.name }}</p>
-                            <p><strong>Company:</strong> {{ tank.site.company.name }}</p>
-                            <p><strong>Tank Type:</strong> {{ tank.tank_type|capitalize }}</p>
-                            <p><strong>Orientation:</strong> {{ tank.tank_orientation|capitalize }}</p>
-                        </div>
-                        <div class="col-6">
-                            <p><strong>Height:</strong> {{ tank.tank_height }} m</p>
-                            <p><strong>Diameter:</strong> {{ tank.tank_diameter }} m</p>
-                            <p><strong>Capacity:</strong> {{ (3.14159 * (tank.tank_diameter/2)**2 * tank.tank_height * 1000)|round|int }} L</p>
-                            <p><strong>Last Connection:</strong> {{ tank.last_connection.strftime('%Y-%m-%d %H:%M:%S') if tank.last_connection else 'Never' }}</p>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-12">
-                            <h6>Alarm Thresholds</h6>
-                            <div class="progress mb-3" style="height: 30px;">
-                                <div class="progress-bar bg-danger" role="progressbar" 
-                                     style="width: {{ tank.critical_level_threshold }}%" 
-                                     aria-valuenow="{{ tank.critical_level_threshold }}" 
-                                     aria-valuemin="0" 
-                                     aria-valuemax="100">
-                                    Critical ({{ tank.critical_level_threshold }}%)
-                                </div>
-                                <div class="progress-bar bg-warning" role="progressbar" 
-                                     style="width: {{ tank.low_level_threshold - tank.critical_level_threshold }}%" 
-                                     aria-valuenow="{{ tank.low_level_threshold - tank.critical_level_threshold }}" 
-                                     aria-valuemin="0" 
-                                     aria-valuemax="100">
-                                    Low ({{ tank.low_level_threshold }}%)
-                                </div>
-                                <div class="progress-bar bg-success" role="progressbar" 
-                                     style="width: {{ tank.high_level_threshold - tank.low_level_threshold }}%" 
-                                     aria-valuenow="{{ tank.high_level_threshold - tank.low_level_threshold }}" 
-                                     aria-valuemin="0" 
-                                     aria-valuemax="100">
-                                    Normal
-                                </div>
-                                <div class="progress-bar bg-primary" role="progressbar" 
-                                     style="width: {{ 100 - tank.high_level_threshold }}%" 
-                                     aria-valuenow="{{ 100 - tank.high_level_threshold }}" 
-                                     aria-valuemin="0" 
-                                     aria-valuemax="100">
-                                    High ({{ tank.high_level_threshold }}%)
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <!-- Main Content -->
+    <div class="lg:col-span-3 space-y-6">
+        <!-- Time Range Selector -->
+        <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="setRange(1)" class="range-btn px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-primary-50 hover:border-primary-300 transition">1h</button>
+            <button onclick="setRange(3)" class="range-btn px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-primary-50 hover:border-primary-300 transition">3h</button>
+            <button onclick="setRange(6)" class="range-btn px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-primary-50 hover:border-primary-300 transition">6h</button>
+            <button onclick="setRange(24)" class="range-btn px-3 py-1.5 text-sm rounded-lg border border-gray-300 bg-primary-50 border-primary-300 font-medium transition">24h</button>
+            <button onclick="setRange(168)" class="range-btn px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-primary-50 hover:border-primary-300 transition">7d</button>
+            <button onclick="setRange(720)" class="range-btn px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-primary-50 hover:border-primary-300 transition">30d</button>
         </div>
-        
-        <div class="col-12 col-md-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="mb-0">Current Status</h5>
-                </div>
-                <div class="card-body">
-                    {% if measurement %}
-                    <div class="row">
-                        <div class="col-5 col-sm-4 col-md-5">
-                            <div class="tank-visualization mb-3 mx-auto">
-                                <div class="tank-level" id="tank-level" style="height: {{ measurement.fill_percent }}%"></div>
-                                <div class="tank-level-marker critical" style="bottom: {{ tank.critical_level_threshold }}%"></div>
-                                <div class="tank-level-marker low" style="bottom: {{ tank.low_level_threshold }}%"></div>
-                                <div class="tank-level-marker high" style="bottom: {{ tank.high_level_threshold }}%"></div>
-                            </div>
-                        </div>
-                        <div class="col-7 col-sm-8 col-md-7">
-                            <div class="progress mb-3" style="height: 25px;">
-                                <div class="progress-bar 
-                                    {% if measurement.fill_percent <= tank.critical_level_threshold %}bg-danger
-                                    {% elif measurement.fill_percent <= tank.low_level_threshold %}bg-warning
-                                    {% elif measurement.fill_percent >= tank.high_level_threshold %}bg-primary
-                                    {% else %}bg-success{% endif %}" 
-                                    id="fill-progress"
-                                    role="progressbar" 
-                                    style="width: {{ measurement.fill_percent }}%" 
-                                    aria-valuenow="{{ measurement.fill_percent }}" 
-                                    aria-valuemin="0" 
-                                    aria-valuemax="100">
-                                    <span id="fill-percent">{{ measurement.fill_percent|round|int }}%</span>
-                                </div>
-                            </div>
-                            
-                            <div class="row g-2 mb-3">
-                                <div class="col-6">
-                                    <div class="card bg-light">
-                                        <div class="card-body p-2 text-center">
-                                            <h3 id="current-level" class="h4">{{ measurement.level|round(3) }}</h3>
-                                            <p class="mb-0 small">Level (m)</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="card bg-light">
-                                        <div class="card-body p-2 text-center">
-                                            <h3 id="current-volume" class="h4">{{ measurement.volume|round|int }}</h3>
-                                            <p class="mb-0 small">Volume (L)</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <div class="card bg-light">
-                                        <div class="card-body p-2 text-center">
-                                            <h3 id="current-flow" class="h4">{{ measurement.flow_rate|round(1) }}</h3>
-                                            <p class="mb-0 small">Flow (L/min)</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="card bg-light">
-                                        <div class="card-body p-2 text-center">
-                                            <h3 id="current-temp" class="h4">{{ measurement.temperature|round(1) if measurement.temperature else '-' }}</h3>
-                                            <p class="mb-0 small">Temp (°C)</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <p class="text-muted small mt-3 mb-0" id="last-updated">Last updated: {{ measurement.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</p>
-                    {% else %}
-                    <div class="alert alert-warning mb-0">
-                        <i class="fas fa-exclamation-triangle me-2"></i>No measurement data available
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-12 col-md-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="mb-0">Recent Alarms</h5>
-                </div>
-                <div class="card-body">
-                    {% if recent_alarms %}
-                    <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr>
-                                    <th>Time</th>
-                                    <th>Type</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for alarm in recent_alarms %}
-                                <tr>
-                                    <td class="text-nowrap">{{ alarm.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
-                                    <td><span class="badge bg-{{ alarm.level }}">{{ alarm.type|replace('_', ' ')|title }}</span></td>
-                                    <td>
-                                        {% if alarm.acknowledged %}
-                                        <span class="badge bg-secondary">Acknowledged</span>
-                                        {% else %}
-                                        <span class="badge bg-danger">Active</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info mb-0">
-                        <i class="fas fa-info-circle me-2"></i>No recent alarms
-                    </div>
-                    {% endif %}
-                </div>
-                <div class="card-footer">
-                    <a href="{{ url_for('alarms') }}?tank_id={{ tank.id }}" class="btn btn-sm btn-outline-primary">View All Alarms</a>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Charts -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                    <h5 class="mb-0">Recent Measurements</h5>
-                    <div class="btn-group btn-group-sm flex-wrap">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-range="1h">1h</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-range="3h">3h</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-range="6h">6h</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-range="12h">12h</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary active" data-range="24h">24h</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-range="7d">7d</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-range="30d">30d</button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container" style="position: relative; height:300px; min-height:250px;">
-                        <canvas id="mainChart"></canvas>
-                    </div>
-                </div>
-            </div>
+        <!-- Main Chart -->
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+            <h3 class="font-semibold mb-4">Fuel Level</h3>
+            <div style="height: 350px;"><canvas id="mainChart"></canvas></div>
         </div>
-    </div>
 
-    <!-- Additional Charts -->
-    <div class="row g-3">
-        <div class="col-12 col-lg-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Temperature</h5>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container" style="position: relative; height:200px; min-height:150px;">
-                        <canvas id="temperatureChart"></canvas>
-                    </div>
-                </div>
+        <!-- Secondary Charts -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow-sm border p-5">
+                <h3 class="font-semibold mb-4">Temperature</h3>
+                <div style="height: 200px;"><canvas id="tempChart"></canvas></div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border p-5">
+                <h3 class="font-semibold mb-4">Flow Rate</h3>
+                <div style="height: 200px;"><canvas id="flowChart"></canvas></div>
             </div>
         </div>
-        <div class="col-12 col-lg-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Flow Rate</h5>
-                </div>
-                <div class="card-body">
-                    <div class="chart-container" style="position: relative; height:200px; min-height:150px;">
-                        <canvas id="flowRateChart"></canvas>
+
+        <!-- Recent Alarms -->
+        <div class="bg-white rounded-xl shadow-sm border p-5">
+            <h3 class="font-semibold mb-4">Recent Alarms</h3>
+            <div id="alarms-list" class="space-y-2">
+                {% for alarm in recent_alarms|default([]) %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-0.5 rounded text-xs font-medium {{ 'bg-red-100 text-red-800' if alarm.level == 'critical' else 'bg-yellow-100 text-yellow-800' if alarm.level == 'warning' else 'bg-blue-100 text-blue-800' }}">{{ alarm.type|default('') }}</span>
+                        <span class="text-sm">{{ alarm.message|default('') }}</span>
                     </div>
+                    <span class="text-xs text-gray-500">{{ alarm.timestamp.strftime('%H:%M') if alarm.timestamp else '' }}</span>
                 </div>
+                {% endfor %}
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block styles %}
-<style>
-    .tank-visualization {
-        height: 180px;
-        width: 80px;
-        margin: 0 auto;
-        border: 3px solid #343a40;
-        border-radius: 5px;
-        position: relative;
-        overflow: hidden;
-    }
-    @media (min-width: 768px) {
-        .tank-visualization {
-            height: 200px;
-            width: 100px;
-        }
-    }
-    
-    .tank-level {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background: linear-gradient(to top, #4CAF50, #8BC34A);
-        transition: height 0.5s ease-in-out;
-    }
-    
-    .tank-level-marker {
-        position: absolute;
-        left: 0;
-        width: 100%;
-        height: 2px;
-        z-index: 10;
-    }
-    
-    .tank-level-marker.critical {
-        background-color: #dc3545;
-    }
-    
-    .tank-level-marker.low {
-        background-color: #ffc107;
-    }
-    
-    .tank-level-marker.high {
-        background-color: #007bff;
-    }
-    /* Responsive font sizes */
-    @media (max-width: 576px) {
-        h1 {
-            font-size: 1.75rem;
-        }
-        h3 {
-            font-size: 1.25rem;
-        }
-        .card-header h5 {
-            font-size: 1rem;
-        }
-    }
-</style>
-{% endblock %}
-
 {% block scripts %}
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-
-<!-- Moment.js -->
-<script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment.min.js"></script>
-
-<!-- Moment adapter -->
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0/dist/chartjs-adapter-moment.min.js"></script>
-
-<!-- Your custom scripts -->
+<script src="{{ url_for('static', filename='js/sse-client.js') }}"></script>
+<script src="{{ url_for('static', filename='js/chart-factory.js') }}"></script>
 <script>
-// Create a JavaScript object with the tank data from the Flask template
-// Use tojson filter to prevent XSS — renders as a JSON literal, never as raw HTML/JS.
-const tank = {
-    id: {{ tank.id }},
-    name: {{ tank.name|tojson }},
-};
+const TANK_ID = {{ tank.id }};
+let currentRange = 24;
 
-// Define currentRange variable
-let currentRange = '24h';  // Default to 24 hours
+const mainCtx = document.getElementById('mainChart').getContext('2d');
+const tempCtx = document.getElementById('tempChart').getContext('2d');
+const flowCtx = document.getElementById('flowChart').getContext('2d');
 
-// Initialize chart variables at the global scope
-let mainChart = null;
-let temperatureChart = null;
-let flowRateChart = null;
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize charts first
-    initCharts();
-    
-    // Connect to SSE endpoint
-    const eventSource = new EventSource(`/tank-updates?tank_id=${tank.id}`);
-    
-    // Listen for SSE events
-    eventSource.onmessage = function(event) {
-        const data = JSON.parse(event.data);
-        // Only update if this is for our tank
-        if (data.tank_id === tank.id) {
-            updateTankData(data);
-        }
-    };
-    
-    // Handle connection open
-    eventSource.onopen = function() {
-        console.log('Connected to tank updates stream');
-    };
-    
-    // Handle errors
-    eventSource.onerror = function(error) {
-        console.error('Error connecting to tank updates stream', error);
-        // Try to reconnect after a delay
-        setTimeout(function() {
-            eventSource.close();
-            // Reconnect by creating a new EventSource
-            const eventSource = new EventSource(`/tank-updates?tank_id=${tank.id}`);
-            // Transfer event listeners
-            newEventSource.onmessage = eventSource.onmessage;
-            newEventSource.onopen = eventSource.onopen;
-            newEventSource.onerror = eventSource.onerror;
-            eventSource = newEventSource;
-        }, 5000);
-    };
-    
-    // Close EventSource when page is unloaded
-    window.addEventListener('beforeunload', function() {
-        if (eventSource) {
-            eventSource.close();
-        }
-    });
-    
-    // Chart colors
-    const chartColors = {
-        level: {
-            border: 'rgba(75, 192, 192, 1)',
-            background: 'rgba(75, 192, 192, 0.2)'
-        },
-        volume: {
-            border: 'rgba(54, 162, 235, 1)',
-            background: 'rgba(54, 162, 235, 0.2)'
-        },
-        fillPercent: {
-            border: 'rgba(153, 102, 255, 1)',
-            background: 'rgba(153, 102, 255, 0.2)'
-        },
-        temperature: {
-            border: 'rgba(255, 99, 132, 1)',
-            background: 'rgba(255, 99, 132, 0.2)'
-        },
-        flowRate: {
-            border: 'rgba(255, 159, 64, 1)',
-            background: 'rgba(255, 159, 64, 0.2)'
-        }
-    };
-    
-    // Set up event listeners for range buttons
-    document.querySelectorAll('[data-range]').forEach(button => {
-        button.addEventListener('click', function() {
-            // Update active button
-            document.querySelectorAll('[data-range]').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            this.classList.add('active');
-            
-            // Update range and fetch data
-            currentRange = this.getAttribute('data-range');
-            fetchChartData(currentRange);
-        });
-    });
-    
-    // Initial data fetch
-    fetchChartData(currentRange);
+const mainChart = new Chart(mainCtx, {
+    type: 'line', data: { labels: [], datasets: [
+        { label: 'Level (m)', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.3 },
+    ]}, options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time', time: { tooltipFormat: 'HH:mm' }, grid: { display: false } }, y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } } }, plugins: { legend: { display: false } } }
 });
 
-// Function to update tank data with new measurements
-function updateTankData(data) {
-    // Update tank level visualization
-    const tankLevel = document.getElementById('tank-level');
-    if (tankLevel) {
-        tankLevel.style.height = `${data.fill_percent}%`;
-    }
-    
-    // Update progress bar
-    const fillProgress = document.getElementById('fill-progress');
-    const fillPercent = document.getElementById('fill-percent');
-    if (fillProgress && fillPercent) {
-        fillProgress.style.width = `${data.fill_percent}%`;
-        fillProgress.setAttribute('aria-valuenow', data.fill_percent);
-        fillPercent.textContent = `${Math.round(data.fill_percent)}%`;
-        
-        // Update progress bar color based on thresholds
-        if (data.fill_percent <= {{ tank.critical_level_threshold }}) {
-            fillProgress.className = 'progress-bar bg-danger';
-        } else if (data.fill_percent <= {{ tank.low_level_threshold }}) {
-            fillProgress.className = 'progress-bar bg-warning';
-        } else if (data.fill_percent >= {{ tank.high_level_threshold }}) {
-            fillProgress.className = 'progress-bar bg-primary';
-        } else {
-            fillProgress.className = 'progress-bar bg-success';
-        }
-    }
-    
-    // Update measurement values
-    const currentLevel = document.getElementById('current-level');
-    if (currentLevel) {
-        currentLevel.textContent = formatNumber(data.level, 3);
-    }
-    
-    const currentVolume = document.getElementById('current-volume');
-    if (currentVolume) {
-        currentVolume.textContent = formatNumber(data.volume, 0);
-    }
-    
-    const currentFlow = document.getElementById('current-flow');
-    if (currentFlow) {
-        currentFlow.textContent = formatNumber(data.flow_rate, 1);
-    }
-    
-    const currentTemp = document.getElementById('current-temp');
-    if (currentTemp) {
-        currentTemp.textContent = data.temperature ? formatNumber(data.temperature, 1) : '-';
-    }
-    
-    // Update last updated timestamp
-    const lastUpdated = document.getElementById('last-updated');
-    if (lastUpdated) {
-        lastUpdated.textContent = `Last updated: ${formatDate(data.timestamp)}`;
-    }
-    
-    // Update connection status
-    const connectionStatus = document.getElementById('connection-status');
-    if (connectionStatus && data.connection_status) {
-        if (data.connection_status === 'connected') {
-            connectionStatus.className = 'badge bg-success';
-            connectionStatus.textContent = 'Connected';
-        } else {
-            connectionStatus.className = 'badge bg-secondary';
-            connectionStatus.textContent = 'Disconnected';
-        }
-    }
-    
-    // Add data point to charts if they exist
-    if (mainChart && temperatureChart && flowRateChart) {
-        // Only add points if we're viewing recent data (24h)
-        //if (currentRange === '24h') {
-            const timestamp = new Date(data.timestamp);
-            
-            // Add to main chart
-            mainChart.data.datasets[0].data.push({x: timestamp, y: data.level});
-            mainChart.data.datasets[1].data.push({x: timestamp, y: data.volume});
-            mainChart.data.datasets[2].data.push({x: timestamp, y: data.fill_percent});
-            
-            // Keep only last 100 points to avoid performance issues
-            if (mainChart.data.datasets[0].data.length > 100) {
-                mainChart.data.datasets[0].data.shift();
-                mainChart.data.datasets[1].data.shift();
-                mainChart.data.datasets[2].data.shift();
-            }
-            
-            mainChart.update();
-            
-            // Add to temperature chart
-            if (data.temperature) {
-                temperatureChart.data.datasets[0].data.push({x: timestamp, y: data.temperature});
-                if (temperatureChart.data.datasets[0].data.length > 100) {
-                    temperatureChart.data.datasets[0].data.shift();
-                }
-                temperatureChart.update();
-            }
-            
-            // Add to flow rate chart
-            flowRateChart.data.datasets[0].data.push({x: timestamp, y: data.flow_rate});
-            if (flowRateChart.data.datasets[0].data.length > 100) {
-                flowRateChart.data.datasets[0].data.shift();
-            }
-            flowRateChart.update();
-        }
-    //}
+const tempChart = new Chart(tempCtx, {
+    type: 'line', data: { labels: [], datasets: [
+        { label: 'Temp (C)', data: [], borderColor: '#f59e0b', tension: 0.3 },
+    ]}, options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time', grid: { display: false } }, y: { grid: { color: 'rgba(0,0,0,0.05)' } } }, plugins: { legend: { display: false } } }
+});
+
+const flowChart = new Chart(flowCtx, {
+    type: 'line', data: { labels: [], datasets: [
+        { label: 'Flow (L/h)', data: [], borderColor: '#10b981', tension: 0.3 },
+    ]}, options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time', grid: { display: false } }, y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } } }, plugins: { legend: { display: false } } }
+});
+
+async function loadHistory(hours) {
+    try {
+        const resp = await fetch(`/api/tank/${TANK_ID}/history?hours=${hours}`);
+        const data = await resp.json();
+        if (!data.measurements) return;
+        mainChart.data.labels = data.measurements.map(m => new Date(m.timestamp));
+        mainChart.data.datasets[0].data = data.measurements.map(m => m.level);
+        mainChart.update();
+        tempChart.data.labels = data.measurements.map(m => new Date(m.timestamp));
+        tempChart.data.datasets[0].data = data.measurements.map(m => m.temperature);
+        tempChart.update();
+        flowChart.data.labels = data.measurements.map(m => new Date(m.timestamp));
+        flowChart.data.datasets[0].data = data.measurements.map(m => m.flow_rate);
+        flowChart.update();
+    } catch(e) { console.error('Failed to load history:', e); }
 }
 
-// Helper function to format numbers
-function formatNumber(value, decimals = 0) {
-    if (value === null || value === undefined) return '-';
-    return Number(value).toFixed(decimals);
+function setRange(hours) {
+    currentRange = hours;
+    document.querySelectorAll('.range-btn').forEach(b => { b.classList.remove('bg-primary-50', 'border-primary-300', 'font-medium'); });
+    event.target.classList.add('bg-primary-50', 'border-primary-300', 'font-medium');
+    loadHistory(hours);
 }
 
-// Helper function to format dates
-function formatDate(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleString();
-}
+const sse = new SSEClient(`/tank-updates?tank_id=${TANK_ID}`, {
+    onMessage: (data) => {
+        if (data.tank_id !== TANK_ID) return;
+        const now = new Date();
+        document.getElementById('current-level').textContent = data.level?.toFixed(3) + ' m';
+        document.getElementById('current-volume').textContent = data.volume?.toFixed(1) + ' L';
+        document.getElementById('current-fill').textContent = data.fill_percent?.toFixed(0) + '%';
+        document.getElementById('current-temp').textContent = data.temperature?.toFixed(1) + ' C';
+        document.getElementById('current-flow').textContent = data.flow_rate?.toFixed(2) + ' L/h';
+        [mainChart, tempChart, flowChart].forEach(c => {
+            c.data.labels.push(now);
+            c.data.datasets[0].data.push(c === mainChart ? data.level : c === tempChart ? data.temperature : data.flow_rate);
+            if (c.data.labels.length > 100) { c.data.labels.shift(); c.data.datasets[0].data.shift(); }
+            c.update('none');
+        });
+    }
+});
 
-// Function to initialize charts
-function initCharts() {
-    // Chart colors
-    const chartColors = {
-        level: {
-            border: 'rgba(75, 192, 192, 1)',
-            background: 'rgba(75, 192, 192, 0.2)'
-        },
-        volume: {
-            border: 'rgba(54, 162, 235, 1)',
-            background: 'rgba(54, 162, 235, 0.2)'
-        },
-        fillPercent: {
-            border: 'rgba(153, 102, 255, 1)',
-            background: 'rgba(153, 102, 255, 0.2)'
-        },
-        temperature: {
-            border: 'rgba(255, 99, 132, 1)',
-            background: 'rgba(255, 99, 132, 0.2)'
-        },
-        flowRate: {
-            border: 'rgba(255, 159, 64, 1)',
-            background: 'rgba(255, 159, 64, 0.2)'
-        }
-    };
-
-    // Main chart
-    const mainCtx = document.getElementById('mainChart');
-    if (mainCtx) {
-        mainChart = new Chart(mainCtx.getContext('2d'), {
-            type: 'line',
-            data: {
-                datasets: [
-                    {
-                        label: 'Level (m)',
-                        borderColor: chartColors.level.border,
-                        backgroundColor: chartColors.level.background,
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                        yAxisID: 'y-level',
-                        data: []
-                    },
-                    {
-                        label: 'Volume (L)',
-                        borderColor: chartColors.volume.border,
-                        backgroundColor: chartColors.volume.background,
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                        yAxisID: 'y-volume',
-                        data: []
-                    },
-                    {
-                        label: 'Fill (%)',
-                        borderColor: chartColors.fillPercent.border,
-                        backgroundColor: chartColors.fillPercent.background,
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4,
-                        yAxisID: 'y-fill',
-                        data: []
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false
-                },
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: {
-                            unit: 'hour',
-                            displayFormats: {
-                                minute: 'HH:mm',
-                                hour: 'MMM d, HH:mm',
-                                day: 'MMM D',
-                                week: 'MMM D'
-                            }
-                        },
-                        title: {
-                            display: true,
-                            text: 'Time'
-                        },
-                        ticks: {
-                            maxRotation: 0,
-                            autoSkip: true
-                        }
-                    },
-                    'y-level': {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        title: {
-                            display: true,
-                            text: 'Level (m)'
-                        },
-                        beginAtZero: true
-                    },
-                    'y-volume': {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        grid: {
-                            drawOnChartArea: false
-                        },
-                        title: {
-                            display: true,
-                            text: 'Volume (L)'
-                        },
-                        beginAtZero: true
-                    },
-                    'y-fill': {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        min: 0,
-                        max: 100,
-                        grid: {
-                            drawOnChartArea: false
-                        },
-                        title: {
-                            display: true,
-                            text: 'Fill (%)'
-                        }
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            title: function(context) {
-                                const date = new Date(context[0].parsed.x);
-                                return date.toLocaleString();
-                            }
-                        }
-                    },
-                    legend: {
-                        position: 'top'
-                    }
-                }
-            }
-        });
-    }
-    
-    // Temperature chart
-    const tempCtx = document.getElementById('temperatureChart');
-    if (tempCtx) {
-        temperatureChart = new Chart(tempCtx.getContext('2d'), {
-            type: 'line',
-            data: {
-                datasets: [{
-                    label: 'Temperature (°C)',
-                    borderColor: chartColors.temperature.border,
-                    backgroundColor: chartColors.temperature.background,
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    data: []
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: {
-                            unit: 'hour',
-                            displayFormats: {
-                                minute: 'HH:mm',
-                                hour: 'MMM d, HH:mm',
-                                day: 'MMM D',
-                                week: 'MMM D'
-                            }
-                        },
-                        title: {
-                            display: true,
-                            text: 'Time'
-                        },
-                        ticks: {
-                            maxRotation: 0,
-                            autoSkip: true
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Temperature (°C)'
-                        }
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            title: function(context) {
-                                const date = new Date(context[0].parsed.x);
-                                return date.toLocaleString();
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-    
-    // Flow rate chart
-    const flowCtx = document.getElementById('flowRateChart');
-    if (flowCtx) {
-        flowRateChart = new Chart(flowCtx.getContext('2d'), {
-            type: 'line',
-            data: {
-                datasets: [{
-                    label: 'Flow Rate (L/min)',
-                    borderColor: chartColors.flowRate.border,
-                    backgroundColor: chartColors.flowRate.background,
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4,
-                    data: []
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: {
-                            unit: 'hour',
-                            displayFormats: {
-                                minute: 'HH:mm',
-                                hour: 'MMM d, HH:mm',
-                                day: 'MMM D',
-                                week: 'MMM D'
-                            }
-                        },
-                        title: {
-                            display: true,
-                            text: 'Time'
-                        },
-                        ticks: {
-                            maxRotation: 0,
-                            autoSkip: true
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Flow Rate (L/min)'
-                        }
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            title: function(context) {
-                                const date = new Date(context[0].parsed.x);
-                                return date.toLocaleString();
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-}
-
-// Function to fetch chart data based on selected time range
-function fetchChartData(range) {
-    // Determine time parameters based on range
-    let params;
-    switch(range) {
-        case '1h':
-            params = 'hours=1';
-            break;
-        case '3h':
-            params = 'hours=3';
-            break;
-        case '6h':
-            params = 'hours=6';
-            break;
-        case '12h':
-            params = 'hours=12';
-            break;
-        case '24h':
-            params = 'hours=24';
-            break;
-        case '7d':
-            params = 'days=7';
-            break;
-        case '30d':
-            params = 'days=30';
-            break;
-        default:
-            params = 'hours=24';
-    }
-    
-    // Fetch data from API
-    fetch(`/api/tank/${tank.id}/history?${params}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                updateCharts(data.measurements, range);
-            } else {
-                console.error('Error fetching chart data:', data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching chart data:', error);
-        });
-}
-
-// Function to update charts with fetched data
-function updateCharts(measurements, range) {
-    if (!measurements || measurements.length === 0) {
-        console.warn('No measurement data available');
-        return;
-    }
-    
-    // Check if charts are initialized
-    if (!mainChart || !temperatureChart || !flowRateChart) {
-        console.warn('Charts not initialized yet');
-        return;
-    }
-    
-    // Clear existing data
-    mainChart.data.datasets[0].data = [];
-    mainChart.data.datasets[1].data = [];
-    mainChart.data.datasets[2].data = [];
-    temperatureChart.data.datasets[0].data = [];
-    flowRateChart.data.datasets[0].data = [];
-    
-    // Determine appropriate time unit based on range
-    let timeUnit;
-    switch(range) {
-        case '1h':
-        case '3h':
-        case '6h':
-            timeUnit = 'minute';
-            break;
-        case '12h':
-        case '24h':
-            timeUnit = 'hour';
-            break;
-        case '7d':
-            timeUnit = 'day';
-            break;
-        case '30d':
-            timeUnit = 'week';
-            break;
-        default:
-            timeUnit = 'hour';
-    }
-    
-    // Update chart time scale
-    mainChart.options.scales.x.time.unit = timeUnit;
-    temperatureChart.options.scales.x.time.unit = timeUnit;
-    flowRateChart.options.scales.x.time.unit = timeUnit;
-    
-    // Add data points
-    measurements.forEach(measurement => {
-        const timestamp = new Date(measurement.timestamp);
-        
-        // Add to main chart
-        mainChart.data.datasets[0].data.push({
-            x: timestamp,
-            y: measurement.level
-        });
-        
-        mainChart.data.datasets[1].data.push({
-            x: timestamp,
-            y: measurement.volume
-        });
-        
-        mainChart.data.datasets[2].data.push({
-            x: timestamp,
-            y: measurement.fill_percent
-        });
-        
-        // Add to temperature chart if temperature data exists
-        if (measurement.temperature !== null) {
-            temperatureChart.data.datasets[0].data.push({
-                x: timestamp,
-                y: measurement.temperature
-            });
-        }
-        
-        // Add to flow rate chart
-        flowRateChart.data.datasets[0].data.push({
-            x: timestamp,
-            y: measurement.flow_rate
-        });
-    });
-    
-    // Update charts
-    mainChart.update();
-    temperatureChart.update();
-    flowRateChart.update();
-}
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+    loadHistory(currentRange);
+    sse.connect();
+});
 </script>
 {% endblock %}
