@@ -2,449 +2,230 @@
 
 {% block title %}Settings - Fuel Tank Monitoring System{% endblock %}
 
-{% block head %}
-{{ super() }}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
-{% endblock %}
-
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-md-8 mx-auto">
-            <div class="card">
-                <div class="card-header">
-                    <h3>User Settings</h3>
-                </div>
-                <div class="card-body">
-                    <form method="post" action="{{ url_for('user.update_settings') }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        
-                        <h4 class="mb-3">Notification Preferences</h4>
-                        
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="email_notifications" name="email_notifications" 
-                                       {% if current_user.settings.email_notifications %}checked{% endif %}>
-                                <label class="form-check-label" for="email_notifications">Email Notifications</label>
-                            </div>
-                            <small class="text-muted">Receive notifications via email</small>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="sms_notifications" name="sms_notifications"
-                                       {% if current_user.settings.sms_notifications %}checked{% endif %}>
-                                <label class="form-check-label" for="sms_notifications">SMS Notifications</label>
-                            </div>
-                            <small class="text-muted">Receive notifications via SMS (requires phone number)</small>
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label class="form-label">Notification Types</label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="critical_alerts" name="critical_alerts"
-                                       {% if current_user.settings.critical_alerts %}checked{% endif %}>
-                                <label class="form-check-label" for="critical_alerts">Critical Alerts</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="warning_alerts" name="warning_alerts"
-                                       {% if current_user.settings.warning_alerts %}checked{% endif %}>
-                                <label class="form-check-label" for="warning_alerts">Warning Alerts</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="system_notifications" name="system_notifications"
-                                       {% if current_user.settings.system_notifications %}checked{% endif %}>
-                                <label class="form-check-label" for="system_notifications">System Notifications</label>
-                            </div>
-                        </div>
-                        
-                        <h4 class="mb-3">Display Preferences</h4>
-                        
-                        <div class="mb-3">
-                            <label for="theme" class="form-label">Theme</label>
-                            <select class="form-select" id="theme" name="theme">
-                                <option value="light" {% if current_user.settings.theme == 'light' %}selected{% endif %}>Light</option>
-                                <option value="dark" {% if current_user.settings.theme == 'dark' %}selected{% endif %}>Dark</option>
-                                <option value="system" {% if current_user.settings.theme == 'system' %}selected{% endif %}>System Default</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="dashboard_refresh" class="form-label">Dashboard Auto-Refresh Interval</label>
-                            <select class="form-select" id="dashboard_refresh" name="dashboard_refresh">
-                                <option value="0" {% if current_user.settings.dashboard_refresh == 0 %}selected{% endif %}>Disabled</option>
-                                <option value="30" {% if current_user.settings.dashboard_refresh == 30 %}selected{% endif %}>30 seconds</option>
-                                <option value="60" {% if current_user.settings.dashboard_refresh == 60 %}selected{% endif %}>1 minute</option>
-                                <option value="300" {% if current_user.settings.dashboard_refresh == 300 %}selected{% endif %}>5 minutes</option>
-                                <option value="600" {% if current_user.settings.dashboard_refresh == 600 %}selected{% endif %}>10 minutes</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="default_view" class="form-label">Default View</label>
-                            <select class="form-select" id="default_view" name="default_view">
-                                <option value="dashboard" {% if current_user.settings.default_view == 'dashboard' %}selected{% endif %}>Dashboard</option>
-                                <option value="tanks" {% if current_user.settings.default_view == 'tanks' %}selected{% endif %}>Tanks</option>
-                                <option value="reports" {% if current_user.settings.default_view == 'reports' %}selected{% endif %}>Reports</option>
-                            </select>
-                        </div>
-                        
-                        <h4 class="mb-3">Security Settings</h4>
-                        
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="two_factor_auth" name="two_factor_auth"
-                                       {% if current_user.settings.two_factor_auth %}checked{% endif %}>
-                                <label class="form-check-label" for="two_factor_auth">Two-Factor Authentication</label>
-                            </div>
-                            <small class="text-muted">Enable two-factor authentication for additional security</small>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="login_notifications" name="login_notifications"
-                                       {% if current_user.settings.login_notifications %}checked{% endif %}>
-                                <label class="form-check-label" for="login_notifications">Login Notifications</label>
-                            </div>
-                            <small class="text-muted">Receive email notifications when your account is accessed</small>
-                        </div>
-                        
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <button type="submit" class="btn btn-primary">Save Settings</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-                                  <div class="card mt-4">
-                                          <i class="bi bi-exclamation-triangle"></i> This key will only be shown once. Please copy it now and store it securely.
-                                      </div>
-                                      <div class="mb-3">
-                                          <label class="form-label">API Key</label>
-                                          <div class="input-group">
-                                              <input type="text" class="form-control" id="api-key-value" readonly>
-                                              <button class="btn btn-outline-secondary" type="button" id="copy-api-key-btn">
-                                                  <i class="bi bi-clipboard"></i>
-                                              </button>
-                                          </div>
-                                      </div>
-                                  </div>
-                                  <div class="modal-footer">
-                                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
+<div class="max-w-4xl mx-auto space-y-8">
+    <h1 class="text-2xl font-bold text-gray-900">Settings</h1>
 
-                      <!-- Revoke API Key Modal -->
-                      <div class="modal fade" id="revokeApiKeyModal" tabindex="-1" aria-hidden="true">
-                          <div class="modal-dialog">
-                              <div class="modal-content">
-                                  <div class="modal-header">
-                                      <h5 class="modal-title">Revoke API Key</h5>
-                                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                  </div>
-                                  <div class="modal-body">
-                                      <p>Are you sure you want to revoke the API key "<span id="revoke-key-name"></span>"?</p>
-                                      <p class="text-danger">This action cannot be undone. Any applications using this key will no longer be able to access the API.</p>
-                                      <form id="revoke-api-key-form" method="post" action="{{ url_for('user.revoke_api_key') }}">
-                                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                          <input type="hidden" id="revoke-key-id" name="key_id">
-                                      </form>
-                                  </div>
-                                  <div class="modal-footer">
-                                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                      <button type="submit" form="revoke-api-key-form" class="btn btn-danger">Revoke Key</button>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
+    <form method="post" action="{{ url_for('user.update_settings') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                      <!-- Terminate Session Modal -->
-                      <div class="modal fade" id="terminateSessionModal" tabindex="-1" aria-hidden="true">
-                          <div class="modal-dialog">
-                              <div class="modal-content">
-                                  <div class="modal-header">
-                                      <h5 class="modal-title">Terminate Session</h5>
-                                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                  </div>
-                                  <div class="modal-body">
-                                      <p>Are you sure you want to terminate this session?</p>
-                                      <p>The user will be logged out from this device.</p>
-                                      <form id="terminate-session-form" method="post" action="{{ url_for('user.terminate_session') }}">
-                                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                          <input type="hidden" id="terminate-session-id" name="session_id">
-                                      </form>
-                                  </div>
-                                  <div class="modal-footer">
-                                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                      <button type="submit" form="terminate-session-form" class="btn btn-danger">Terminate</button>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <i data-lucide="bell" class="h-5 w-5 text-primary-600"></i>
+                Notification Preferences
+            </h2>
 
-                      <!-- Terminate All Sessions Modal -->
-                      <div class="modal fade" id="terminateAllSessionsModal" tabindex="-1" aria-hidden="true">
-                          <div class="modal-dialog">
-                              <div class="modal-content">
-                                  <div class="modal-header">
-                                      <h5 class="modal-title">Terminate All Sessions</h5>
-                                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                  </div>
-                                  <div class="modal-body">
-                                      <p>Are you sure you want to terminate all other sessions?</p>
-                                      <p>You will remain logged in on this device, but all other devices will be logged out.</p>
-                                      <form id="terminate-all-sessions-form" method="post" action="{{ url_for('user.terminate_all_sessions') }}">
-                                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                      </form>
-                                  </div>
-                                  <div class="modal-footer">
-                                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                      <button type="submit" form="terminate-all-sessions-form" class="btn btn-danger">Terminate All</button>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                      {% endblock %}
-
-                      {% block scripts %}
-                      <script>
-                          document.addEventListener('DOMContentLoaded', function() {
-                              // Handle newly generated API key
-                              {% if new_api_key %}
-                              const apiKeyModal = new bootstrap.Modal(document.getElementById('apiKeyDisplayModal'));
-                              document.getElementById('api-key-value').value = "{{ new_api_key }}";
-                              apiKeyModal.show();
-                              {% endif %}
-        
-                              // Copy API key to clipboard
-                              document.getElementById('copy-api-key-btn').addEventListener('click', function() {
-                                  const apiKeyInput = document.getElementById('api-key-value');
-                                  apiKeyInput.select();
-                                  document.execCommand('copy');
-            
-                                  // Change button text temporarily
-                                  const originalHTML = this.innerHTML;
-                                  this.innerHTML = '<i class="bi bi-check"></i> Copied!';
-                                  setTimeout(() => {
-                                      this.innerHTML = originalHTML;
-                                  }, 2000);
-                              });
-        
-                              // View API key details
-                              document.querySelectorAll('.view-key-btn').forEach(button => {
-                                  button.addEventListener('click', function() {
-                                      const keyId = this.getAttribute('data-key-id');
-                                      const keyName = this.getAttribute('data-key-name');
-                
-                                      // Make AJAX request to get key details
-                                      fetch(`/user/api-key/${keyId}`)
-                                          .then(response => response.json())
-                                          .then(data => {
-                                              if (data.success) {
-                                                  // Show modal with key details
-                                                  const modal = new bootstrap.Modal(document.getElementById('apiKeyDetailsModal'));
-                                                  document.getElementById('key-details-name').textContent = keyName;
-                                                  document.getElementById('key-details-created').textContent = data.created_at;
-                                                  document.getElementById('key-details-last-used').textContent = data.last_used_at || 'Never';
-                                                  modal.show();
-                                              }
-                                          });
-                                  });
-                              });
-        
-                              // Revoke API key
-                              document.querySelectorAll('.revoke-key-btn').forEach(button => {
-                                  button.addEventListener('click', function() {
-                                      const keyId = this.getAttribute('data-key-id');
-                                      const keyName = this.getAttribute('data-key-name');
-                
-                                      document.getElementById('revoke-key-id').value = keyId;
-                                      document.getElementById('revoke-key-name').textContent = keyName;
-                
-                                      const modal = new bootstrap.Modal(document.getElementById('revokeApiKeyModal'));
-                                      modal.show();
-                                  });
-                              });
-        
-                              // Terminate session
-                              document.querySelectorAll('.terminate-session-btn').forEach(button => {
-                                  button.addEventListener('click', function() {
-                                      const sessionId = this.getAttribute('data-session-id');
-                                      document.getElementById('terminate-session-id').value = sessionId;
-                
-                                      const modal = new bootstrap.Modal(document.getElementById('terminateSessionModal'));
-                                      modal.show();
-                                  });
-                              });
-        
-                              // Terminate all sessions
-                              document.getElementById('terminate-all-sessions-btn').addEventListener('click', function() {
-                                  const modal = new bootstrap.Modal(document.getElementById('terminateAllSessionsModal'));
-                                  modal.show();
-                              });
-                          });
-                      </script>
-                      {% endblock %}
-                <div class="card-header">
-                    <h3>API Access</h3>
-                </div>
-                <div class="card-body">
-                    <p>Generate API keys to access the system programmatically.</p>
-                    
-                    {% if api_keys %}
-                    <div class="table-responsive mb-3">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Key Name</th>
-                                    <th>Created</th>
-                                    <th>Last Used</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for key in api_keys %}
-                                <tr>
-                                    <td>{{ key.name }}</td>
-                                    <td>{{ key.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                                    <td>
-                                        {% if key.last_used_at %}
-                                        {{ key.last_used_at.strftime('%Y-%m-%d %H:%M:%S') }}
-                                        {% else %}
-                                        <span class="text-muted">Never</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if key.is_active %}
-                                        <span class="badge bg-success">Active</span>
-                                        {% else %}
-                                        <span class="badge bg-danger">Inactive</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <button type="button" class="btn btn-sm btn-outline-primary view-key-btn" 
-                                                    data-key-id="{{ key.id }}" data-key-name="{{ key.name }}">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger revoke-key-btn"
-                                                    data-key-id="{{ key.id }}" data-key-name="{{ key.name }}">
-                                                <i class="bi bi-x-circle"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">Email Notifications</p>
+                        <p class="text-xs text-gray-500">Receive notifications via email</p>
                     </div>
-                    {% else %}
-                    <p class="text-muted">You don't have any API keys yet.</p>
-                    {% endif %}
-                    
-                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#generateApiKeyModal">
-                        <i class="bi bi-key"></i> Generate New API Key
-                    </button>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="email_notifications" name="email_notifications" class="sr-only peer"
+                               {% if current_user.settings.email_notifications %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    </label>
                 </div>
-            </div>
-            
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h3>Sessions</h3>
-                </div>
-                <div class="card-body">
-                    <p>Manage your active sessions across different devices.</p>
-                    
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Device</th>
-                                    <th>IP Address</th>
-                                    <th>Last Activity</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for session in sessions %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            {% if session.device_type == 'desktop' %}
-                                            <i class="bi bi-pc-display me-2"></i>
-                                            {% elif session.device_type == 'mobile' %}
-                                            <i class="bi bi-phone me-2"></i>
-                                            {% elif session.device_type == 'tablet' %}
-                                            <i class="bi bi-tablet me-2"></i>
-                                            {% else %}
-                                            <i class="bi bi-question-circle me-2"></i>
-                                            {% endif %}
-                                            <div>
-                                                <div>{{ session.browser }}</div>
-                                                <small class="text-muted">{{ session.os }}</small>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>{{ session.ip_address }}</td>
-                                    <td>{{ session.last_activity.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                                    <td>
-                                        {% if session.is_current %}
-                                        <span class="badge bg-success">Current</span>
-                                        {% else %}
-                                        <span class="badge bg-secondary">Active</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if not session.is_current %}
-                                        <button type="button" class="btn btn-sm btn-danger terminate-session-btn"
-                                                data-session-id="{{ session.id }}">
-                                            Terminate
-                                        </button>
-                                        {% else %}
-                                        <span class="text-muted">Current Session</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="5" class="text-center">No active sessions</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">Alarm Alerts</p>
+                        <p class="text-xs text-gray-500">Receive alerts for tank alarms</p>
                     </div>
-                    
-                    <button type="button" class="btn btn-danger mt-3" id="terminate-all-sessions-btn">
-                        <i class="bi bi-shield-x"></i> Terminate All Other Sessions
-                    </button>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="alarm_alerts" name="alarm_alerts" class="sr-only peer"
+                               {% if current_user.settings.alarm_alerts %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">Login Notifications</p>
+                        <p class="text-xs text-gray-500">Receive email when your account is accessed</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="login_notifications" name="login_notifications" class="sr-only peer"
+                               {% if current_user.settings.login_notifications %}checked{% endif %}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    </label>
                 </div>
             </div>
         </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <i data-lucide="monitor" class="h-5 w-5 text-primary-600"></i>
+                Display Preferences
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="language" class="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                    <select id="language" name="language" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        <option value="en" {% if current_user.settings.language == 'en' %}selected{% endif %}>English</option>
+                        <option value="es" {% if current_user.settings.language == 'es' %}selected{% endif %}>Spanish</option>
+                        <option value="fr" {% if current_user.settings.language == 'fr' %}selected{% endif %}>French</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="timezone" class="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+                    <select id="timezone" name="timezone" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        <option value="UTC" {% if current_user.settings.timezone == 'UTC' %}selected{% endif %}>UTC</option>
+                        <option value="US/Eastern" {% if current_user.settings.timezone == 'US/Eastern' %}selected{% endif %}>Eastern Time</option>
+                        <option value="US/Central" {% if current_user.settings.timezone == 'US/Central' %}selected{% endif %}>Central Time</option>
+                        <option value="US/Pacific" {% if current_user.settings.timezone == 'US/Pacific' %}selected{% endif %}>Pacific Time</option>
+                        <option value="Europe/London" {% if current_user.settings.timezone == 'Europe/London' %}selected{% endif %}>London</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="theme" class="block text-sm font-medium text-gray-700 mb-1">Theme</label>
+                    <select id="theme" name="theme" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        <option value="light" {% if current_user.settings.theme == 'light' %}selected{% endif %}>Light</option>
+                        <option value="dark" {% if current_user.settings.theme == 'dark' %}selected{% endif %}>Dark</option>
+                        <option value="system" {% if current_user.settings.theme == 'system' %}selected{% endif %}>System Default</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="dashboard_refresh" class="block text-sm font-medium text-gray-700 mb-1">Dashboard Auto-Refresh</label>
+                    <select id="dashboard_refresh" name="dashboard_refresh" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                        <option value="0" {% if current_user.settings.dashboard_refresh == 0 %}selected{% endif %}>Disabled</option>
+                        <option value="30" {% if current_user.settings.dashboard_refresh == 30 %}selected{% endif %}>30 seconds</option>
+                        <option value="60" {% if current_user.settings.dashboard_refresh == 60 %}selected{% endif %}>1 minute</option>
+                        <option value="300" {% if current_user.settings.dashboard_refresh == 300 %}selected{% endif %}>5 minutes</option>
+                        <option value="600" {% if current_user.settings.dashboard_refresh == 600 %}selected{% endif %}>10 minutes</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit" class="px-6 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition">
+                Save Settings
+            </button>
+        </div>
+    </form>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <i data-lucide="key" class="h-5 w-5 text-primary-600"></i>
+            API Access
+        </h2>
+        <p class="text-sm text-gray-600 mb-4">Generate API keys to access the system programmatically.</p>
+
+        {% if api_keys %}
+        <div class="overflow-x-auto mb-4">
+            <table class="w-full text-sm">
+                <thead class="border-b border-gray-200">
+                    <tr>
+                        <th class="text-left py-3 px-4 font-medium text-gray-600">Key Name</th>
+                        <th class="text-left py-3 px-4 font-medium text-gray-600">Created</th>
+                        <th class="text-left py-3 px-4 font-medium text-gray-600">Last Used</th>
+                        <th class="text-left py-3 px-4 font-medium text-gray-600">Status</th>
+                        <th class="text-right py-3 px-4 font-medium text-gray-600">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for key in api_keys %}
+                    <tr>
+                        <td class="py-3 px-4 text-gray-900">{{ key.name }}</td>
+                        <td class="py-3 px-4 text-gray-500">{{ key.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td class="py-3 px-4 text-gray-500">{{ key.last_used_at.strftime('%Y-%m-%d %H:%M') if key.last_used_at else 'Never' }}</td>
+                        <td class="py-3 px-4">
+                            {% if key.is_active %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            <button onclick="openModal('keyDetailsModal', '{{ key.id }}', '{{ key.name }}')" class="text-gray-500 hover:text-primary-600 transition mr-2">
+                                <i data-lucide="eye" class="h-4 w-4 inline"></i>
+                            </button>
+                            <button onclick="openModal('revokeKeyModal', '{{ key.id }}', '{{ key.name }}')" class="text-gray-500 hover:text-red-600 transition">
+                                <i data-lucide="x-circle" class="h-4 w-4 inline"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500 mb-4">You don't have any API keys yet.</p>
+        {% endif %}
+
+        <button onclick="openModal('generateKeyModal')" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition">
+            <i data-lucide="key" class="h-4 w-4"></i>
+            Generate New API Key
+        </button>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <i data-lucide="monitor-smartphone" class="h-5 w-5 text-primary-600"></i>
+            Sessions
+        </h2>
+        <p class="text-sm text-gray-600 mb-4">Manage your active sessions across different devices.</p>
+
+        <div class="space-y-3 mb-4">
+            {% for session in sessions %}
+            <div class="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
+                <div class="flex items-center gap-3">
+                    {% if session.device_type == 'desktop' %}
+                    <i data-lucide="monitor" class="h-5 w-5 text-gray-400"></i>
+                    {% elif session.device_type == 'mobile' %}
+                    <i data-lucide="smartphone" class="h-5 w-5 text-gray-400"></i>
+                    {% elif session.device_type == 'tablet' %}
+                    <i data-lucide="tablet" class="h-5 w-5 text-gray-400"></i>
+                    {% else %}
+                    <i data-lucide="help-circle" class="h-5 w-5 text-gray-400"></i>
+                    {% endif %}
+                    <div>
+                        <p class="text-sm font-medium text-gray-900">{{ session.browser }}</p>
+                        <p class="text-xs text-gray-500">{{ session.os }} &middot; {{ session.ip_address }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-gray-500">{{ session.last_activity.strftime('%Y-%m-%d %H:%M') }}</span>
+                    {% if session.is_current %}
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Current</span>
+                    {% else %}
+                    <button onclick="openModal('terminateSessionModal', '{{ session.id }}')" class="text-sm text-red-600 hover:text-red-800 transition">Terminate</button>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-500 text-center py-4">No active sessions</p>
+            {% endfor %}
+        </div>
+
+        <button onclick="openModal('terminateAllModal')" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition">
+            <i data-lucide="shield-x" class="h-4 w-4"></i>
+            Terminate All Other Sessions
+        </button>
     </div>
 </div>
 
-<!-- Generate API Key Modal -->
-<div class="modal fade" id="generateApiKeyModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Generate API Key</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="generate-api-key-form" method="post" action="{{ url_for('user.generate_api_key') }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="mb-3">
-                        <label for="key_name" class="form-label">Key Name</label>
-                        <input type="text" class="form-control" id="key_name" name="key_name" required
-                               placeholder="e.g., Mobile App, Integration">
+<div id="generateKeyModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-black/50" onclick="closeModal('generateKeyModal')"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Generate API Key</h3>
+            <form method="post" action="{{ url_for('user.generate_api_key') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Key Name</label>
+                        <input type="text" name="key_name" required placeholder="e.g., Mobile App, Integration" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
                     </div>
-                    <div class="mb-3">
-                        <label for="key_expiry" class="form-label">Expiration</label>
-                        <select class="form-select" id="key_expiry" name="key_expiry">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Expiration</label>
+                        <select name="key_expiry" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
                             <option value="30">30 days</option>
                             <option value="90">90 days</option>
                             <option value="180">180 days</option>
@@ -452,24 +233,124 @@
                             <option value="0" selected>Never</option>
                         </select>
                     </div>
-                </form>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeModal('generateKeyModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition">Generate Key</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="keyDetailsModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-black/50" onclick="closeModal('keyDetailsModal')"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">API Key Details</h3>
+            <div class="space-y-3">
+                <div>
+                    <p class="text-xs text-gray-500">Key Name</p>
+                    <p id="keyDetailsName" class="text-sm font-medium text-gray-900"></p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500">Created</p>
+                    <p id="keyDetailsCreated" class="text-sm text-gray-900"></p>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500">Last Used</p>
+                    <p id="keyDetailsLastUsed" class="text-sm text-gray-900"></p>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" form="generate-api-key-form" class="btn btn-primary">Generate Key</button>
+            <div class="flex justify-end mt-6">
+                <button onclick="closeModal('keyDetailsModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Close</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- API Key Display Modal -->
-<div class="modal fade" id="apiKeyDisplayModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">API Key</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
+<div id="revokeKeyModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-black/50" onclick="closeModal('revokeKeyModal')"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Revoke API Key</h3>
+            <p class="text-sm text-gray-600 mb-4">Are you sure you want to revoke "<span id="revokeKeyName"></span>"? This action cannot be undone.</p>
+            <form method="post" action="{{ url_for('user.revoke_api_key') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" id="revokeKeyId" name="key_id">
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('revokeKeyModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition">Revoke Key</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="terminateSessionModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-black/50" onclick="closeModal('terminateSessionModal')"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Terminate Session</h3>
+            <p class="text-sm text-gray-600 mb-4">Are you sure? The user will be logged out from this device.</p>
+            <form method="post" action="{{ url_for('user.terminate_session') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" id="terminateSessionId" name="session_id">
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('terminateSessionModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition">Terminate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="terminateAllModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-black/50" onclick="closeModal('terminateAllModal')"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Terminate All Sessions</h3>
+            <p class="text-sm text-gray-600 mb-4">Are you sure? All other devices will be logged out. You will remain logged in on this device.</p>
+            <form method="post" action="{{ url_for('user.terminate_all_sessions') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('terminateAllModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition">Terminate All</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openModal(id, keyId, keyName) {
+    document.getElementById(id).classList.remove('hidden');
+    if (keyId) {
+        if (id === 'revokeKeyModal') {
+            document.getElementById('revokeKeyId').value = keyId;
+            document.getElementById('revokeKeyName').textContent = keyName;
+        } else if (id === 'terminateSessionModal') {
+            document.getElementById('terminateSessionId').value = keyId;
+        } else if (id === 'keyDetailsModal') {
+            document.getElementById('keyDetailsName').textContent = keyName;
+            fetch('/user/api-key/' + keyId).then(r => r.json()).then(data => {
+                if (data.success) {
+                    document.getElementById('keyDetailsCreated').textContent = data.created_at;
+                    document.getElementById('keyDetailsLastUsed').textContent = data.last_used_at || 'Never';
+                }
+            });
+        }
+    }
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    lucide.createIcons();
+});
+</script>
+{% endblock %}
