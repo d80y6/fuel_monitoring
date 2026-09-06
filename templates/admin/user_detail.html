@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+
+{% block title %}{{ user.username }} - User Details - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ user.username }}</h1>
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editUserModal">
+                <i class="bi bi-pencil"></i> Edit User
+            </button>
+            <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Users
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">User Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h6>Role Permissions</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Permission</th>
+                                        <th>Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for permission in role_permissions %}
+                                    <tr>
+                                        <td>{{ permission.name }}</td>
+                                        <td>{{ permission.description }}</td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="2" class="text-center">No role permissions defined</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="d-flex justify-content-between align-items-center">
+                            <span>Site Access</span>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#manageSiteAccessModal">
+                                Manage Site Access
+                            </button>
+                        </h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Site</th>
+                                        <th>Company</th>
+                                        <th>Access Level</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for access in site_access %}
+                                    <tr>
+                                        <td>{{ access.site.name }}</td>
+                                        <td>{{ access.site.company.name }}</td>
+                                        <td>
+                                            {% if access.access_level == 'admin' %}
+                                            <span class="badge bg-danger">Admin</span>
+                                            {% elif access.access_level == 'company_admin' %}
+                                            <span class="badge bg-warning text-dark">Company Manager</span>
+                                            {% elif access.access_level == 'user' %}
+                                            <span class="badge bg-info">Operator</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">Viewer</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="3" class="text-center">No site access defined</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h6 class="d-flex justify-content-between align-items-center">
+                            <span>Tank Access</span>
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#manageTankAccessModal">
+                                Manage Tank Access
+                            </button>
+                        </h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Tank</th>
+                                        <th>Site</th>
+                                        <th>Company</th>
+                                        <th>Access Level</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for access in tank_access %}
+                                    <tr>
+                                        <td>{{ access.tank.name }}</td>
+                                        <td>{{ access.tank.site.name }}</td>
+                                        <td>{{ access.tank.site.company.name }}</td>
+                                        <td>
+                                            {% if access.access_level == 'admin' %}
+                                            <span class="badge bg-danger">Admin</span>
+                                            {% elif access.access_level == 'company_admin' %}
+                                            <span class="badge bg-warning text-dark">Company Manager</span>
+                                            {% elif access.access_level == 'user' %}
+                                            <span class="badge bg-info">User</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">Viewer</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center">No tank access defined</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-user-form">
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    <div class="mb-3">
+                        <label for="edit-username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="edit-username" name="username" value="{{ user.username }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="edit-email" name="email" value="{{ user.email }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-role" class="form-label">Role</label>
+                        <select class="form-select" id="edit-role" name="role_id" required>
+                            {% for role in roles %}
+                            <option value="{{ role.id }}" {% if role.id == user.role_id %}selected{% endif %}>{{ role.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-company" class="form-label">Company</label>
+                        <select class="form-select" id="edit-company" name="company_id">
+                            <option value="">-- No Company --</option>
+                            {% for company in companies %}
+                            <option value="{{ company.id }}" {% if user.company_id == company.id %}selected{% endif %}>{{ company.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="edit-is-active" name="is_active" {% if user.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="edit-is-active">Active</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="update-user-btn">Update</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reset Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="reset-password-form">
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    <div class="mb-3">
+                        <label for="new-password" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="new-password" name="new_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirm-password" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirm-password" name="confirm_password" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="require-change" name="require_change" checked>
+                        <label class="form-check-label" for="require-change">Require password change on next login</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-warning" id="reset-password-btn">Reset Password</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Site Access Modal -->
+<div class="modal fade" id="manageSiteAccessModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Site Access</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="site-access-form">
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Site</th>
+                                    <th>Company</th>
+                                    <th>Access Level</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for site in sites %}
+                                <tr>
+                                    <td>{{ site.name }}</td>
+                                    <td>{{ site.company.name }}</td>
+                                    <td>
+                                        <select class="form-select form-select-sm site-access-select" 
+                                                name="site_access_{{ site.id }}" 
+                                                data-site-id="{{ site.id }}">
+                                            <option value="">No Access</option>
+                                            <option value="viewer">Viewer</option>
+                                            <option value="user">Operator</option>
+                                            <option value="company_admin">Company Manager</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save-site-access-btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Tank Access Modal -->
+<div class="modal fade" id="manageTankAccessModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Tank Access</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="tank-access-form">
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Tank</th>
+                                    <th>Site</th>
+                                    <th>Company</th>
+                                    <th>Access Level</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tank in tanks %}
+                                <tr>
+                                    <td>{{ tank.name }}</td>
+                                    <td>{{ tank.site.name }}</td>
+                                    <td>{{ tank.site.company.name }}</td>
+                                    <td>
+                                        <select class="form-select form-select-sm tank-access-select" 
+                                                name="tank_access_{{ tank.id }}" 
+                                                data-tank-id="{{ tank.id }}">
+                                            <option value="">No Access</option>
+                                            <option value="viewer">Viewer</option>
+                                            <option value="user">User</option>
+                                            <option value="company_admin">Company Manager</option>
+                                            <option value="admin">Admin</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="save-tank-access-btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin_user_detail.js') }}"></script>
+<script>
+    // Set current site access values
+    {% for access in site_access %}
+    document.querySelector('select[name="site_access_{{ access.site.id }}"]').value = "{{ access.access_level }}";
+    {% endfor %}
+    
+    // Set current tank access values
+    {% for access in tank_access %}
+    document.querySelector('select[name="tank_access_{{ access.tank.id }}"]').value = "{{ access.access_level }}";
+    {% endfor %}
+</script>
+{% endblock %}

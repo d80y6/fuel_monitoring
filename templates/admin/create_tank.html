@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Create Tank - Admin - Fuel Tank Monitoring System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Create New Tank</h1>
+        <a href="{{ url_for('admin.tanks_index') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Tanks
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h5>Tank Information</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.create_tank') }}">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Basic Information</h6>
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Tank Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="site_id" class="form-label">Site</label>
+                            <select class="form-select" id="site_id" name="site_id" required>
+                                {% for site in sites %}
+                                <option value="{{ site.id }}" {% if site_id and site.id|string == site_id|string %}selected{% endif %}>
+                                    {{ site.name }} ({{ site.company.name }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                            <label class="form-check-label" for="is_active">Active</label>
+                        </div>
+                        
+                        <h6 class="mb-3 mt-4">Connection Settings</h6>
+                        
+                        <div class="mb-3">
+                            <label for="host" class="form-label">Host</label>
+                            <input type="text" class="form-control" id="host" name="host" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tcp_port" class="form-label">TCP Port</label>
+                            <input type="number" class="form-control" id="tcp_port" name="tcp_port" value="2000" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="device_address" class="form-label">Device Address</label>
+                            <input type="number" class="form-control" id="device_address" name="device_address" value="1" required>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Tank Parameters</h6>
+                        
+                        <div class="mb-3">
+                            <label for="tank_orientation" class="form-label">Orientation</label>
+                            <select class="form-select" id="tank_orientation" name="tank_orientation">
+                                <option value="vertical" selected>Vertical</option>
+                                <option value="horizontal">Horizontal</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tank_height" class="form-label">Height (meters)</label>
+                            <input type="number" step="0.01" class="form-control" id="tank_height" name="tank_height" value="2.0" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tank_diameter" class="form-label">Diameter (meters)</label>
+                            <input type="number" step="0.01" class="form-control" id="tank_diameter" name="tank_diameter" value="1.5" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="elevation" class="form-label">Elevation (meters above sea level)</label>
+                            <input type="number" step="0.1" class="form-control" id="elevation" name="elevation" value="2300.0" placeholder="Optional">
+                            <small class="form-text text-muted">Used for gravity compensation in pressure-to-level calculations</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="fluid_density" class="form-label">Fluid Density (kg/m³)</label>
+                            <input type="number" step="0.1" class="form-control" id="fluid_density" name="fluid_density" value="850" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="atmospheric_pressure" class="form-label">Atmospheric Pressure (bar)</label>
+                            <input type="number" step="0.001" class="form-control" id="atmospheric_pressure" name="atmospheric_pressure" value="0.0" required>
+                        </div>
+                        
+                        <h6 class="mb-3 mt-4">Sensor Settings</h6>
+                        
+                        <div class="mb-3">
+                            <label for="pressure_channel" class="form-label">Pressure Channel</label>
+                            <input type="number" class="form-control" id="pressure_channel" name="pressure_channel" value="1" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="temp_channel" class="form-label">Temperature Channel</label>
+                            <input type="number" class="form-control" id="temp_channel" name="temp_channel" value="4" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="calibration_factor" class="form-label">Calibration Factor</label>
+                            <input type="number" step="0.001" class="form-control" id="calibration_factor" name="calibration_factor" value="1.0" required>
+                        </div>
+                        
+                        <h6 class="mb-3 mt-4">Alarm Thresholds</h6>
+                        
+                        <div class="mb-3">
+                            <label for="low_level_threshold" class="form-label">Low Level Threshold (%)</label>
+                            <input type="number" step="0.1" class="form-control" id="low_level_threshold" name="low_level_threshold" value="20.0" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="critical_level_threshold" class="form-label">Critical Level Threshold (%)</label>
+                            <input type="number" step="0.1" class="form-control" id="critical_level_threshold" name="critical_level_threshold" value="10.0" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="high_level_threshold" class="form-label">High Level Threshold (%)</label>
+                            <input type="number" step="0.1" class="form-control" id="high_level_threshold" name="high_level_threshold" value="90.0" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="{{ url_for('admin.tanks_index') }}" class="btn btn-secondary me-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Create Tank</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

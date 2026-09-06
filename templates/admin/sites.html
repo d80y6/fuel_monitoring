@@ -1,0 +1,367 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Manage Sites{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h2 mb-1">Manage Sites</h1>
+            <p class="text-muted">View and manage all sites across companies</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('admin.create_site') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>Add New Site
+            </a>
+            <button id="map-view-btn" class="btn btn-outline-info ms-2">
+                <i class="fas fa-map-marked-alt me-1"></i>Map View
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-filter me-2"></i>Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form id="filter-form" method="GET" action="{{ url_for('admin.sites') }}">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <div class="form-group">
+                                    <label for="company" class="form-label">Company:</label>
+                                    <select id="company" name="company" class="form-select">
+                                        <option value="all">All Companies</option>
+                                        {% for company in companies %}
+                                        <option value="{{ company.id }}" {% if request.args.get('company')|int == company.id %}selected{% endif %}>{{ company.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="form-group">
+                                    <label for="active" class="form-label">Status:</label>
+                                    <select id="active" name="active" class="form-select">
+                                        <option value="all" {% if request.args.get('active') == 'all' %}selected{% endif %}>All</option>
+                                        <option value="active" {% if request.args.get('active') == 'active' %}selected{% endif %}>Active</option>
+                                        <option value="inactive" {% if request.args.get('active') == 'inactive' %}selected{% endif %}>Inactive</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="form-group">
+                                    <label for="search" class="form-label">Search:</label>
+                                    <input type="text" id="search" name="search" class="form-control" placeholder="Site name, location..." value="{{ request.args.get('search', '') }}">
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter me-1"></i>Apply Filters
+                                </button>
+                                <a href="{{ url_for('admin.sites') }}" class="btn btn-outline-secondary ms-2">
+                                    <i class="fas fa-times me-1"></i>Clear
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sites Table -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Sites</h5>
+                    <div>
+                        <button id="export-csv-btn" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-download me-1"></i>Export CSV
+                        </button>
+                        <button id="map-view-btn" class="btn btn-outline-primary btn-sm ms-2">
+                            <i class="fas fa-map-marked-alt me-1"></i>Map View
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if sites %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Company</th>
+                                    <th>Location</th>
+                                    <th>Tanks</th>
+                                    <th>Status</th>
+                                    <th>Last Update</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for site in sites %}
+                                <tr>
+                                    <td>{{ site.id }}</td>
+                                    <td>{{ site.name }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin.edit_company', company_id=site.company.id) }}">
+                                            {{ site.company.name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if site.city and site.state %}
+                                            {{ site.city }}, {{ site.state }}
+                                        {% elif site.city %}
+                                            {{ site.city }}
+                                        {% elif site.state %}
+                                            {{ site.state }}
+                                        {% else %}
+                                            <span class="text-muted">Not specified</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ site.tanks|length }}</span>
+                                    </td>
+                                    <td>
+                                        {% if site.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if site.last_updated %}
+                                            {{ site.last_updated.strftime('%Y-%m-%d %H:%M') }}
+                                        {% else %}
+                                            <span class="text-muted">Never</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('admin.edit_site', site_id=site.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{{ url_for('admin.api_site_tanks', site_id=site.id) }}" class="btn btn-sm btn-outline-info" title="View Tanks">
+                                                <i class="fas fa-gas-pump"></i>
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-{{ 'danger' if site.is_active else 'success' }} toggle-status-btn" 
+                                                    data-site-id="{{ site.id }}" 
+                                                    data-active="{{ 'true' if site.is_active else 'false' }}"
+                                                    title="{{ 'Deactivate' if site.is_active else 'Activate' }}">
+                                                <i class="fas {{ 'fa-toggle-off' if site.is_active else 'fa-toggle-on' }}"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger delete-site-btn" 
+                                                    data-site-id="{{ site.id }}" 
+                                                    data-site-name="{{ site.name }}"
+                                                    title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>No sites found matching the current filters.
+                    </div>
+                    {% endif %}
+                </div>
+                {% if sites %}
+                <div class="card-footer">
+                    <nav aria-label="Sites pagination">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.sites', page=pagination.prev_num, **request.args) if pagination.has_prev else '#' }}">Previous</a>
+                            </li>
+                            {% for page in pagination.iter_pages() %}
+                                {% if page %}
+                                    <li class="page-item {% if page == pagination.page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('admin.sites', page=page, **request.args) }}">{{ page }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <span class="page-link">...</span>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.sites', page=pagination.next_num, **request.args) if pagination.has_next else '#' }}">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Map View Modal -->
+<div class="modal fade" id="mapViewModal" tabindex="-1" aria-labelledby="mapViewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mapViewModalLabel">Site Locations</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="sitesMap" style="height: 600px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Site Modal -->
+<div class="modal fade" id="deleteSiteModal" tabindex="-1" aria-labelledby="deleteSiteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteSiteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the site "<span id="delete-site-name"></span>"?</p>
+                <p class="text-danger">This action cannot be undone. All tanks associated with this site will also be deleted.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="delete-site-form" method="POST">
+                    <button type="submit" class="btn btn-danger">Delete Site</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ config.GOOGLE_MAPS_API_KEY }}&callback=initMap" async defer></script>
+<script>
+let map;
+let markers = [];
+let siteData = [];
+
+// Initialize map
+function initMap() {
+    // Create map centered on average of all site locations
+    map = new google.maps.Map(document.getElementById('sitesMap'), {
+        zoom: 5,
+        center: {lat: 0, lng: 0}
+    });
+    
+    // Load site data
+    fetch('/api/admin/sites/locations')
+        .then(response => response.json())
+        .then(data => {
+            siteData = data.sites;
+            
+            if (siteData.length === 0) {
+                document.getElementById('sitesMap').innerHTML = '<div class="alert alert-info">No sites with location data available.</div>';
+                return;
+            }
+            
+            const bounds = new google.maps.LatLngBounds();
+            
+            // Add markers for each site
+            siteData.forEach(site => {
+                if (site.latitude && site.longitude) {
+                    const position = {lat: parseFloat(site.latitude), lng: parseFloat(site.longitude)};
+                    const marker = new google.maps.Marker({
+                        position: position,
+                        map: map,
+                        title: site.name
+                    });
+                    
+                    // Create info window with site details
+                    const infoContent = `
+                        <div>
+                            <h5>${site.name}</h5>
+                            <p><strong>Company:</strong> ${site.company_name}</p>
+                            <p><strong>Address:</strong> ${site.address || 'N/A'}</p>
+                            <p><strong>Tanks:</strong> ${site.tank_count}</p>
+                            <p><a href="/admin/sites/${site.id}" class="btn btn-sm btn-primary">View Details</a></p>
+                        </div>
+                    `;
+                    
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: infoContent
+                    });
+                    
+                    marker.addListener('click', () => {
+                        infoWindow.open(map, marker);
+                    });
+                    
+                    markers.push(marker);
+                    bounds.extend(position);
+                }
+            });
+            
+            // Fit map to bounds
+            if (markers.length > 0) {
+                map.fitBounds(bounds);
+                
+                // If only one marker, zoom out a bit
+                if (markers.length === 1) {
+                    map.setZoom(10);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error loading site data:', error);
+            document.getElementById('sitesMap').innerHTML = '<div class="alert alert-danger">Error loading map data.</div>';
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle company filter change
+    document.getElementById('company').addEventListener('change', function() {
+        document.getElementById('filter-form').submit();
+    });
+    
+    // Handle status filter change
+    document.getElementById('active').addEventListener('change', function() {
+        document.getElementById('filter-form').submit();
+    });
+    
+    // Handle map view button
+    document.getElementById('map-view-btn').addEventListener('click', function() {
+        const mapModal = new bootstrap.Modal(document.getElementById('mapViewModal'));
+        mapModal.show();
+    });
+    
+    // Handle export CSV button
+    document.getElementById('export-csv-btn').addEventListener('click', function() {
+        window.location.href = '/api/admin/sites/export';
+    });
+});
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+/* Custom styles for map info windows */
+.map-info-window {
+    padding: 5px;
+}
+.map-info-window h5 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+.map-info-window p {
+    margin-bottom: 5px;
+}
+</style>
+{% endblock %}

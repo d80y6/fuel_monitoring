@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Calibrate {{ tank.name }} - Fuel Tank Monitoring System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item">{{ company.name }}</li>
+                <li class="breadcrumb-item">{{ site.name }}</li>
+                <li class="breadcrumb-item"><a href="{{ url_for('tank_detail', tank_id=tank.id) }}">{{ tank.name }}</a></li>
+                <li class="breadcrumb-item active">Calibration</li>
+            </ol>
+        </nav>
+        <h1 class="mb-4">Calibrate {{ tank.name }}</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Calibration</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-4">
+                    Calibration helps improve the accuracy of volume measurements. To calibrate the tank:
+                </p>
+                <ol>
+                    <li>Ensure you know the exact volume of fluid in the tank</li>
+                    <li>Enter this known volume in the form below</li>
+                    <li>Click "Calibrate" to calculate and apply the calibration factor</li>
+                </ol>
+                
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> The current calibration factor is <strong>{{ tank.calibration_factor }}</strong>
+                </div>
+                
+                <form method="POST" action="{{ url_for('calibration', tank_id=tank.id) }}">
+                    <div class="mb-3">
+                        <label for="known_volume" class="form-label">Known Volume (liters)</label>
+                        <input type="number" class="form-control" id="known_volume" name="known_volume" step="0.1" min="0" required>
+                        <div class="form-text">Enter the actual volume of fluid currently in the tank</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Current Measurements</label>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">Pressure</span>
+                                    <input type="text" class="form-control" id="current-pressure" readonly>
+                                    <span class="input-group-text">bar</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">Level</span>
+                                    <input type="text" class="form-control" id="current-level" readonly>
+                                    <span class="input-group-text">m</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="input-group mb-3">
+                                    <span class="input-group-text">Volume</span>
+                                    <input type="text" class="form-control" id="current-volume" readonly>
+                                    <span class="input-group-text">L</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Calibrate</button>
+                    <a href="{{ url_for('tank_detail', tank_id=tank.id) }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">About Calibration</h5>
+            </div>
+            <div class="card-body">
+                <h5>Why Calibrate?</h5>
+                <p>
+                    Calibration compensates for variations in tank geometry, sensor placement, and fluid properties
+                    that might affect the accuracy of volume calculations.
+                </p>
+                
+                <h5>How It Works</h5>
+                <p>
+                    The system calculates a calibration factor by comparing the measured volume (based on pressure)
+                    with the known actual volume. This factor is then applied to all future measurements.
+                </p>
+                
+                <h5>When to Calibrate</h5>
+                <ul>
+                    <li>After initial installation</li>
+                    <li>When changing fluid types</li>
+                    <li>If measurements seem inaccurate</li>
+                    <li>Periodically for maintenance</li>
+                </ul>
+                
+                <h5>Best Practices</h5>
+                <ul>
+                    <li>Use a reliable method to determine the actual volume</li>
+                    <li>Perform calibration when the tank is at least 25% full</li>
+                    <li>Ensure the fluid is settled and not in motion</li>
+                    <li>Verify results after calibration</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize Socket.IO
+    const socket = io();
+    
+    // Tank ID
+    const tankId = {{ tank.id }};
+    
+    // Request to monitor this tank
+    socket.emit('monitor_tank', { tank_id: tankId });
+    
+    // Listen for measurements
+    socket.on(`tank_${tankId}_measurements`, function(data) {
+        // Update current measurements
+        document.getElementById('current-pressure').value = data.pressure.toFixed(4);
+        document.getElementById('current-level').value = data.level.toFixed(3);
+        document.getElementById('current-volume').value = data.volume.toFixed(1);
+    });
+    
+    // Fetch initial measurements
+    fetch(`/api/measurements/${tankId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.error) {
+                document.getElementById('current-pressure').value = data.pressure.toFixed(4);
+                document.getElementById('current-level').value = data.level.toFixed(3);
+                document.getElementById('current-volume').value = data.volume.toFixed(1);
+            }
+        });
+</script>
+{% endblock %}

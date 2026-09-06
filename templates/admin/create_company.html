@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Create Company - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Create Company</h1>
+        <a href="{{ url_for('admin.companies') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Companies
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                {{ form.hidden_tag() }}
+                <div class="mb-3">
+                    {{ form.name.label(class="form-label") }}
+                    {{ form.name(class="form-control") }}
+                    {% for error in form.name.errors %}
+                    <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="mb-3">
+                    {{ form.address.label(class="form-label") }}
+                    {{ form.address(class="form-control", rows="3") }}
+                    {% for error in form.address.errors %}
+                    <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="mb-3">
+                    {{ form.contact_name.label(class="form-label") }}
+                    {{ form.contact_name(class="form-control") }}
+                    {% for error in form.contact_name.errors %}
+                    <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="mb-3">
+                    {{ form.contact_email.label(class="form-label") }}
+                    {{ form.contact_email(class="form-control") }}
+                    {% for error in form.contact_email.errors %}
+                    <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <div class="mb-3">
+                    {{ form.contact_phone.label(class="form-label") }}
+                    {{ form.contact_phone(class="form-control") }}
+                    {% for error in form.contact_phone.errors %}
+                    <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {{ form.submit(class="btn btn-primary") }}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

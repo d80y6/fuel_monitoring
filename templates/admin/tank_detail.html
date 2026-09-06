@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+
+{% block title %}Tank Details - Admin - Fuel Tank Monitoring System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Tank Details: {{ tank.name }}</h1>
+        <div>
+            <button id="refresh-tank-data" class="btn btn-outline-primary me-2">
+                <i class="bi bi-arrow-clockwise"></i> Refresh Data
+            </button>
+            <a href="{{ url_for('admin.edit_tank', tank_id=tank.id) }}" class="btn btn-primary me-2">
+                <i class="bi bi-pencil"></i> Edit Tank
+            </a>
+            <button id="delete-tank-btn" class="btn btn-danger me-2" data-tank-name="{{ tank.name }}">
+                <i class="bi bi-trash"></i> Delete Tank
+            </button>
+            <a href="{{ url_for('admin.tanks_index') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Tanks
+            </a>
+        </div>
+    </div>
+    
+    <div id="alert-container"></div>
+    
+    <div id="tank-data" data-tank-id="{{ tank.id }}" style="display: none;"></div>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Tank Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Name:</th>
+                            <td>{{ tank.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Description:</th>
+                            <td>{{ tank.description or 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Site:</th>
+                            <td>
+                                <a href="{{ url_for('admin.site_detail', site_id=tank.site.id) }}">
+                                    {{ tank.site.name }}
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Company:</th>
+                            <td>
+                                <a href="{{ url_for('admin.company_detail', company_id=tank.site.company.id) }}">
+                                    {{ tank.site.company.name }}
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td>
+                                {% if tank.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Connection:</th>
+                            <td>
+                                {% set status = tank.get_connection_status() %}
+                                {% if status == "Connected" %}
+                                <span class="badge bg-success">Connected</span>
+                                {% elif status == "Recently Disconnected" %}
+                                <span class="badge bg-warning">Recently Disconnected</span>
+                                {% else %}
+                                <span class="badge bg-danger">Disconnected</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Last Connection:</th>
+                            <td>
+                                {% if tank.last_connection %}
+                                {{ tank.last_connection.strftime('%Y-%m-%d %H:%M:%S') }}
+                                {% else %}
+                                Never
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Created:</th>
+                            <td>{{ tank.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Connection Settings</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Host:</th>
+                            <td>{{ tank.host }}</td>
+                        </tr>
+                        <tr>
+                            <th>TCP Port:</th>
+                            <td>{{ tank.tcp_port }}</td>
+                        </tr>
+                        <tr>
+                            <th>Device Address:</th>
+                            <td>{{ tank.device_address }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5>Tank Parameters</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Orientation:</th>
+                            <td>{{ tank.tank_orientation|capitalize }}</td>
+                        </tr>
+                        <tr>
+                            <th>Height:</th>
+                            <td>{{ tank.tank_height }} meters</td>
+                        </tr>
+                        <tr>
+                            <th>Diameter:</th>
+                            <td>{{ tank.tank_diameter }} meters</td>
+                        </tr>
+                        <tr>
+                            <th>Elevation:</th>
+                            <td>{{ tank.elevation|default('Not set', true) }} meters above sea level</td>
+                        </tr>
+                        <tr>
+                            <th>Fluid Density:</th>
+                            <td>{{ tank.fluid_density }} kg/m³</td>
+                        </tr>
+                        <tr>
+                            <th>Atmospheric Pressure:</th>
+                            <td>{{ tank.atmospheric_pressure }} bar</td>
+                        </tr>
+                        <tr>
+                            <th>Pressure Channel:</th>
+                            <td>{{ tank.pressure_channel }}</td>
+                        </tr>
+                        <tr>
+                            <th>Temperature Channel:</th>
+                            <td>{{ tank.temp_channel }}</td>
+                        </tr>
+                        <tr>
+                            <th>Calibration Factor:</th>
+                            <td>{{ tank.calibration_factor }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Current Status</h5>
+                </div>
+                <div class="card-body">
+                    {% set measurement = tank.get_latest_measurement() %}
+                    {% if measurement %}
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h3>{{ measurement.fill_percent|round(1) }}%</h3>
+                                    <p class="mb-0">Fill Level</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h3>{{ measurement.volume|round(2) }} L</h3>
+                                    <p class="mb-0">Volume</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h3>{{ measurement.level|round(3) }} m</h3>
+                                    <p class="mb-0">Level</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h3>{{ measurement.pressure|round(3) }} bar</h3>
+                                    <p class="mb-0">Pressure</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h3>{{ measurement.temperature|round(1) if measurement.temperature else 'N/A' }} °C</h3>
+                                    <p class="mb-0">Temperature</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h3>{{ measurement.flow_rate|round(2) }} L/m</h3>
+                                    <p class="mb-0">Flow Rate</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="text-muted text-center">Last updated: {{ measurement.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> No measurement data available for this tank.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Tank Level History</h5>
+                    <div>
+                        <div class="btn-group time-range-selector me-2" role="group" aria-label="Time range">
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-period="1">24h</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary active" data-period="7">7d</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-period="30">30d</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-period="90">90d</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-period="custom" id="custom-range-btn">Custom</button>
+                        </div>
+                        <button id="refresh-tank-data" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div id="custom-range-picker" class="card-body border-top" style="display: none;">
+                    <form id="custom-range-form" class="row g-3 align-items-center">
+                        <div class="col-auto">
+                            <label for="custom-from-date" class="col-form-label">From:</label>
+                        </div>
+                        <div class="col-auto">
+                            <input type="datetime-local" class="form-control form-control-sm" id="custom-from-date">
+                        </div>
+                        <div class="col-auto">
+                            <label for="custom-to-date" class="col-form-label">To:</label>
+                        </div>
+                        <div class="col-auto">
+                            <input type="datetime-local" class="form-control form-control-sm" id="custom-to-date">
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="cancel-custom-range">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="chart-loading" class="text-center my-3" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Loading tank data...</p>
+                </div>
+                <div class="card-body">
+                    <canvas id="levelChart" height="250"></canvas>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Daily Consumption</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="consumptionChart" height="250"></canvas>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recent Alarms</h5>
+                </div>
+                <div class="card-body">
+                    {% set alarms = tank.get_recent_alarms() %}
+                    {% if alarms %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Type</th>
+                                    <th>Message</th>
+                                    <th>Value</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alarm in alarms %}
+                                <tr data-alarm-id="{{ alarm.id }}">
+                                    <td>{{ alarm.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td>
+                                        {% if alarm.type == 'low_level' %}
+                                        <span class="badge bg-warning">Low Level</span>
+                                        {% elif alarm.type == 'critical_level' %}
+                                        <span class="badge bg-danger">Critical Level</span>
+                                        {% elif alarm.type == 'high_level' %}
+                                        <span class="badge bg-warning">High Level</span>
+                                        {% elif alarm.type == 'connection' %}
+                                        <span class="badge bg-danger">Connection</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ alarm.type }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ alarm.message }}</td>
+                                    <td>{{ alarm.value|round(2) if alarm.value else 'N/A' }}</td>
+                                    <td class="alarm-status">
+                                        {% if alarm.acknowledged %}
+                                        <span class="badge bg-success">Acknowledged</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Unacknowledged</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="alarm-actions">
+                                        {% if not alarm.acknowledged %}
+                                        <button class="btn btn-sm btn-success acknowledge-alarm-btn" data-alarm-id="{{ alarm.id }}">
+                                            <i class="bi bi-check-circle"></i> Acknowledge
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No recent alarms for this tank.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Tank Confirmation Modal -->
+<div class="modal fade" id="deleteTankModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the tank "<span id="delete-tank-name"></span>"?</p>
+                <p class="text-danger">This action cannot be undone and will delete all measurements and alarms associated with this tank.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-tank">Delete Tank</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- First include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Then include the date adapter (choose one) -->
+<!-- Option 1: Using date-fns adapter (recommended) -->
+<script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/dist/date-fns.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.1/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+<!-- Option 2: Using moment.js adapter (alternative) -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script> -->
+<!-- <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script> -->
+
+<!-- Include the extracted JavaScript file -->
+<script src="{{ url_for('static', filename='js/admin/tank_detail.js') }}"></script>
+{% endblock %}

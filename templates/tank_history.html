@@ -1,0 +1,576 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tank.name }} - Measurement History{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/tank_visualization.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Hidden tank ID for JavaScript -->
+    <input type="hidden" id="tank-id" value="{{ tank.id }}">
+    
+    <!-- Header with breadcrumb -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('tanks') }}">Tanks</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('tank_detail', tank_id=tank.id) }}">{{ tank.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">History</li>
+                </ol>
+            </nav>
+            <h1>{{ tank.name }} - Measurement History</h1>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Data Controls</h5>
+                    <div>
+                        <button id="refresh-data" class="btn btn-sm btn-primary me-2">
+                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                        </button>
+                        <button id="auto-refresh-toggle" class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="Auto-refresh data every 30 seconds">
+                            <i class="fas fa-clock me-1"></i>Auto-Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6">
+                            <div class="form-group mb-3">
+                                <label for="range-selector" class="form-label">Time Range:</label>
+                                <select id="range-selector" class="form-select">
+                                    <option value="1h">Last 1 Hour</option>
+                                    <option value="6h">Last 6 Hours</option>
+                                    <option value="12h">Last 12 Hours</option>
+                                    <option value="24h">Last 24 Hours</option>
+                                    <option value="7d" selected>Last 7 Days</option>
+                                    <option value="30d">Last 30 Days</option>
+                                    <option value="90d">Last 90 Days</option>
+                                    <option value="custom">Custom Range</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-sm-6">
+                            <div id="custom-date-range" class="row" style="display: none;">
+                                <div class="col-md-5 col-sm-5">
+                                    <div class="form-group mb-3">
+                                        <label for="start-date" class="form-label">Start Date:</label>
+                                        <input type="datetime-local" id="start-date" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="col-md-5 col-sm-5">
+                                    <div class="form-group mb-3">
+                                        <label for="end-date" class="form-label">End Date:</label>
+                                        <input type="datetime-local" id="end-date" class="form-control">
+                                    </div>
+                                </div>
+                                <div class="col-md-2 col-sm-2 d-flex align-items-end">
+                                    <button id="apply-custom-range" class="btn btn-primary">Apply</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-sm-6">
+                            <div class="form-group mb-3">
+                                <label for="chart-type-selector" class="form-label">Chart Type:</label>
+                                <select id="chart-type-selector" class="form-select">
+                                    <option value="line">Line Chart</option>
+                                    <option value="bar">Bar Chart</option>
+                                    <option value="scatter">Scatter Plot</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 col-sm-12">
+                            <div class="form-group mb-3">
+                                <label for="metrics-selector" class="form-label">Metrics to Display:</label>
+                                <select id="metrics-selector" class="form-select" multiple>
+                                    <option value="level" selected>Level (m)</option>
+                                    <option value="volume" selected>Volume (L)</option>
+                                    <option value="fill_percent" selected>Fill Percent (%)</option>
+                                    <option value="flow_rate">Flow Rate (L/min)</option>
+                                    <option value="temperature">Temperature (°C)</option>
+                                    <option value="pressure">Pressure (bar)</option>
+                                </select>
+                                <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-sm-12 d-flex align-items-end justify-content-end">
+                            <div class="btn-group">
+                                <a href="{{ url_for('download_tank_csv', tank_id=tank.id) }}" id="export-csv" class="btn btn-success">
+                                    <i class="fas fa-file-csv me-1"></i>CSV
+                                </a>
+                                <button id="export-excel" class="btn btn-success">
+                                    <i class="fas fa-file-excel me-1"></i>Excel
+                                </button>
+                                <button id="export-pdf" class="btn btn-success">
+                                    <i class="fas fa-file-pdf me-1"></i>PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chart -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Main Measurement Chart</h5>
+                    <div class="chart-controls">
+                        <button id="zoom-reset" class="btn btn-sm btn-outline-secondary" title="Reset Zoom">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <div class="btn-group btn-group-sm ms-2">
+                            <button id="download-chart-image" class="btn btn-outline-secondary" title="Download Chart">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button id="toggle-annotations" class="btn btn-outline-secondary" title="Toggle Annotations">
+                                <i class="fas fa-comment-alt"></i>
+                            </button>
+                            <button id="toggle-legend" class="btn btn-outline-secondary" title="Toggle Legend">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="loading-indicator" class="text-center py-5" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading data...</p>
+                    </div>
+                    <div id="chart-container" class="chart-container" style="position: relative; height:400px;">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                    <div id="no-data-message" class="alert alert-info text-center my-3" style="display: none;">
+                        No data available for the selected time range.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6 mb-4 mb-md-0">
+            <div class="card" id="temperature-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Temperature</h5>
+                    <button class="btn btn-sm btn-outline-secondary toggle-chart" data-chart="temperature">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:250px;">
+                        <canvas id="temperatureChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card" id="flow-rate-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Flow Rate</h5>
+                    <button class="btn btn-sm btn-outline-secondary toggle-chart" data-chart="flowRate">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:250px;">
+                        <canvas id="flowRateChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pressure Chart -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card" id="pressure-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Pressure</h5>
+                    <button class="btn btn-sm btn-outline-secondary toggle-chart" data-chart="pressure">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container" style="position: relative; height:250px;">
+                        <canvas id="pressureChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tank Visualization and Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Current Tank Status</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="tank-visualization-container">
+                        <div class="tank-visualization">
+                            <div class="tank-level" id="current-tank-level" 
+                                 data-tank-id="{{ tank.id }}"
+                                 data-critical-threshold="{{ tank.critical_level_threshold }}"
+                                 data-low-threshold="{{ tank.low_level_threshold }}"
+                                 data-high-threshold="{{ tank.high_level_threshold }}"></div>
+                            <div class="tank-level-marker critical" title="Critical Level ({{ tank.critical_level_threshold }}%)"></div>
+                            <div class="tank-level-marker low" title="Low Level ({{ tank.low_level_threshold }}%)"></div>
+                            <div class="tank-level-marker high" title="High Level ({{ tank.high_level_threshold }}%)"></div>
+                        </div>
+                        <div class="tank-labels">
+                            <div class="tank-label high">{{ tank.high_level_threshold }}%</div>
+                            <div class="tank-label low">{{ tank.low_level_threshold }}%</div>
+                            <div class="tank-label critical">{{ tank.critical_level_threshold }}%</div>
+                        </div>
+                    </div>
+                    <div class="tank-stats mt-3">
+                        <div class="row">
+                            <div class="col-6 text-end fw-bold">Current Level:</div>
+                            <div class="col-6 text-start" id="current-level">--</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 text-end fw-bold">Current Volume:</div>
+                            <div class="col-6 text-start" id="current-volume">--</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 text-end fw-bold">Fill Percentage:</div>
+                            <div class="col-6 text-start" id="current-fill">--</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 text-end fw-bold">Last Updated:</div>
+                            <div class="col-6 text-start" id="last-updated">--</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Statistics</h5>
+                    <div class="btn-group btn-group-sm">
+                        <button id="refresh-stats" class="btn btn-outline-secondary" title="Refresh Statistics">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Level Statistics</h6>
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Average Level:</th>
+                                        <td id="avg-level">--</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Min Level:</th>
+                                        <td id="min-level">--</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Max Level:</th>
+                                        <td id="max-level">--</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Level Change Rate:</th>
+                                        <td id="level-change-rate">--</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Volume Statistics</h6>
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Average Volume:</th>
+                                        <td id="avg-volume">--</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Min Volume:</th>
+                                        <td id="min-volume">--</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Max Volume:</th>
+                                        <td id="max-volume">--</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Total Volume Change:</th>
+                                        <td id="volume-change">--</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <h6>Flow Rate Statistics</h6>
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Average Flow Rate:</th>
+                                        <td id="avg-flow">--</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Max Flow Rate:</th>
+                                        <td id="max-flow">--</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Estimated Consumption:</th>
+                                        <td id="estimated-consumption">--</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Temperature & Pressure</h6>
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Average Temperature:</th>
+                                        <td id="avg-temp">--</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Temperature Range:</th>
+                                        <td id="temp-range">--</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Average Pressure:</th>
+                                        <td id="avg-pressure">--</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Pressure Range:</th>
+                                        <td id="pressure-range">--</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Events and Alerts -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Events & Alerts</h5>
+                    <button class="btn btn-sm btn-outline-secondary toggle-section" data-section="events">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="events-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Type</th>
+                                    <th>Description</th>
+                                    <th>Level</th>
+                                    <th>Volume</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if events %}
+                                    {% for event in events %}
+                                    <tr class="event-row {{ event.type }}">
+                                        <td>{{ event.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                        <td><span class="badge bg-{{ event.type_class }}">{{ event.type }}</span></td>
+                                        <td>{{ event.description }}</td>
+                                        <td>{{ event.level|round(2) }} m</td>
+                                        <td>{{ event.volume|round(2) }} L</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary event-details" data-event-id="{{ event.id }}">
+                                                <i class="fas fa-info-circle"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center">No events recorded for this time period</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Predictions and Forecasting -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Predictions & Forecasting</h5>
+                    <button class="btn btn-sm btn-outline-secondary toggle-section" data-section="predictions">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="chart-container" style="position: relative; height:250px;">
+                                <canvas id="forecastChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">Consumption Forecast</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>Estimated Depletion:</strong> <span id="depletion-date">--</span></p>
+                                            <p><strong>Days Remaining:</strong> <span id="days-remaining">--</span></p>
+                                            <p><strong>Refill Recommended:</strong> <span id="refill-recommendation">--</span></p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>Daily Consumption:</strong> <span id="daily-consumption">--</span></p>
+                                            <p><strong>Weekly Consumption:</strong> <span id="weekly-consumption">--</span></p>
+                                            <p><strong>Monthly Consumption:</strong> <span id="monthly-consumption">--</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+ <!-- Individual Consumption Events Section -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Individual Consumption Events</h5>
+                <div class="btn-group btn-group-sm">
+                    <button id="refresh-consumption" class="btn btn-outline-secondary" title="Refresh Consumption Data">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary toggle-section" data-section="consumption">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="min-volume-filter" class="form-label">Minimum Volume (L):</label>
+                            <input type="number" id="min-volume-filter" class="form-control" value="100" min="1">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label for="flow-threshold" class="form-label">Flow Rate Threshold (L/min):</label>
+                            <input type="number" id="flow-threshold" class="form-control" value="0.1" min="0.01" step="0.01">
+                        </div>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button id="apply-consumption-filter" class="btn btn-primary">Apply Filter</button>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="chart-container" style="position: relative; height:250px;">
+                            <canvas id="consumptionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="consumption-table">
+                                <thead>
+                                    <tr>
+                                        <th>Start Time</th>
+                                        <th>End Time</th>
+                                        <th>Duration</th>
+                                        <th>Volume (L)</th>
+                                        <th>Rate (L/min)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="consumption-table-body">
+                                    <tr>
+                                        <td colspan="5" class="text-center">No consumption data available</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Event Details Modal -->
+    <div class="modal fade" id="eventDetailsModal" tabindex="-1" aria-labelledby="eventDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="eventDetailsModalLabel">Event Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="event-details-content">
+                        <!-- Event details will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<!-- Chart.js plugins -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@2.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.4.0/dist/chartjs-plugin-annotation.min.js"></script>
+<!-- Export libraries -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<!-- Custom JavaScript -->
+<script src="{{ url_for('static', filename='js/tank_history.js') }}"></script>
+<script>
+   
+    </script>
+{% endblock %}
+

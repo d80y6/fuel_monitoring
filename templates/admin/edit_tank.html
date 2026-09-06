@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Tank - Admin - Fuel Tank Monitoring System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Edit Tank: {{ tank.name }}</h1>
+        <a href="{{ url_for('admin.tank_detail', tank_id=tank.id) }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Tank Details
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h5>Tank Information</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('admin.edit_tank', tank_id=tank.id) }}">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Basic Information</h6>
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Tank Name</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ tank.name }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ tank.description }}</textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="site_id" class="form-label">Site</label>
+                            <select class="form-select" id="site_id" name="site_id" required>
+                                {% for site in sites %}
+                                <option value="{{ site.id }}" {% if site.id == tank.site_id %}selected{% endif %}>
+                                    {{ site.name }} ({{ site.company.name }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if tank.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">Active</label>
+                        </div>
+                        
+                        <h6 class="mb-3 mt-4">Connection Settings</h6>
+                        
+                        <div class="mb-3">
+                            <label for="host" class="form-label">Host</label>
+                            <input type="text" class="form-control" id="host" name="host" value="{{ tank.host }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tcp_port" class="form-label">TCP Port</label>
+                            <input type="number" class="form-control" id="tcp_port" name="tcp_port" value="{{ tank.tcp_port }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="device_address" class="form-label">Device Address</label>
+                            <input type="number" class="form-control" id="device_address" name="device_address" value="{{ tank.device_address }}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Tank Parameters</h6>
+                        
+                        <div class="mb-3">
+                            <label for="tank_orientation" class="form-label">Orientation</label>
+                            <select class="form-select" id="tank_orientation" name="tank_orientation">
+                                <option value="vertical" {% if tank.tank_orientation == 'vertical' %}selected{% endif %}>Vertical</option>
+                                <option value="horizontal" {% if tank.tank_orientation == 'horizontal' %}selected{% endif %}>Horizontal</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tank_height" class="form-label">Height (meters)</label>
+                            <input type="number" step="0.001" class="form-control" id="tank_height" name="tank_height" value="{{ tank.tank_height }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="tank_diameter" class="form-label">Diameter (meters)</label>
+                            <input type="number" step="0.001" class="form-control" id="tank_diameter" name="tank_diameter" value="{{ tank.tank_diameter }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="elevation" class="form-label">Elevation (meters above sea level)</label>
+                            <input type="number" step="0.1" class="form-control" id="elevation" name="elevation" value="{{ tank.elevation or '' }}" placeholder="Optional">
+                            <small class="form-text text-muted">Used for gravity compensation in pressure-to-level calculations</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="fluid_density" class="form-label">Fluid Density (kg/m³)</label>
+                            <input type="number" step="0.1" class="form-control" id="fluid_density" name="fluid_density" value="{{ tank.fluid_density }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="atmospheric_pressure" class="form-label">Atmospheric Pressure (bar)</label>
+                            <input type="number" step="0.001" class="form-control" id="atmospheric_pressure" name="atmospheric_pressure" value="{{ tank.atmospheric_pressure }}" required>
+                        </div>
+                        
+                        <h6 class="mb-3 mt-4">Sensor Settings</h6>
+                        
+                        <div class="mb-3">
+                            <label for="pressure_channel" class="form-label">Pressure Channel</label>
+                            <input type="number" class="form-control" id="pressure_channel" name="pressure_channel" value="{{ tank.pressure_channel }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="temp_channel" class="form-label">Temperature Channel</label>
+                            <input type="number" class="form-control" id="temp_channel" name="temp_channel" value="{{ tank.temp_channel }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="calibration_factor" class="form-label">Calibration Factor</label>
+                            <input type="number" step="0.0001" class="form-control" id="calibration_factor" name="calibration_factor" value="{{ tank.calibration_factor }}" required>
+                        </div>
+                        
+                        <h6 class="mb-3 mt-4">Alarm Thresholds</h6>
+                        
+                        <div class="mb-3">
+                            <label for="low_level_threshold" class="form-label">Low Level Threshold (%)</label>
+                            <input type="number" step="0.1" class="form-control" id="low_level_threshold" name="low_level_threshold" value="{{ tank.low_level_threshold }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="critical_level_threshold" class="form-label">Critical Level Threshold (%)</label>
+                            <input type="number" step="0.1" class="form-control" id="critical_level_threshold" name="critical_level_threshold" value="{{ tank.critical_level_threshold }}" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="high_level_threshold" class="form-label">High Level Threshold (%)</label>
+                            <input type="number" step="0.1" class="form-control" id="high_level_threshold" name="high_level_threshold" value="{{ tank.high_level_threshold }}" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="{{ url_for('admin.tank_detail', tank_id=tank.id) }}" class="btn btn-secondary me-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

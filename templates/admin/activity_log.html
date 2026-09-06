@@ -1,0 +1,232 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Activity Log{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1>Activity Log</h1>
+            <p class="text-muted">View and filter system activity</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="{{ url_for('admin.activity_log') }}">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label for="user_id" class="form-label">User</label>
+                                <select name="user_id" id="user_id" class="form-select">
+                                    <option value="all" {% if user_id == 'all' %}selected{% endif %}>All Users</option>
+                                    {% for u in users %}
+                                    <option value="{{ u.id }}" {% if user_id|int == u.id %}selected{% endif %}>{{ u.username }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="action" class="form-label">Action</label>
+                                <select name="action" id="action" class="form-select">
+                                    <option value="all" {% if action == 'all' %}selected{% endif %}>All Actions</option>
+                                    {% for a in actions %}
+                                    <option value="{{ a }}" {% if action == a %}selected{% endif %}>{{ a|replace('_', ' ')|title }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="date_from" class="form-label">From Date</label>
+                                <input type="date" name="date_from" id="date_from" class="form-control" value="{{ date_from }}">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="date_to" class="form-label">To Date</label>
+                                <input type="date" name="date_to" id="date_to" class="form-control" value="{{ date_to }}">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter me-2"></i>Apply Filters
+                                </button>
+                                <a href="{{ url_for('admin.activity_log') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-2"></i>Clear Filters
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Table -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Activity Log</h5>
+                    <span>
+                        Showing {{ activities.items|length }} of {{ activities.total }} entries
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="activity-table">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                    <th>IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if activities.items %}
+                                    {% for activity in activities.items %}
+                                    <tr>
+                                        <td>{{ activity.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                        <td>{{ activity.user.username if activity.user else 'System' }}</td>
+                                        <td>{{ activity.action|replace('_', ' ')|title }}</td>
+                                        <td>{{ activity.details }}</td>
+                                        <td>{{ activity.ip_address }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center">No activity found</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <nav aria-label="Activity log pagination">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item {% if not activities.has_prev %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.activity_log', page=activities.prev_num, user_id=user_id, action=action, date_from=date_from, date_to=date_to) if activities.has_prev else '#' }}">Previous</a>
+                            </li>
+                            
+                            {% for page_num in activities.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                                {% if page_num %}
+                                    <li class="page-item {% if page_num == activities.page %}active{% endif %}">
+                                        <a class="page-link" href="{{ url_for('admin.activity_log', page=page_num, user_id=user_id, action=action, date_from=date_from, date_to=date_to) }}">{{ page_num }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="#">...</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            <li class="page-item {% if not activities.has_next %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('admin.activity_log', page=activities.next_num, user_id=user_id, action=action, date_from=date_from, date_to=date_to) if activities.has_next else '#' }}">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Connect to Socket.IO for real-time updates
+    const socket = io('/admin');
+    
+    socket.on('connect', function() {
+        //console.log('Connected to admin namespace');
+    });
+    
+    socket.on('new_activity', function(activity) {
+        // Check if we need to add this activity (based on current filters)
+        const shouldAdd = checkActivityFilters(activity);
+        
+        if (shouldAdd) {
+            // Add new activity to the table
+            const table = document.getElementById('activity-table').getElementsByTagName('tbody')[0];
+            
+            // Remove "No activity found" row if it exists
+            if (table.rows.length === 1 && table.rows[0].cells.length === 1) {
+                table.deleteRow(0);
+            }
+            
+            // Insert new row at the top
+            const newRow = table.insertRow(0);
+            
+            // Format the timestamp
+            const timestamp = new Date(activity.timestamp);
+            const formattedTime = timestamp.toLocaleString();
+            
+            // Add cells
+            newRow.innerHTML = `
+                <td>${formattedTime}</td>
+                <td>${activity.user ? activity.user.username : 'System'}</td>
+                <td>${activity.action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
+                <td>${activity.details}</td>
+                <td>${activity.ip_address || ''}</td>
+            `;
+            
+            // Highlight the new row
+            newRow.classList.add('table-info');
+            setTimeout(() => {
+                newRow.classList.remove('table-info');
+            }, 5000);
+        }
+    });
+    
+    // Function to check if an activity matches the current filters
+    function checkActivityFilters(activity) {
+        // Get current filter values
+        const userFilter = document.getElementById('user_id').value;
+        const actionFilter = document.getElementById('action').value;
+        const dateFromFilter = document.getElementById('date_from').value;
+        const dateToFilter = document.getElementById('date_to').value;
+        
+        // Check user filter
+        if (userFilter !== 'all') {
+            if (!activity.user || activity.user.id.toString() !== userFilter) {
+                return false;
+            }
+        }
+        
+        // Check action filter
+        if (actionFilter !== 'all' && activity.action !== actionFilter) {
+            return false;
+        }
+        
+        // Check date filters
+        if (dateFromFilter || dateToFilter) {
+            const activityDate = new Date(activity.timestamp);
+            
+            if (dateFromFilter) {
+                const fromDate = new Date(dateFromFilter);
+                if (activityDate < fromDate) {
+                    return false;
+                }
+            }
+            
+            if (dateToFilter) {
+                const toDate = new Date(dateToFilter);
+                toDate.setDate(toDate.getDate() + 1); // Include the end date
+                if (activityDate >= toDate) {
+                    return false;
+                }
+            }
+        }
+        
+        return true;
+    }
+});
+</script>
+{% endblock %}

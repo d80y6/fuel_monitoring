@@ -1,0 +1,826 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h2 mb-1">Admin Dashboard</h1>
+            <p class="text-muted">System overview and management</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="btn-group">
+                <button id="refresh-dashboard" class="btn btn-outline-primary">
+                    <i class="fas fa-sync-alt me-1"></i> Refresh
+                </button>
+                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-cog me-1"></i> Actions
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="{{ url_for('admin.backup_database') }}">
+                        <i class="fas fa-database me-2"></i> Backup Database
+                    </a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('admin.start_all_monitoring') }}">
+                        <i class="fas fa-play-circle me-2"></i> Start All Monitoring
+                    </a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('admin.stop_all_monitoring') }}">
+                        <i class="fas fa-stop-circle me-2"></i> Stop All Monitoring
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="#" id="reset-all-stats-btn">
+                        <i class="fas fa-redo me-2"></i> Reset All Statistics
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Status Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-primary shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase text-primary fw-bold mb-1">Total Tanks</h6>
+                            <h2 class="mb-0 fw-bold" id="total-tanks-count">{{ stats.total_tanks }}</h2>
+                        </div>
+                        <i class="fas fa-gas-pump fa-2x text-primary opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between bg-light">
+                    <a href="{{ url_for('admin.tanks_index') }}" class="text-primary text-decoration-none small">View Details</a>
+                    <i class="fas fa-angle-right text-primary"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-success shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase text-success fw-bold mb-1">Connected Tanks</h6>
+                            <h2 class="mb-0 fw-bold" id="connected-tanks-count">{{ stats.connected_tanks }}</h2>
+                        </div>
+                        <i class="fas fa-link fa-2x text-success opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between bg-light">
+                    <a href="{{ url_for('admin.tanks_index') }}?status=connected" class="text-success text-decoration-none small">View Details</a>
+                    <i class="fas fa-angle-right text-success"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-warning shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase text-warning fw-bold mb-1">Active Alarms</h6>
+                            <h2 class="mb-0 fw-bold" id="active-alarms-count">{{ stats.active_alarms }}</h2>
+                        </div>
+                        <i class="fas fa-bell fa-2x text-warning opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between bg-light">
+                    <a href="{{ url_for('alarms') }}" class="text-warning text-decoration-none small">View Details</a>
+                    <i class="fas fa-angle-right text-warning"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-info shadow h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase text-info fw-bold mb-1">Total Users</h6>
+                            <h2 class="mb-0 fw-bold" id="total-users-count">{{ stats.total_users }}</h2>
+                        </div>
+                        <i class="fas fa-users fa-2x text-info opacity-50"></i>
+                    </div>
+                </div>
+                <div class="card-footer d-flex align-items-center justify-content-between bg-light">
+                    <a href="{{ url_for('admin.users') }}" class="text-info text-decoration-none small">View Details</a>
+                    <i class="fas fa-angle-right text-info"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin.create_tank') }}" class="btn btn-primary btn-lg w-100 d-flex align-items-center justify-content-center">
+                                <i class="fas fa-plus-circle me-2"></i>Add Tank
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin.new_user') }}" class="btn btn-success btn-lg w-100 d-flex align-items-center justify-content-center">
+                                <i class="fas fa-user-plus me-2"></i>Add User
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin.create_company') }}" class="btn btn-info text-white btn-lg w-100 d-flex align-items-center justify-content-center">
+                                <i class="fas fa-building me-2"></i>Add Company
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('admin.create_site') }}" class="btn btn-secondary btn-lg w-100 d-flex align-items-center justify-content-center">
+                                <i class="fas fa-map-marker-alt me-2"></i>Add Site
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monitoring Controls -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Monitoring Controls</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-3">
+                        <a href="{{ url_for('admin.start_all_monitoring') }}" class="btn btn-success">
+                            <i class="fas fa-play-circle me-2"></i>Start Monitoring All Tanks
+                        </a>
+                        <a href="{{ url_for('admin.stop_all_monitoring') }}" class="btn btn-danger d-flex align-items-center justify-content-center">
+                            <i class="fas fa-stop-circle me-2"></i>Stop Monitoring All Tanks
+                        </a>
+                        <button id="reset-all-stats-btn" class="btn btn-warning d-flex align-items-center justify-content-center">
+                            <i class="fas fa-redo me-2"></i>Reset All Tank Statistics
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-info-circle me-2"></i>System Status</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-database me-2 text-primary"></i>
+                                Database Status
+                            </div>
+                            <span class="badge bg-success rounded-pill">Connected</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-heartbeat me-2 text-danger"></i>
+                                Monitoring Service
+                            </div>
+                            <span class="badge bg-success rounded-pill">Running</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-clock me-2 text-warning"></i>
+                                Last Database Backup
+                            </div>
+                            <span>{{ stats.last_backup|default('Never', true) }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-tachometer-alt me-2 text-info"></i>
+                                Server Uptime
+                            </div>
+                            <span id="uptime">{{ stats.uptime|default('Unknown', true) }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Monitoring -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-chart-line me-2"></i>System Monitoring</h5>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-secondary active" data-interval="1">1 min</button>
+                        <button type="button" class="btn btn-outline-secondary" data-interval="5">5 min</button>
+                        <button type="button" class="btn btn-outline-secondary" data-interval="15">15 min</button>
+                        <button type="button" class="btn btn-outline-secondary" data-interval="60">1 hour</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="card border">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-microchip me-2"></i>CPU Usage</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container" style="position: relative; height:200px;">
+                                        <canvas id="cpuChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card border">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-memory me-2"></i>Memory Usage</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container" style="position: relative; height:200px;">
+                                        <canvas id="memoryChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="card border">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-hdd me-2"></i>Disk Usage</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container" style="position: relative; height:200px;">
+                                        <canvas id="diskChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card border">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="fas fa-network-wired me-2"></i>Network Traffic</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container" style="position: relative; height:200px;">
+                                        <canvas id="networkChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-history me-2"></i>Recent Activity</h5>
+                    <a href="{{ url_for('admin.activity_log') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="recent-activity-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Time</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if recent_activity %}
+                                    {% for activity in recent_activity %}
+                                    <tr>
+                                        <td>{{ activity.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                        <td>{{ activity.user.username if activity.user else 'System' }}</td>
+                                        <td>{{ activity.action }}</td>
+                                        <td>{{ activity.details }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center">No recent activity</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Database Management -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-database me-2"></i>Database Management</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-5">
+                            <div class="card bg-light h-100">
+                                <div class="card-body">
+                                    <h6 class="card-title fw-bold mb-3">Backup Database</h6>
+                                    <p class="card-text">Create a backup of the current database state. This will save all system data including tanks, users, companies, and measurements.</p>
+                                    <a href="{{ url_for('admin.backup_database') }}" class="btn btn-primary">
+                                        <i class="fas fa-download me-2"></i>Create Backup
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <h6 class="fw-bold mb-3">Recent Backups</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Filename</th>
+                                            <th>Date</th>
+                                            <th>Size</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if backups %}
+                                            {% for backup in backups %}
+                                            <tr>
+                                                <td>{{ backup.filename }}</td>
+                                                <td>{{ backup.date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                                <td>{{ backup.size }}</td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="{{ url_for('admin.download_backup', filename=backup.filename) }}" class="btn btn-outline-primary" title="Download">
+                                                            <i class="fas fa-download"></i>
+                                                        </a>
+                                                        <button class="btn btn-outline-danger" 
+                                                                onclick="confirmDeleteBackup('{{ backup.filename }}')" title="Delete">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr>
+                                                <td colspan="4" class="text-center">No backups found</td>
+                                            </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Backup Confirmation Modal -->
+<div class="modal fade" id="deleteBackupModal" tabindex="-1" aria-labelledby="deleteBackupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteBackupModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the backup file <strong id="backup-filename"></strong>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="delete-backup-form" method="POST">
+                    <button type="submit" class="btn btn-danger">Delete Backup</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // System monitoring charts
+    let cpuChart, memoryChart, diskChart, networkChart;
+    let updateInterval = 1; // minutes
+    let chartData = {
+        timestamps: [],
+        cpu: [],
+        memory: [],
+        disk: [],
+        network_sent: [],
+        network_recv: []
+    };
+    
+    // Initialize charts
+    initSystemCharts();
+    
+    // Set up interval buttons
+    document.querySelectorAll('[data-interval]').forEach(button => {
+        button.addEventListener('click', function() {
+            // Update active button
+            document.querySelectorAll('[data-interval]').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // Update interval
+            updateInterval = parseInt(this.getAttribute('data-interval'));
+            
+            // Clear existing interval and set new one
+            if (window.systemStatsInterval) {
+                clearInterval(window.systemStatsInterval);
+            }
+            
+            // Start new interval
+            window.systemStatsInterval = setInterval(fetchSystemStats, updateInterval * 60 * 1000);
+            
+            // Fetch immediately
+            fetchSystemStats();
+        });
+    });
+    
+    // Initial fetch
+    fetchSystemStats();
+    
+    // Set up interval for updates
+    window.systemStatsInterval = setInterval(fetchSystemStats, updateInterval * 60 * 1000);
+    
+    // Set up refresh dashboard button
+    document.getElementById('refresh-dashboard').addEventListener('click', function() {
+        fetchSystemStats();
+        showToast('Dashboard', 'Dashboard data refreshed', 'success');
+    });
+    
+    // Function to initialize system monitoring charts
+    function initSystemCharts() {
+        // CPU chart
+        const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+        cpuChart = new Chart(cpuCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'CPU Usage (%)',
+                    data: [],
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Usage (%)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+        
+        // Memory chart
+        const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+        memoryChart = new Chart(memoryCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Memory Usage (%)',
+                    data: [],
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Usage (%)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+        
+        // Disk chart
+        const diskCtx = document.getElementById('diskChart').getContext('2d');
+        diskChart = new Chart(diskCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Disk Usage (%)',
+                    data: [],
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Usage (%)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+        
+        // Network chart
+        const networkCtx = document.getElementById('networkChart').getContext('2d');
+        networkChart = new Chart(networkCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Sent (MB)',
+                        data: [],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Received (MB)',
+                        data: [],
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Traffic (MB)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                }
+            }
+        });
+    }
+    
+    // Function to fetch system stats
+    function fetchSystemStats() {
+        fetch('/admin/api/system-status')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Update dashboard stats
+                    document.getElementById('total-tanks-count').textContent = data.stats.total_tanks;
+                    document.getElementById('connected-tanks-count').textContent = data.stats.connected_tanks;
+                    document.getElementById('active-alarms-count').textContent = data.stats.active_alarms;
+                    document.getElementById('total-users-count').textContent = data.stats.total_users;
+                    document.getElementById('uptime').textContent = data.stats.uptime;
+                    
+                    
+                    // Update system monitoring charts
+                    updateSystemCharts(data.system);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching system stats:', error);
+                showToast('Error', 'Failed to fetch system statistics', 'danger');
+            });
+    }
+    
+    // Function to update system monitoring charts
+    function updateSystemCharts(system) {
+        // Add timestamp
+        const now = new Date();
+        const timeString = now.toLocaleTimeString();
+        chartData.timestamps.push(timeString);
+        
+        // Add data points
+        chartData.cpu.push(system.cpu_usage);
+        chartData.memory.push(system.memory_usage);
+        chartData.disk.push(system.disk_usage);
+        chartData.network_sent.push(system.net_sent);
+        chartData.network_recv.push(system.net_recv);
+        
+        // Limit data points (keep last 60)
+        const maxPoints = 60;
+        if (chartData.timestamps.length > maxPoints) {
+            chartData.timestamps = chartData.timestamps.slice(-maxPoints);
+            chartData.cpu = chartData.cpu.slice(-maxPoints);
+            chartData.memory = chartData.memory.slice(-maxPoints);
+            chartData.disk = chartData.disk.slice(-maxPoints);
+            chartData.network_sent = chartData.network_sent.slice(-maxPoints);
+            chartData.network_recv = chartData.network_recv.slice(-maxPoints);
+        }
+        
+        // Update charts
+        cpuChart.data.labels = chartData.timestamps;
+        cpuChart.data.datasets[0].data = chartData.cpu;
+        cpuChart.update();
+        
+        memoryChart.data.labels = chartData.timestamps;
+        memoryChart.data.datasets[0].data = chartData.memory;
+        memoryChart.update();
+        
+        diskChart.data.labels = chartData.timestamps;
+        diskChart.data.datasets[0].data = chartData.disk;
+        diskChart.update();
+        
+        networkChart.data.labels = chartData.timestamps;
+        networkChart.data.datasets[0].data = chartData.network_sent;
+        networkChart.data.datasets[1].data = chartData.network_recv;
+        networkChart.update();
+    }
+    
+    // Reset all tank statistics
+    document.getElementById('reset-all-stats-btn').addEventListener('click', function() {
+        if (confirm('Are you sure you want to reset statistics for all tanks? This cannot be undone.')) {
+            // Show loading state
+            const button = this;
+            const originalText = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Resetting...';
+            
+            fetch('/admin/api/reset-all-statistics', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showToast('Success', data.message || 'Statistics reset successfully for all tanks.', 'success');
+                } else {
+                    throw new Error(data.error || 'Unknown error occurred');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error', error.message || 'An error occurred while resetting statistics.', 'danger');
+            })
+            .finally(() => {
+                // Restore button state
+                button.disabled = false;
+                button.innerHTML = originalText;
+            });
+        }
+    });
+    
+    // Function to confirm backup deletion
+    window.confirmDeleteBackup = function(filename) {
+        document.getElementById('backup-filename').textContent = filename;
+        document.getElementById('delete-backup-form').action = `/admin/backup/${filename}/delete`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('deleteBackupModal'));
+        modal.show();
+    };
+    
+    // Add real-time updates for dashboard statistics
+    try {
+        const socket = io();
+        
+        socket.on('connect', function() {
+            //console.log('Connected to server for admin dashboard updates');
+        });
+        
+        socket.on('admin_stats_update', function(data) {
+            // Update statistics in real-time
+            if (data.total_tanks) document.getElementById('total-tanks-count').textContent = data.total_tanks;
+            if (data.connected_tanks) document.getElementById('connected-tanks-count').textContent = data.connected_tanks;
+            if (data.active_alarms) document.getElementById('active-alarms-count').textContent = data.active_alarms;
+            if (data.total_users) document.getElementById('total-users-count').textContent = data.total_users;
+        });
+        
+        socket.on('new_activity', function(activity) {
+            // Add new activity to the recent activity table
+            const activityTable = document.querySelector('#recent-activity-table tbody');
+            if (activityTable) {
+                // Remove the last row if there are already 5 or more rows
+                if (activityTable.rows.length >= 5) {
+                    activityTable.deleteRow(activityTable.rows.length - 1);
+                }
+                
+                // Add new row at the top
+                const newRow = activityTable.insertRow(0);
+                newRow.innerHTML = `
+                    <td>${new Date(activity.timestamp).toLocaleString()}</td>
+                    <td>${activity.user ? activity.user.username : 'System'}</td>
+                    <td>${activity.action}</td>
+                    <td>${activity.details}</td>
+                `;
+                
+                // Highlight the new row briefly
+                newRow.classList.add('table-info');
+                setTimeout(() => {
+                    newRow.classList.remove('table-info');
+                }, 3000);
+            }
+        });
+    } catch (e) {
+        console.warn('Socket.IO error:', e);
+    }
+});
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+/* Custom styles for dashboard */
+.border-left-primary {
+    border-left: 4px solid #4e73df !important;
+}
+.border-left-success {
+    border-left: 4px solid #1cc88a !important;
+}
+.border-left-warning {
+    border-left: 4px solid #f6c23e !important;
+}
+.border-left-info {
+    border-left: 4px solid #36b9cc !important;
+}
+
+/* Card hover effect */
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,425 @@
+{% extends "base.html" %}
+
+{% block title %}Tanks Overview{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h2">Tanks Overview</h1>
+            <p class="text-muted">View and manage all tanks</p>
+        </div>
+    </div>
+
+    <!-- Filters and Controls -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Filters</h5>
+                    <button class="btn btn-sm btn-outline-secondary d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse" aria-expanded="false" aria-controls="filterCollapse">
+                        <i class="fas fa-filter me-1"></i>Toggle Filters
+                    </button>
+                </div>
+                <div class="card-body collapse d-md-block" id="filterCollapse">
+                    <div class="row g-3">
+                        <div class="col-12 col-sm-6 col-md-3">
+                            <div class="form-group">
+                                <label for="site-filter">Site:</label>
+                                <select id="site-filter" class="form-select">
+                                    <option value="all">All Sites</option>
+                                    {% set sites = [] %}
+                                    {% for tank in tanks %}
+                                        {% if tank.site.name not in sites %}
+                                            {% set _ = sites.append(tank.site.name) %}  
+                                            <option value="{{ tank.site.name }}">{{ tank.site.name }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-3">
+                            <div class="form-group">
+                                <label for="status-filter">Status:</label>
+                                <select id="status-filter" class="form-select">
+                                    <option value="all">All Statuses</option>
+                                    <option value="connected">Connected</option>
+                                    <option value="disconnected">Disconnected</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-3">
+                            <div class="form-group">
+                                <label for="level-filter">Level:</label>
+                                <select id="level-filter" class="form-select">
+                                    <option value="all">All Levels</option>
+                                    <option value="critical">Critical</option>
+                                    <option value="low">Low</option>
+                                    <option value="normal">Normal</option>
+                                    <option value="high">High</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-12 col-sm-6 col-md-3">
+                            <div class="form-group">
+                                <label for="search">Search:</label>
+                                <input type="text" id="search" class="form-control" placeholder="Search tanks...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tanks Grid -->
+    <div class="row g-3" id="tanks-container">
+        {% if tanks %}
+            {% for tank in tanks %}
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3 mb-3 tank-card" 
+                 data-tank-id="{{ tank.id }}" 
+                 data-site="{{ tank.site.name }}" 
+                 data-status="{{ tank.get_connection_status().lower() }}"
+                 data-level="{{ get_tank_level_status(tank) }}">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 text-truncate" title="{{ tank.name }}">{{ tank.name }}</h5>
+                        <span class="badge {% if tank.get_connection_status() == 'Connected' %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ tank.get_connection_status() }}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <p class="mb-1 text-truncate" title="{{ tank.site.name }}"><i class="fas fa-map-marker-alt me-2"></i>{{ tank.site.name }}</p>
+                            <p class="mb-1 text-truncate" title="{{ tank.site.company.name }}"><i class="fas fa-building me-2"></i>{{ tank.site.company.name }}</p>
+                        </div>
+                        
+                        {% set measurement = tank.get_latest_measurement() %}
+                        {% if measurement %}
+                        <div class="row mb-3">
+                            <div class="col-4">
+                                <div class="tank-level-container">
+                                    <div class="tank-level" style="height: {{ measurement.fill_percent }}%"></div>
+                                </div>
+                            </div>
+                            <div class="col-8">
+                                <div class="progress mb-2" style="height: 20px;">
+                                    <div class="progress-bar 
+                                        {% if measurement.fill_percent <= tank.critical_level_threshold %}bg-danger
+                                        {% elif measurement.fill_percent <= tank.low_level_threshold %}bg-warning
+                                        {% elif measurement.fill_percent >= tank.high_level_threshold %}bg-primary
+                                        {% else %}bg-success{% endif %}" 
+                                        role="progressbar" 
+                                        style="width: {{ measurement.fill_percent }}%" 
+                                        aria-valuenow="{{ measurement.fill_percent }}" 
+                                        aria-valuemin="0" 
+                                        aria-valuemax="100">
+                                        {{ measurement.fill_percent|round|int }}%
+                                    </div>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <p class="mb-1 small"><strong>Level:</strong> <span data-field="level">{{ measurement.level|round(2) }} m</span></p>
+                                        <p class="mb-1 small"><strong>Volume:</strong> <span data-field="volume">{{ measurement.volume|round|int }} L</span></p>
+                                    </div>
+                                    <div class="col-6">
+                                        <p class="mb-1 small"><strong>Flow:</strong> <span data-field="flow">{{ measurement.flow_rate|round(1) }} L/min</span></p>
+                                        <p class="mb-1 small"><strong>Temp:</strong> <span data-field="temp">{{ measurement.temperature|round(1) if measurement.temperature else '-' }} °C</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="text-muted small mb-0" data-field="last-updated">Last updated: {{ measurement.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                        {% else %}
+                        <div class="alert alert-warning mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>No measurement data available
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ url_for('tank_detail', tank_id=tank.id) }}" class="btn btn-primary w-100">View Details</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>No tanks available
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .tank-level-container {
+        height: 120px;
+        width: 60px;
+        margin: 0 auto;
+        border: 2px solid #ccc;
+        border-radius: 5px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .tank-level {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background: linear-gradient(to top, #4CAF50, #8BC34A);
+        transition: height 0.5s ease-in-out;
+    }
+    
+    /* Responsive styles */
+    @media (max-width: 576px) {
+        h1 {
+            font-size: 1.75rem;
+        }
+        .card-header h5 {
+            font-size: 1rem;
+        }
+        .tank-level-container {
+            height: 100px;
+            width: 50px;
+        }
+    }
+    
+    /* Ensure tank cards display properly on all screen sizes */
+    @media (max-width: 767.98px) {
+        #tanks-container .card {
+            margin-bottom: 1rem;
+        }
+    }
+    
+    /* Add some hover effect for better UX */
+    .tank-card .card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .tank-card .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Helper functions
+    function formatNumber(value, decimals = 0) {
+        if (value === null || value === undefined) return '-';
+        return Number(value).toFixed(decimals);
+    }
+
+    function formatDate(dateString) {
+        if (!dateString) return '-';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        } catch (e) {
+            return dateString;
+        }
+    }
+
+    // Connect to SSE stream
+    const eventSource = new EventSource('/tank-updates');
+    
+    // Handle connection open
+    eventSource.onopen = function() {
+        console.log('Connected to tank updates stream');
+    };
+    
+    // Handle messages
+    eventSource.onmessage = function(event) {
+        try {
+            const data = JSON.parse(event.data);
+            
+            // If this is just a connection message, ignore it
+            if (data.event === 'connected') {
+                return;
+            }
+            
+            // Otherwise, update the tank data
+            updateTankData(data);
+        } catch (error) {
+            console.error('Error processing update:', error);
+        }
+    };
+    
+    // Handle errors
+    eventSource.onerror = function(error) {
+        console.error('EventSource error:', error);
+        // Try to reconnect after a delay
+        setTimeout(function() {
+            console.log('Attempting to reconnect...');
+            eventSource.close();
+            const newEventSource = new EventSource('/tank-updates');
+            eventSource = newEventSource;
+        }, 5000);
+    };
+    
+    // Filter functionality
+    const siteFilter = document.getElementById('site-filter');
+    const statusFilter = document.getElementById('status-filter');
+    const levelFilter = document.getElementById('level-filter');
+    const searchInput = document.getElementById('search');
+    
+    if (siteFilter) {
+        siteFilter.addEventListener('change', applyFilters);
+    }
+    
+    if (statusFilter) {
+        statusFilter.addEventListener('change', applyFilters);
+    }
+    
+    if (levelFilter) {
+        levelFilter.addEventListener('change', applyFilters);
+    }
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', applyFilters);
+    }
+    
+    function applyFilters() {
+        const site = siteFilter ? siteFilter.value : 'all';
+        const status = statusFilter ? statusFilter.value : 'all';
+        const level = levelFilter ? levelFilter.value : 'all';
+        const search = searchInput ? searchInput.value.toLowerCase() : '';
+        const tankCards = document.querySelectorAll('.tank-card');
+        
+        let visibleCount = 0;
+        
+        tankCards.forEach(card => {
+            const cardSite = card.getAttribute('data-site').toLowerCase();
+            const cardStatus = card.getAttribute('data-status').toLowerCase();
+            const cardLevel = card.getAttribute('data-level').toLowerCase();
+            const cardText = card.textContent.toLowerCase();
+            
+            // Check if card matches all filters
+            const siteMatch = site === 'all' || cardSite === site.toLowerCase();
+            const statusMatch = status === 'all' || cardStatus === status.toLowerCase();
+            const levelMatch = level === 'all' || cardLevel === level.toLowerCase();
+            const searchMatch = search === '' || cardText.includes(search);
+            
+            // Show or hide card based on filter matches
+            if (siteMatch && statusMatch && levelMatch && searchMatch) {
+                card.style.display = '';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Show a message if no tanks match the filters
+        const noResultsMessage = document.getElementById('no-results-message');
+        if (visibleCount === 0) {
+            if (!noResultsMessage) {
+                const message = document.createElement('div');
+                message.id = 'no-results-message';
+                message.className = 'col-12';
+                message.innerHTML = `
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>No tanks match the current filters
+                    </div>
+                `;
+                document.getElementById('tanks-container').appendChild(message);
+            }
+        } else if (noResultsMessage) {
+            noResultsMessage.remove();
+        }
+    }
+    
+    function updateTankData(data) {
+        // Find the tank card for this measurement
+        const tankCard = document.querySelector(`.tank-card[data-tank-id="${data.tank_id}"]`);
+        if (!tankCard) return;
+        
+        // Get current values
+        const currentLevel = parseFloat(tankCard.querySelector('[data-field="level"]')?.textContent) || 0;
+        const currentVolume = parseFloat(tankCard.querySelector('[data-field="volume"]')?.textContent) || 0;
+        
+        // Only update if changes are significant (more than 0.5%)
+        const levelChange = Math.abs((data.level - currentLevel) / (currentLevel || 1));
+        const volumeChange = Math.abs((data.volume - currentVolume) / (currentVolume || 1));
+        
+        const significantChange = levelChange > 0.005 || volumeChange > 0.005;
+        
+        // Update level visualization
+        const levelEl = tankCard.querySelector('.tank-level');
+        if (levelEl && significantChange) {
+            levelEl.style.height = `${data.fill_percent}%`;
+        }
+        
+        // Update progress bar
+        const progressBar = tankCard.querySelector('.progress-bar');
+        if (progressBar && significantChange) {
+            progressBar.style.width = `${data.fill_percent}%`;
+            progressBar.setAttribute('aria-valuenow', data.fill_percent);
+            progressBar.textContent = `${Math.round(data.fill_percent)}%`;
+            
+            // Update progress bar color based on thresholds
+            if (data.fill_percent <= 10) {
+                progressBar.className = 'progress-bar bg-danger';
+                tankCard.setAttribute('data-level', 'critical');
+            } else if (data.fill_percent <= 25) {
+                progressBar.className = 'progress-bar bg-warning';
+                tankCard.setAttribute('data-level', 'low');
+            } else if (data.fill_percent >= 90) {
+                progressBar.className = 'progress-bar bg-primary';
+                tankCard.setAttribute('data-level', 'high');
+            } else {
+                progressBar.className = 'progress-bar bg-success';
+                tankCard.setAttribute('data-level', 'normal');
+            }
+        }
+        
+        // Update text values only if significant change
+        if (significantChange) {
+            const levelText = tankCard.querySelector('[data-field="level"]');
+            if (levelText) levelText.textContent = `${formatNumber(data.level, 2)} m`;
+            
+            const volumeText = tankCard.querySelector('[data-field="volume"]');
+            if (volumeText) volumeText.textContent = `${formatNumber(data.volume, 0)} L`;
+        }
+        
+        // Always update flow rate (but round to nearest 0.1 and filter small values)
+        const flowText = tankCard.querySelector('[data-field="flow"]');
+        if (flowText) {
+            // Only show non-zero flow if it's significant
+            const flowRate = Math.abs(data.flow_rate) < 0.2 ? 0 : data.flow_rate;
+            flowText.textContent = `${formatNumber(flowRate, 1)} L/min`;
+        }
+        
+        // Always update temperature
+        const tempText = tankCard.querySelector('[data-field="temp"]');
+        if (tempText) tempText.textContent = `${data.temperature ? formatNumber(data.temperature, 1) : '-'} °C`;
+        
+        // Always update last updated time
+        const lastUpdated = tankCard.querySelector('[data-field="last-updated"]');
+        if (lastUpdated) lastUpdated.textContent = `Last updated: ${formatDate(data.timestamp)}`;
+        
+        // Update connection status badge
+        const statusBadge = tankCard.querySelector('.badge');
+        if (statusBadge && data.connection_status) {
+            if (data.connection_status.toLowerCase() === 'connected') {
+                statusBadge.className = 'badge bg-success';
+                statusBadge.textContent = 'Connected';
+                tankCard.setAttribute('data-status', 'connected');
+            } else {
+                statusBadge.className = 'badge bg-secondary';
+                statusBadge.textContent = 'Disconnected';
+                tankCard.setAttribute('data-status', 'disconnected');
+            }
+        }
+        
+        // Re-apply filters to ensure visibility is correct
+        applyFilters();
+    }
+});
+</script>
+{% endblock %}

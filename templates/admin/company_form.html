@@ -1,0 +1,313 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ 'Edit' if company else 'Add' }} Company{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1>{{ 'Edit' if company else 'Add New' }} Company</h1>
+            <p class="text-muted">{{ 'Update existing' if company else 'Create a new' }} company in the system</p>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Company Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.edit_company', company_id=company.id) if company else url_for('admin.add_company') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="row">
+                            <!-- Basic Information -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">Basic Information</h6>
+                                
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Company Name *</label>
+                                    <input type="text" class="form-control" id="name" name="name" value="{{ company.name if company else '' }}" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Description</label>
+                                    <textarea class="form-control" id="description" name="description" rows="3">{{ company.description if company else '' }}</textarea>
+                                </div>
+                                
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if not company or company.is_active %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_active">Active</label>
+                                </div>
+                            </div>
+                            
+                            <!-- Contact Information -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">Contact Information</h6>
+                                
+                                <div class="mb-3">
+                                    <label for="contact_name" class="form-label">Contact Person</label>
+                                    <input type="text" class="form-control" id="contact_name" name="contact_name" value="{{ company.contact_name if company else '' }}">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="contact_email" class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" id="contact_email" name="contact_email" value="{{ company.contact_email if company else '' }}">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="contact_phone" class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="contact_phone" name="contact_phone" value="{{ company.contact_phone if company else '' }}">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="row">
+                            <!-- Address Information -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">Address</h6>
+                                
+                                <div class="mb-3">
+                                    <label for="address_line1" class="form-label">Address Line 1</label>
+                                    <input type="text" class="form-control" id="address_line1" name="address_line1" value="{{ company.address_line1 if company else '' }}">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="address_line2" class="form-label">Address Line 2</label>
+                                    <input type="text" class="form-control" id="address_line2" name="address_line2" value="{{ company.address_line2 if company else '' }}">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="city" class="form-label">City</label>
+                                    <input type="text" class="form-control" id="city" name="city" value="{{ company.city if company else '' }}">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="state" class="form-label">State/Province</label>
+                                    <input type="text" class="form-control" id="state" name="state" value="{{ company.state if company else '' }}">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="postal_code" class="form-label">Postal Code</label>
+                                    <input type="text" class="form-control" id="postal_code" name="postal_code" value="{{ company.postal_code if company else '' }}">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="country" class="form-label">Country</label>
+                                    <input type="text" class="form-control" id="country" name="country" value="{{ company.country if company else '' }}">
+                                </div>
+                            </div>
+                            
+                            <!-- Additional Information -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">Additional Information</h6>
+                                
+                                <div class="mb-3">
+                                    <label for="website" class="form-label">Website</label>
+                                    <input type="url" class="form-control" id="website" name="website" value="{{ company.website if company else '' }}">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="tax_id" class="form-label">Tax ID / VAT Number</label>
+                                    <input type="text" class="form-control" id="tax_id" name="tax_id" value="{{ company.tax_id if company else '' }}">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="notes" class="form-label">Notes</label>
+                                    <textarea class="form-control" id="notes" name="notes" rows="5">{{ company.notes if company else '' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>{{ 'Update' if company else 'Create' }} Company
+                                </button>
+                                <a href="{{ url_for('admin.companies') }}" class="btn btn-outline-secondary ms-2">
+                                    <i class="fas fa-times me-2"></i>Cancel
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if company %}
+    <!-- Sites -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Sites</h5>
+                    <a href="{{ url_for('admin.add_site', company_id=company.id) }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i>Add Site
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if company.sites %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Location</th>
+                                    <th>Tanks</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for site in company.sites %}
+                                <tr>
+                                    <td>{{ site.id }}</td>
+                                    <td>{{ site.name }}</td>
+                                    <td>{{ site.city }}, {{ site.state }}</td>
+                                    <td>{{ site.tanks|length }}</td>
+                                    <td>
+                                        {% if site.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ url_for('admin.edit_site', site_id=site.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{{ url_for('admin.site_tanks', site_id=site.id) }}" class="btn btn-sm btn-outline-info" title="View Tanks">
+                                                <i class="fas fa-gas-pump"></i>
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-danger delete-site-btn" 
+                                                    data-site-id="{{ site.id }}" 
+                                                    data-site-name="{{ site.name }}"
+                                                    title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>No sites found for this company. Click "Add Site" to create one.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Users -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Users with Access</h5>
+                </div>
+                <div class="card-body">
+                    {% if company_users %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in company_users %}
+                                <tr>
+                                    <td>{{ user.id }}</td>
+                                    <td>{{ user.username }}</td>
+                                    <td>{{ user.first_name }} {{ user.last_name }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        {% if user.role == 'admin' %}
+                                        <span class="badge bg-danger">Admin</span>
+                                        {% elif user.role == 'company_admin' %}
+                                        <span class="badge bg-warning text-dark">Company Manager</span>
+                                        {% else %}
+                                        <span class="badge bg-info">User</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit User">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>No users have access to this company.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Delete Site Modal -->
+<div class="modal fade" id="deleteSiteModal" tabindex="-1" aria-labelledby="deleteSiteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteSiteModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the site "<span id="delete-site-name"></span>"?</p>
+                <p class="text-danger">This action cannot be undone. All tanks associated with this site will also be deleted.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="delete-site-form" method="POST">
+                    <button type="submit" class="btn btn-danger">Delete Site</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle delete site button clicks
+    document.querySelectorAll('.delete-site-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const siteId = this.getAttribute('data-site-id');
+            const siteName = this.getAttribute('data-site-name');
+            
+            document.getElementById('delete-site-name').textContent = siteName;
+            document.getElementById('delete-site-form').action = `/admin/sites/${siteId}/delete`;
+            
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteSiteModal'));
+            deleteModal.show();
+        });
+    });
+});
+</script>
+{% endblock %}

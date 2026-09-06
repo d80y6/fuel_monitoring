@@ -1,0 +1,347 @@
+{% extends "layout.html" %}
+
+{% block title %}History{% endblock %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <h1>Measurement History</h1>
+        <p class="lead">Historical data for fuel tank measurements</p>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Level & Volume History</h5>
+                <div>
+                    <select class="form-select form-select-sm d-inline-block w-auto" id="time-range">
+                        <option value="1">Last Hour</option>
+                        <option value="6" selected>Last 6 Hours</option>
+                        <option value="12">Last 12 Hours</option>
+                        <option value="24">Last 24 Hours</option>
+                        <option value="48">Last 2 Days</option>
+                        <option value="168">Last Week</option>
+                    </select>
+                    <a href="/download/csv" class="btn btn-sm btn-outline-secondary ms-2">Download CSV</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <canvas id="history-chart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Flow Rate History</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="flow-chart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Data Table</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="history-table">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Pressure (bar)</th>
+                                <th>Temperature (°C)</th>
+                                <th>Level (m)</th>
+                                <th>Volume (L)</th>
+                                <th>Flow Rate (L/min)</th>
+                                <th>Fill (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Chart objects
+    let historyChart = null;
+    let flowChart = null;
+    
+    // Format date for display
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // Format date with day for longer time ranges
+    function formatDateWithDay(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + 
+               date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // Load history data
+    function loadHistoryData() {
+        const hours = document.getElementById('time-range').value;
+        const toTime = Date.now();
+        const fromTime = toTime - (hours * 60 * 60 * 1000);
+        
+        fetch(`/api/history?from=${fromTime}&to=${toTime}&metrics=level,volume,flow_rate,pressure,temperature,fill_percent`)
+            .then(response => response.json())
+            .then(data => {
+                // Check if we have data in the time series format
+                if (data.data) {
+                    updateCharts(data.data, hours);
+                    updateTable(data.data);
+                } else {
+                    // Fallback for old format
+                    updateCharts(data, hours);
+                    updateTable(data);
+                }
+            })
+            .catch(error => console.error('Error fetching history data:', error));
+    }
+    
+    // Update charts with new data
+    function updateCharts(data, hours) {
+        // Prepare data for charts based on format
+        let timestamps, levels, volumes, flowRates;
+        
+        if (data.level) {
+            // New time series format
+            timestamps = data.level.map(point => new Date(point[0]));
+            levels = data.level.map(point => point[1]);
+            volumes = data.volume ? data.volume.map(point => point[1]) : [];
+            flowRates = data.flow_rate ? data.flow_rate.map(point => point[1]) : [];
+        } else {
+            // Old format
+            timestamps = data.map(item => new Date(item.timestamp));
+            levels = data.map(item => item.level);
+            volumes = data.map(item => item.volume);
+            flowRates = data.map(item => item.flow_rate);
+        }
+        
+        // Format function based on time range
+        const formatFunc = hours > 24 ? formatDateWithDay : formatDate;
+        
+        // Update or create level & volume chart
+        if (historyChart) {
+            historyChart.data.labels = timestamps.map(formatFunc);
+            historyChart.data.datasets[0].data = levels;
+            historyChart.data.datasets[1].data = volumes;
+            historyChart.update();
+        } else {
+            const ctx = document.getElementById('history-chart').getContext('2d');
+            historyChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timestamps.map(formatFunc),
+                    datasets: [
+                        {
+                            label: 'Level (m)',
+                            data: levels,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            yAxisID: 'y',
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Volume (L)',
+                            data: volumes,
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            yAxisID: 'y1',
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Level (m)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Volume (L)'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update or create flow rate chart
+        if (flowChart) {
+            flowChart.data.labels = timestamps.map(formatFunc);
+            flowChart.data.datasets[0].data = flowRates;
+            flowChart.update();
+        } else {
+            const ctx = document.getElementById('flow-chart').getContext('2d');
+            flowChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timestamps.map(formatFunc),
+                    datasets: [
+                        {
+                            label: 'Flow Rate (L/min)',
+                            data: flowRates,
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Flow Rate (L/min)'
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    // Update level chart
+    levelChart.data.labels = timestamps;
+    levelChart.data.datasets[0].data = levels;
+    levelChart.options.scales.x.time.unit = hours <= 24 ? 'hour' : 'day';
+    levelChart.update();
+    
+    // Update volume chart
+    volumeChart.data.labels = timestamps;
+    volumeChart.data.datasets[0].data = volumes;
+    volumeChart.options.scales.x.time.unit = hours <= 24 ? 'hour' : 'day';
+    volumeChart.update();
+    
+    // Update flow rate chart
+    flowRateChart.data.labels = timestamps;
+    flowRateChart.data.datasets[0].data = flowRates;
+    flowRateChart.options.scales.x.time.unit = hours <= 24 ? 'hour' : 'day';
+    flowRateChart.update();
+}
+
+// Update table with new data
+function updateTable(data) {
+    const tableBody = document.getElementById('history-table-body');
+    tableBody.innerHTML = '';
+    
+    // Convert data to array of measurements if it's in time series format
+    let measurements;
+    
+    if (data.level) {
+        // New time series format - convert to array of objects
+        measurements = [];
+        const timestamps = data.level.map(point => point[0]);
+        
+        for (let i = 0; i < timestamps.length; i++) {
+            const timestamp = timestamps[i];
+            const measurement = {
+                timestamp: new Date(timestamp),
+                level: data.level[i] ? data.level[i][1] : null,
+                volume: data.volume && data.volume[i] ? data.volume[i][1] : null,
+                fill_percent: data.fill_percent && data.fill_percent[i] ? data.fill_percent[i][1] : null,
+                pressure: data.pressure && data.pressure[i] ? data.pressure[i][1] : null,
+                temperature: data.temperature && data.temperature[i] ? data.temperature[i][1] : null,
+                flow_rate: data.flow_rate && data.flow_rate[i] ? data.flow_rate[i][1] : null
+            };
+            measurements.push(measurement);
+        }
+    } else {
+        // Old format - already an array of objects
+        measurements = data;
+    }
+    
+    // Sort by timestamp (newest first)
+    measurements.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    // Take only the first 100 records to avoid overwhelming the browser
+    const displayData = measurements.slice(0, 100);
+    
+    // Add rows to table
+    displayData.forEach(item => {
+        const row = document.createElement('tr');
+        
+        // Format timestamp
+        const timestamp = new Date(item.timestamp);
+        const formattedTime = timestamp.toLocaleString();
+        
+        row.innerHTML = `
+            <td>${formattedTime}</td>
+            <td>${item.level ? item.level.toFixed(3) : 'N/A'} m</td>
+            <td>${item.volume ? item.volume.toFixed(1) : 'N/A'} L</td>
+            <td>${item.fill_percent ? item.fill_percent.toFixed(1) : 'N/A'}%</td>
+            <td>${item.flow_rate ? item.flow_rate.toFixed(2) : 'N/A'} L/min</td>
+            <td>${item.pressure ? item.pressure.toFixed(3) : 'N/A'} bar</td>
+            <td>${item.temperature ? item.temperature.toFixed(1) : 'N/A'} °C</td>
+        `;
+        
+        tableBody.appendChild(row);
+    });
+    
+    // Update record count
+    document.getElementById('record-count').textContent = measurements.length;
+}
+    
+    // Handle time range change
+    document.getElementById('time-range').addEventListener('change', loadHistoryData);
+    
+    // Load initial data
+    loadHistoryData();
+    
+    // Refresh data periodically (every minute)
+    setInterval(loadHistoryData, 60000);
+</script>
+{% endblock %}

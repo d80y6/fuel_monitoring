@@ -1,0 +1,19 @@
+<div class="language-switcher">
+    <div class="dropdown">
+        <button class="btn btn-sm dropdown-toggle" type="button" id="languageDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+            {% if current_language == 'en' %}
+                <span class="flag-icon flag-icon-us"></span> English
+            {% elif current_language == 'ar' %}
+                <span class="flag-icon flag-icon-sa"></span> العربية
+            {% endif %}
+        </button>
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="languageDropdown">
+            <a class="dropdown-item {% if current_language == 'en' %}active{% endif %}" href="{{ url_for('set_language', language='en') }}">
+                <span class="flag-icon flag-icon-us"></span> English
+            </a>
+            <a class="dropdown-item {% if current_language == 'ar' %}active{% endif %}" href="{{ url_for('set_language', language='ar') }}">
+                <span class="flag-icon flag-icon-sa"></span> العربية
+            </a>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,456 @@
+{% extends "admin/base.html" %}
+
+{% block title %}{{ 'Edit' if user else 'Add' }} User{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1>{{ 'Edit' if user else 'Add New' }} User</h1>
+            <p class="text-muted">{{ 'Update existing' if user else 'Create a new' }} user account</p>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">User Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('admin.edit_user', user_id=user.id) if user else url_for('admin.new_user') }}">
+                        <!-- <input type="hidden" name="csrf_token" value=""> -->
+                        
+                        <div class="row">
+                            <!-- Basic Information -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">Account Details</h6>
+                                
+                                <div class="mb-3">
+                                    <label for="username" class="form-label">Username *</label>
+                                    <input type="text" class="form-control" id="username" name="username" value="{{ user.username if user else '' }}" required {% if user %}readonly{% endif %}>
+                                    {% if user %}
+                                    <small class="form-text text-muted">Username cannot be changed after creation.</small>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="email" class="form-label">Email Address *</label>
+                                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email if user else '' }}" required>
+                                </div>
+                                
+                                {% if not user %}
+                                <div class="mb-3">
+                                    <label for="password" class="form-label">Password *</label>
+                                    <input type="password" class="form-control" id="password" name="password" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="confirm_password" class="form-label">Confirm Password *</label>
+                                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="mb-3">
+                                    <label for="role" class="form-label">Role *</label>
+                                    <select class="form-control" id="role" name="role" required>
+                                        <option value="user" {% if user and user.role == 'user' %}selected{% endif %}>User</option>
+                                        <option value="company_admin" {% if user and user.role == 'company_admin' %}selected{% endif %}>Company Manager</option>
+                                        <option value="admin" {% if user and user.role == 'admin' %}selected{% endif %}>Administrator</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3 form-check">
+                                    <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if not user or user.is_active %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_active">Active</label>
+                                </div>
+                            </div>
+                            
+                            <!-- Personal Information -->
+                            <div class="col-md-6">
+                                <h6 class="mb-3">Personal Information</h6>
+                                
+                                <div class="mb-3">
+                                    <label for="first_name" class="form-label">First Name *</label>
+                                    <input type="text" class="form-control" id="first_name" name="first_name" value="{{ user.first_name if user else '' }}" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="last_name" class="form-label">Last Name *</label>
+                                    <input type="text" class="form-control" id="last_name" name="last_name" value="{{ user.last_name if user else '' }}" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="phone" class="form-label">Phone Number</label>
+                                    <input type="tel" class="form-control" id="phone" name="phone" value="{{ user.phone if user else '' }}">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="job_title" class="form-label">Job Title</label>
+                                    <input type="text" class="form-control" id="job_title" name="job_title" value="{{ user.job_title if user else '' }}">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Access Control -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h6 class="mb-3">Access Control</h6>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Company Access</label>
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <p class="text-muted mb-3">Select which companies this user can access:</p>
+                                            
+                                            <div class="row">
+                                                {% for company in companies %}
+                                                <div class="col-md-4 mb-2">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input company-checkbox" type="checkbox" 
+                                                               id="company_{{ company.id }}" 
+                                                               name="companies" 
+                                                               value="{{ company.id }}"
+                                                               {% if user and company in user.companies %}checked{% endif %}>
+                                                        <label class="form-check-label" for="company_{{ company.id }}">
+                                                            {{ company.name }}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            
+                                            <div class="mt-2">
+                                                <button type="button" id="select-all-companies" class="btn btn-sm btn-outline-secondary">Select All</button>
+                                                <button type="button" id="deselect-all-companies" class="btn btn-sm btn-outline-secondary ms-2">Deselect All</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Site Access</label>
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <p class="text-muted mb-3">Select specific sites this user can access (optional):</p>
+                                            
+                                            <div id="sites-container">
+                                                {% for company in companies %}
+                                                <div class="company-sites" data-company-id="{{ company.id }}">
+                                                    <h6>{{ company.name }}</h6>
+                                                    <div class="row">
+                                                        {% for site in company.sites %}
+                                                        <div class="col-md-4 mb-2">
+                                                            <div class="form-check">
+                                                                <input class="form-check-input site-checkbox" 
+                                                                       type="checkbox" 
+                                                                       id="site_{{ site.id }}" 
+                                                                       name="sites" 
+                                                                       value="{{ site.id }}"
+                                                                       data-company-id="{{ company.id }}"
+                                                                       {% if user and site in user.sites %}checked{% endif %}>
+                                                                <label class="form-check-label" for="site_{{ site.id }}">
+                                                                    {{ site.name }}
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                        {% endfor %}
+                                                    </div>
+                                                    <hr>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                            
+                                            <div class="mt-2">
+                                                <button type="button" id="select-all-sites" class="btn btn-sm btn-outline-secondary">Select All</button>
+                                                <button type="button" id="deselect-all-sites" class="btn btn-sm btn-outline-secondary ms-2">Deselect All</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>{{ 'Update' if user else 'Create' }} User
+                                </button>
+                                <a href="{{ url_for('admin.users') }}" class="btn btn-outline-secondary ms-2">
+                                    <i class="fas fa-times me-2"></i>Cancel
+                                </a>
+                                
+                                {% if user %}
+                                <button type="button" class="btn btn-outline-warning float-end" id="reset-password-btn" data-user-id="{{ user.id }}">
+                                    <i class="fas fa-key me-2"></i>Reset Password
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if user %}
+    <!-- User Activity -->
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">User Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Account Information</h6>
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th>Created</th>
+                                        <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else 'N/A' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Last Updated</th>
+                                        <td>{{ user.updated_at.strftime('%Y-%m-%d %H:%M:%S') if user.updated_at else 'N/A' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Last Login</th>
+                                        <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M:%S') if user.last_login else 'Never' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Login Count</th>
+                                        <td>{{ user.login_count or 0 }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Recent Activity</h6>
+                            {% if user_logs %}
+                            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>Action</th>
+                                            <th>Details</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for log in user_logs %}
+                                        <tr>
+                                            <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                            <td>{{ log.action }}</td>
+                                            <td>{{ log.details }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>No activity logs available for this user.
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resetPasswordModalLabel">Reset Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to reset the password for this user?</p>
+                <p>A new random password will be generated and displayed to you.</p>
+                
+                <div id="new-password-container" class="d-none mt-3">
+                    <div class="alert alert-success">
+                        <p><strong>Password reset successful!</strong></p>
+                        <p>The new password is: <strong id="new-password" class="user-select-all"></strong></p>
+                        <p class="mb-0"><small>Make sure to copy this password and provide it to the user. For security reasons, it won't be displayed again.</small></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="confirm-reset-btn" class="btn btn-warning">Reset Password</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Password validation
+    const passwordField = document.getElementById('password');
+    const confirmPasswordField = document.getElementById('confirm_password');
+    
+    if (passwordField && confirmPasswordField) {
+        confirmPasswordField.addEventListener('input', function() {
+            if (passwordField.value !== confirmPasswordField.value) {
+                confirmPasswordField.setCustomValidity("Passwords don't match");
+            } else {
+                confirmPasswordField.setCustomValidity('');
+            }
+        });
+        
+        passwordField.addEventListener('input', function() {
+            if (passwordField.value !== confirmPasswordField.value) {
+                confirmPasswordField.setCustomValidity("Passwords don't match");
+            } else {
+                confirmPasswordField.setCustomValidity('');
+            }
+        });
+    }
+    
+    // Company checkboxes
+    const companyCheckboxes = document.querySelectorAll('.company-checkbox');
+    const siteCheckboxes = document.querySelectorAll('.site-checkbox');
+    const companySites = document.querySelectorAll('.company-sites');
+    
+    // Show/hide sites based on company selection
+    function updateSiteVisibility() {
+        companyCheckboxes.forEach(checkbox => {
+            const companyId = checkbox.value;
+            const siteContainer = document.querySelector(`.company-sites[data-company-id="${companyId}"]`);
+            
+            if (siteContainer) {
+                if (checkbox.checked) {
+                    siteContainer.style.display = 'block';
+                } else {
+                    siteContainer.style.display = 'none';
+                    // Uncheck all sites for this company
+                    const companySiteCheckboxes = document.querySelectorAll(`.site-checkbox[data-company-id="${companyId}"]`);
+                    companySiteCheckboxes.forEach(siteCheckbox => {
+                        siteCheckbox.checked = false;
+                    });
+                }
+            }
+        });
+    }
+    
+    // Initialize site visibility
+    updateSiteVisibility();
+    
+    // Update site visibility when company selection changes
+    companyCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSiteVisibility);
+    });
+    
+    // Select/deselect all companies
+    document.getElementById('select-all-companies').addEventListener('click', function() {
+        companyCheckboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        updateSiteVisibility();
+    });
+    
+    document.getElementById('deselect-all-companies').addEventListener('click', function() {
+        companyCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateSiteVisibility();
+    });
+    
+    // Select/deselect all sites
+    document.getElementById('select-all-sites').addEventListener('click', function() {
+        // Only select sites for selected companies
+        companyCheckboxes.forEach(companyCheckbox => {
+            if (companyCheckbox.checked) {
+                const companyId = companyCheckbox.value;
+                const companySiteCheckboxes = document.querySelectorAll(`.site-checkbox[data-company-id="${companyId}"]`);
+                companySiteCheckboxes.forEach(siteCheckbox => {
+                    siteCheckbox.checked = true;
+                });
+            }
+        });
+    });
+    
+    document.getElementById('deselect-all-sites').addEventListener('click', function() {
+        siteCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    });
+    
+    // Role change handler
+    const roleSelect = document.getElementById('role');
+    if (roleSelect) {
+        roleSelect.addEventListener('change', function() {
+            const role = this.value;
+            
+            // If admin, select all companies and sites
+            if (role === 'admin') {
+                companyCheckboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+                updateSiteVisibility();
+                siteCheckboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+            }
+        });
+    }
+    
+    // Reset password button
+    const resetPasswordBtn = document.getElementById('reset-password-btn');
+    if (resetPasswordBtn) {
+        resetPasswordBtn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            
+            document.getElementById('new-password-container').classList.add('d-none');
+            
+            const resetModal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+            resetModal.show();
+            
+            // Handle confirm reset button
+            document.getElementById('confirm-reset-btn').onclick = function() {
+                this.disabled = true;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Resetting...';
+                
+                fetch(`/admin/api/users/${userId}/reset-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('new-password').textContent = data.password;
+                        document.getElementById('new-password-container').classList.remove('d-none');
+                    } else {
+                        alert(`Failed to reset password: ${data.error}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while resetting the password.');
+                })
+                .finally(() => {
+                    this.disabled = false;
+                    this.innerHTML = 'Reset Password';
+                });
+            };
+        });
+    }
+});
+</script>
+{% endblock %}

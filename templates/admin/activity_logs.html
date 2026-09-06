@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Activity Logs - Admin - Fuel Tank Monitoring System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Activity Logs</h1>
+        <div>
+            <a href="{{ url_for('admin.download_activity_logs') }}" class="btn btn-secondary">
+                <i class="bi bi-download"></i> Export Logs
+            </a>
+            <a href="{{ url_for('admin.index') }}" class="btn btn-primary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <div class="row">
+                <div class="col-md-3">
+                    <input type="text" id="log-search" class="form-control" placeholder="Search logs...">
+                </div>
+                <div class="col-md-3">
+                    <select id="user-filter" class="form-select">
+                        <option value="all">All Users</option>
+                        {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select id="action-filter" class="form-select">
+                        <option value="all">All Actions</option>
+                        <option value="login">Login</option>
+                        <option value="logout">Logout</option>
+                        <option value="create">Create</option>
+                        <option value="update">Update</option>
+                        <option value="delete">Delete</option>
+                        <option value="export">Export</option>
+                        <option value="import">Import</option>
+                        <option value="settings">Settings</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <input type="date" id="date-filter" class="form-control" placeholder="Filter by date">
+                        <button class="btn btn-outline-secondary" type="button" id="clear-date-filter">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>User</th>
+                            <th>IP Address</th>
+                            <th>Action</th>
+                            <th>Resource</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-list">
+                        {% for log in logs %}
+                        <tr>
+                            <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td>{{ log.user.username if log.user else 'System' }}</td>
+                            <td>{{ log.ip_address }}</td>
+                            <td>
+                                {% if log.action == 'login' %}
+                                <span class="badge bg-success">Login</span>
+                                {% elif log.action == 'logout' %}
+                                <span class="badge bg-secondary">Logout</span>
+                                {% elif log.action == 'create' %}
+                                <span class="badge bg-primary">Create</span>
+                                {% elif log.action == 'update' %}
+                                <span class="badge bg-info">Update</span>
+                                {% elif log.action == 'delete' %}
+                                <span class="badge bg-danger">Delete</span>
+                                {% elif log.action == 'export' %}
+                                <span class="badge bg-warning">Export</span>
+                                {% elif log.action == 'import' %}
+                                <span class="badge bg-warning">Import</span>
+                                {% elif log.action == 'settings' %}
+                                <span class="badge bg-dark">Settings</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ log.action }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ log.resource_type }}</td>
+                            <td>{{ log.details }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <nav>
+                <ul class="pagination justify-content-center" id="pagination">
+                    <!-- Pagination will be generated by JavaScript -->
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin_logs.js') }}"></script>
+{% endblock %}

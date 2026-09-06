@@ -1,0 +1,688 @@
+{% extends "base.html" %}
+
+{% block title %}Site Details - Admin - Fuel Tank Monitoring System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Site Details: {{ site.name }}</h1>
+        <div>
+            <button id="refresh-site-data" class="btn btn-outline-primary me-2">
+                <i class="bi bi-arrow-clockwise"></i> Refresh Data
+            </button>
+            <a href="{{ url_for('admin.edit_site', site_id=site.id) }}" class="btn btn-primary me-2">
+                <i class="bi bi-pencil"></i> Edit Site
+            </a>
+            <button id="delete-site-btn" class="btn btn-danger me-2" data-site-name="{{ site.name }}">
+                <i class="bi bi-trash"></i> Delete Site
+            </button>
+            <a href="{{ url_for('admin.sites') }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Sites
+            </a>
+        </div>
+    </div>
+    
+    <div id="alert-container"></div>
+    
+    <div id="site-data" data-site-id="{{ site.id }}" style="display: none;"></div>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Site Information</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th>Name:</th>
+                            <td>{{ site.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Company:</th>
+                            <td>
+                                <a href="{{ url_for('admin.company_detail', company_id=site.company.id) }}">
+                                    {{ site.company.name }}
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Address:</th>
+                            <td>{{ site.address or 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Contact Name:</th>
+                            <td>{{ site.contact_name or 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Contact Email:</th>
+                            <td>{{ site.contact_email or 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Contact Phone:</th>
+                            <td>{{ site.contact_phone or 'N/A' }}</td>
+                        </tr>
+                        <tr>
+                            <th>Created:</th>
+                            <td>{{ site.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Site Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 id="total-tanks">{{ site.tanks|length }}</h3>
+                                    <p class="mb-0">Total Tanks</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 id="active-tanks">0</h3>
+                                    <p class="mb-0">Active Tanks</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 id="connected-tanks">0</h3>
+                                    <p class="mb-0">Connected Tanks</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 id="total-volume">0 L</h3>
+                                    <p class="mb-0">Total Volume</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 id="avg-fill-level">0%</h3>
+                                    <p class="mb-0">Avg. Fill Level</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 id="active-alarms">0</h3>
+                                    <p class="mb-0">Active Alarms</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>Tanks</h5>
+                    <a href="{{ url_for('admin.create_tank') }}?site_id={{ site.id }}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-plus-circle"></i> Add Tank
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if site.tanks %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Fill Level</th>
+                                    <th>Volume</th>
+                                    <th>Status</th>
+                                    <th>Last Update</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="site-tanks">
+                                <!-- Tank data will be loaded via JavaScript -->
+                                <tr>
+                                    <td colspan="6" class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2">Loading tanks...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No tanks have been added to this site yet.
+                        <a href="{{ url_for('admin.create_tank') }}?site_id={{ site.id }}" class="alert-link">Add a tank</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Volume Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="volumeDistributionChart" height="250"></canvas>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5>Recent Alarms</h5>
+                </div>
+                <div class="card-body">
+                    {% set alarms = site.get_recent_alarms() %}
+                    {% if alarms %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Tank</th>
+                                    <th>Type</th>
+                                    <th>Message</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alarm in alarms %}
+                                <tr data-alarm-id="{{ alarm.id }}">
+                                    <td>{{ alarm.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('admin.tank_detail', tank_id=alarm.tank_id) }}">
+                                            {{ alarm.tank.name }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if alarm.type == 'low_level' %}
+                                        <span class="badge bg-warning">Low Level</span>
+                                        {% elif alarm.type == 'critical_level' %}
+                                        <span class="badge bg-danger">Critical Level</span>
+                                        {% elif alarm.type == 'high_level' %}
+                                        <span class="badge bg-warning">High Level</span>
+                                        {% elif alarm.type == 'connection' %}
+                                        <span class="badge bg-danger">Connection</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ alarm.type }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ alarm.message }}</td>
+                                    <td class="alarm-status">
+                                        {% if alarm.acknowledged %}
+                                        <span class="badge bg-success">Acknowledged</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">Unacknowledged</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="alarm-actions">
+                                        {% if not alarm.acknowledged %}
+                                        <button class="btn btn-sm btn-success acknowledge-alarm-btn" data-alarm-id="{{ alarm.id }}">
+                                            <i class="bi bi-check-circle"></i> Acknowledge
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No recent alarms for this site.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Site Confirmation Modal -->
+<div class="modal fade" id="deleteSiteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the site "<span id="delete-site-name"></span>"?</p>
+                <p class="text-danger">This action cannot be undone and will delete all tanks and their data associated with this site.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-site">Delete Site</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const siteId = document.getElementById('site-data').getAttribute('data-site-id');
+    let volumeDistributionChart = null;
+    
+    // Function to show alert
+    function showAlert(type, message) {
+        const alertContainer = document.getElementById('alert-container');
+        if (!alertContainer) return;
+        
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        alertContainer.innerHTML = '';
+        alertContainer.appendChild(alert);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            alert.classList.remove('show');
+            setTimeout(() => {
+                alertContainer.removeChild(alert);
+            }, 150);
+        }, 5000);
+    }
+    
+    // Function to fetch site statistics
+    function fetchSiteStats() {
+        fetch(`/admin/api/sites/${siteId}/stats`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    updateSiteStats(data.stats);
+                } else {
+                    showAlert('danger', data.message || 'Error fetching site statistics');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching site statistics:', error);
+                showAlert('danger', 'Error fetching site statistics: ' + error.message);
+            });
+    }
+    
+    // Function to update site statistics
+    function updateSiteStats(stats) {
+        document.getElementById('active-tanks').textContent = stats.active_tank_count;
+        document.getElementById('connected-tanks').textContent = stats.connected_tank_count;
+        document.getElementById('total-volume').textContent = `${stats.total_volume.toFixed(1)} L`;
+        document.getElementById('avg-fill-level').textContent = `${stats.avg_fill_level.toFixed(1)}%`;
+        document.getElementById('active-alarms').textContent = stats.active_alarms;
+    }
+    
+    // Function to fetch site tanks
+    function fetchSiteTanks() {
+        fetch(`/admin/api/sites/${siteId}/tanks`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    updateSiteTanks(data.tanks);
+                    updateVolumeDistributionChart(data.tanks);
+                } else {
+                    showAlert('danger', data.message || 'Error fetching site tanks');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching site tanks:', error);
+                showAlert('danger', 'Error fetching site tanks: ' + error.message);
+            });
+    }
+    
+    // Function to update site tanks table
+    function updateSiteTanks(tanks) {
+        const tanksContainer = document.getElementById('site-tanks');
+        if (!tanksContainer) return;
+        
+        if (tanks.length === 0) {
+            tanksContainer.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center">
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-info-circle"></i> No tanks have been added to this site yet.
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        let html = '';
+        
+        tanks.forEach(tank => {
+            // Determine connection status badge
+            let statusBadgeClass = 'bg-danger';
+            let statusText = 'Disconnected';
+            
+            if (tank.connection_status === 'Connected') {
+                statusBadgeClass = 'bg-success';
+                statusText = 'Connected';
+            } else if (tank.connection_status === 'Recently Disconnected') {
+                statusBadgeClass = 'bg-warning';
+                statusText = 'Recently Disconnected';
+            }
+            
+            // Format last update time
+            let lastUpdateText = 'Never';
+            if (tank.measurement && tank.measurement.timestamp) {
+                const lastUpdate = new Date(tank.measurement.timestamp);
+                lastUpdateText = lastUpdate.toLocaleString();
+            }
+            
+            html += `
+                <tr>
+                    <td>
+                        <a href="/admin/tanks/${tank.id}">${tank.name}</a>
+                        ${tank.description ? `<br><small class="text-muted">${tank.description}</small>` : ''}
+                    </td>
+                    <td>
+                        ${tank.measurement ? 
+                            `<div class="progress" style="height: 20px;">
+                                <div class="progress-bar ${getFillLevelClass(tank.measurement.fill_percent)}" 
+                                     role="progressbar" 
+                                     style="width: ${tank.measurement.fill_percent}%;" 
+                                     aria-valuenow="${tank.measurement.fill_percent}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    ${tank.measurement.fill_percent.toFixed(1)}%
+                                </div>
+                            </div>` : 
+                            'N/A'}
+                    </td>
+                    <td>${tank.measurement ? `${tank.measurement.volume.toFixed(1)} L` : 'N/A'}</td>
+                    <td><span class="badge ${statusBadgeClass}">${statusText}</span></td>
+                    <td>${lastUpdateText}</td>
+                    <td>
+                        <div class="btn-group btn-group-sm">
+                            <a href="/admin/tanks/${tank.id}" class="btn btn-info">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="/admin/tanks/edit/${tank.id}" class="btn btn-primary">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button type="button" class="btn btn-danger delete-tank-btn" 
+                                    data-tank-id="${tank.id}" data-tank-name="${tank.name}">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        tanksContainer.innerHTML = html;
+    }
+    
+    // Function to get fill level class based on percentage
+    function getFillLevelClass(fillPercent) {
+        if (fillPercent <= 10) {
+            return 'bg-danger';
+        } else if (fillPercent <= 20) {
+            return 'bg-warning';
+        } else if (fillPercent >= 90) {
+            return 'bg-warning';
+        } else {
+            return 'bg-success';
+        }
+    }
+    
+    // Function to update volume distribution chart
+    function updateVolumeDistributionChart(tanks) {
+        // Filter tanks with measurements
+        const tanksWithMeasurements = tanks.filter(tank => tank.measurement);
+        
+        if (tanksWithMeasurements.length === 0) {
+            return;
+        }
+        
+        // Prepare data for chart
+        const tankNames = [];
+        const volumes = [];
+        const fillLevels = [];
+        const backgroundColors = [
+            'rgba(75, 192, 192, 0.8)',
+            'rgba(54, 162, 235, 0.8)',
+            'rgba(255, 206, 86, 0.8)',
+            'rgba(153, 102, 255, 0.8)',
+            'rgba(255, 159, 64, 0.8)',
+            'rgba(255, 99, 132, 0.8)',
+            'rgba(199, 199, 199, 0.8)',
+            'rgba(83, 102, 255, 0.8)',
+            'rgba(40, 159, 64, 0.8)',
+            'rgba(210, 99, 132, 0.8)'
+        ];
+        
+        tanksWithMeasurements.forEach((tank, index) => {
+            tankNames.push(tank.name);
+            volumes.push(tank.measurement.volume);
+            fillLevels.push(tank.measurement.fill_percent);
+        });
+        
+        // Create or update chart
+        const ctx = document.getElementById('volumeDistributionChart').getContext('2d');
+        
+        if (volumeDistributionChart) {
+            volumeDistributionChart.data.labels = tankNames;
+            volumeDistributionChart.data.datasets[0].data = volumes;
+            volumeDistributionChart.data.datasets[1].data = fillLevels;
+            volumeDistributionChart.update();
+        } else {
+            volumeDistributionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: tankNames,
+                    datasets: [
+                        {
+                            label: 'Volume (L)',
+                            data: volumes,
+                            backgroundColor: backgroundColors,
+                            borderColor: backgroundColors.map(color => color.replace('0.8', '1')),
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Fill Level (%)',
+                            data: fillLevels,
+                            type: 'line',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Volume (L)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Fill Level (%)'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+    
+    // Fetch initial data
+    fetchSiteStats();
+    fetchSiteTanks();
+    
+    // Set up refresh button
+    document.getElementById('refresh-site-data').addEventListener('click', function() {
+        fetchSiteStats();
+        fetchSiteTanks();
+        showAlert('info', 'Refreshing site data...');
+    });
+    
+    // Set up delete site button
+    document.getElementById('delete-site-btn').addEventListener('click', function() {
+        const siteName = this.getAttribute('data-site-name');
+        document.getElementById('delete-site-name').textContent = siteName;
+        
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteSiteModal'));
+        deleteModal.show();
+    });
+    
+    // Set up confirm delete button
+    document.getElementById('confirm-delete-site').addEventListener('click', function() {
+        fetch(`/admin/sites/delete/${siteId}`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/admin/sites';
+            } else {
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteSiteModal'));
+                deleteModal.hide();
+                showAlert('danger', data.message || 'Cannot delete site with tanks. Please delete all tanks first.');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting site:', error);
+            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteSiteModal'));
+            deleteModal.hide();
+            showAlert('danger', 'Error deleting site: ' + error.message);
+        });
+    });
+    
+    // Set up delete tank buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.delete-tank-btn')) {
+            const btn = e.target.closest('.delete-tank-btn');
+            const tankId = btn.getAttribute('data-tank-id');
+            const tankName = btn.getAttribute('data-tank-name');
+            
+            if (confirm(`Are you sure you want to delete tank "${tankName}"? This action cannot be undone.`)) {
+                fetch(`/admin/tanks/delete/${tankId}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Refresh site data
+                        fetchSiteStats();
+                        fetchSiteTanks();
+                        showAlert('success', data.message || 'Tank deleted successfully');
+                    } else {
+                        showAlert('danger', data.message || 'Error deleting tank');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting tank:', error);
+                    showAlert('danger', 'Error deleting tank: ' + error.message);
+                });
+            }
+        }
+    });
+    
+    // Set up acknowledge alarm buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.acknowledge-alarm-btn')) {
+            const btn = e.target.closest('.acknowledge-alarm-btn');
+            const alarmId = btn.getAttribute('data-alarm-id');
+            
+            fetch(`/admin/alarms/acknowledge/${alarmId}`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the alarm status in the UI
+                    const row = document.querySelector(`tr[data-alarm-id="${alarmId}"]`);
+                    if (row) {
+                        const statusCell = row.querySelector('.alarm-status');
+                        const actionsCell = row.querySelector('.alarm-actions');
+                        
+                        if (statusCell) {
+                            statusCell.innerHTML = '<span class="badge bg-success">Acknowledged</span>';
+                        }
+                        
+                        if (actionsCell) {
+                            actionsCell.innerHTML = '';
+                        }
+                    }
+                    
+                    // Update site statistics
+                    fetchSiteStats();
+                    
+                    showAlert('success', data.message || 'Alarm acknowledged successfully');
+                } else {
+                    showAlert('danger', data.message || 'Error acknowledging alarm');
+                }
+            })
+            .catch(error => {
+                console.error('Error acknowledging alarm:', error);
+                showAlert('danger', 'Error acknowledging alarm: ' + error.message);
+            });
+        }
+    });
+    
+    // Auto-refresh data every 60 seconds
+    setInterval(function() {
+        fetchSiteStats();
+        fetchSiteTanks();
+    }, 60000);
+});
+</script>
+{% endblock %}

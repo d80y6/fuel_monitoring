@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Admin panel for Fuel Tank Monitoring System">
+    <title>{% block title %}Admin{% endblock %} - Fuel Tank Monitoring System</title>
+    
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/admin.css') }}" rel="stylesheet">
+    
+    <!-- Additional styles -->
+    {% block styles %}{% endblock %}
+</head>
+<body class="admin-panel">
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <nav id="sidebar" class="bg-dark text-white">
+            <div class="sidebar-header d-flex align-items-center">
+                <h3 class="m-0">
+                    <i class="fas fa-tachometer-alt me-2"></i>Admin Panel
+                </h3>
+                <button type="button" id="sidebarCollapseSmall" class="btn btn-link text-white d-md-none ms-auto">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+
+            <div class="sidebar-user p-3 mb-2 border-bottom border-secondary">
+                <div class="d-flex align-items-center">
+                    <div class="user-avatar bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                        {% if current_user.profile_image %}
+                            <img src="{{ url_for('static', filename='uploads/profiles/' + current_user.profile_image) }}" alt="{{ current_user.username }}" class="rounded-circle" style="width: 100%; height: 100%; object-fit: cover;">
+                        {% else %}
+                            <i class="fas fa-user"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h6 class="mb-0">{{ current_user.username }}</h6>
+                        <small class="text-muted">{{ current_user.role|capitalize }}</small>
+                    </div>
+                </div>
+            </div>
+
+            <ul class="list-unstyled components">
+                <li class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+                    <a href="{{ url_for('admin.dashboard') }}" class="d-flex align-items-center">
+                        <i class="fas fa-tachometer-alt me-2"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="{% if 'tank' in request.endpoint %}active{% endif %}">
+                    <a href="#tankSubmenu" data-bs-toggle="collapse" aria-expanded="{% if 'tank' in request.endpoint %}true{% else %}false{% endif %}" class="dropdown-toggle d-flex align-items-center">
+                        <i class="fas fa-gas-pump me-2"></i>
+                        <span>Tanks</span>
+                        <span class="ms-auto">
+                            <i class="fas fa-chevron-down small"></i>
+                        </span>
+                    </a>
+                    <ul class="collapse list-unstyled {% if 'tank' in request.endpoint %}show{% endif %}" id="tankSubmenu">
+                        <li>
+                            <a href="{{ url_for('admin.tanks_index') }}" class="ps-4 {% if request.endpoint == 'admin.tanks_index' %}active{% endif %}">
+                                <i class="fas fa-list-ul me-2"></i>View All Tanks
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('admin.create_tank') }}" class="ps-4 {% if request.endpoint == 'admin.create_tank' %}active{% endif %}">
+                                <i class="fas fa-plus-circle me-2"></i>Add New Tank
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="{% if 'user' in request.endpoint %}active{% endif %}">
+                    <a href="#userSubmenu" data-bs-toggle="collapse" aria-expanded="{% if 'user' in request.endpoint %}true{% else %}false{% endif %}" class="dropdown-toggle d-flex align-items-center">
+                        <i class="fas fa-users me-2"></i>
+                        <span>Users</span>
+                        <span class="ms-auto">
+                            <i class="fas fa-chevron-down small"></i>
+                        </span>
+                    </a>
+                    <ul class="collapse list-unstyled {% if 'user' in request.endpoint %}show{% endif %}" id="userSubmenu">
+                        <li>
+                            <a href="{{ url_for('admin.users') }}" class="ps-4 {% if request.endpoint == 'admin.users' %}active{% endif %}">
+                                <i class="fas fa-list-ul me-2"></i>View All Users
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('admin.new_user') }}" class="ps-4 {% if request.endpoint == 'admin.new_user' %}active{% endif %}">
+                                <i class="fas fa-user-plus me-2"></i>Add New User
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="{% if 'company' in request.endpoint %}active{% endif %}">
+                    <a href="#companySubmenu" data-bs-toggle="collapse" aria-expanded="{% if 'company' in request.endpoint %}true{% else %}false{% endif %}" class="dropdown-toggle d-flex align-items-center">
+                        <i class="fas fa-building me-2"></i>
+                        <span>Companies</span>
+                        <span class="ms-auto">
+                            <i class="fas fa-chevron-down small"></i>
+                        </span>
+                    </a>
+                    <ul class="collapse list-unstyled {% if 'company' in request.endpoint %}show{% endif %}" id="companySubmenu">
+                        <li>
+                            <a href="{{ url_for('admin.companies') }}" class="ps-4 {% if request.endpoint == 'admin.companies' %}active{% endif %}">
+                                <i class="fas fa-list-ul me-2"></i>View All Companies
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('admin.create_company') }}" class="ps-4 {% if request.endpoint == 'admin.create_company' %}active{% endif %}">
+                                <i class="fas fa-plus-circle me-2"></i>Add New Company
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="{% if 'site' in request.endpoint %}active{% endif %}">
+                    <a href="#siteSubmenu" data-bs-toggle="collapse" aria-expanded="{% if 'site' in request.endpoint %}true{% else %}false{% endif %}" class="dropdown-toggle d-flex align-items-center">
+                        <i class="fas fa-map-marker-alt me-2"></i>
+                        <span>Sites</span>
+                        <span class="ms-auto">
+                            <i class="fas fa-chevron-down small"></i>
+                        </span>
+                    </a>
+                    <ul class="collapse list-unstyled {% if 'site' in request.endpoint %}show{% endif %}" id="siteSubmenu">
+                        <li>
+                            <a href="{{ url_for('admin.sites') }}" class="ps-4 {% if request.endpoint == 'admin.sites' %}active{% endif %}">
+                                <i class="fas fa-list-ul me-2"></i>View All Sites
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('admin.create_site') }}" class="ps-4 {% if request.endpoint == 'admin.create_site' %}active{% endif %}">
+                                <i class="fas fa-plus-circle me-2"></i>Add New Site
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="{% if 'alarm' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('alarms') }}" class="d-flex align-items-center">
+                        <i class="fas fa-bell me-2"></i>
+                        <span>Alarms</span>
+                        {% if active_alarms_count > 0 %}
+                        <span class="badge bg-danger rounded-pill ms-auto">{{ active_alarms_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="{% if 'report' in request.endpoint %}active{% endif %}">
+                    <a href="#reportSubmenu" data-bs-toggle="collapse" aria-expanded="{% if 'report' in request.endpoint %}true{% else %}false{% endif %}" class="dropdown-toggle d-flex align-items-center">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        <span>Reports</span>
+                        <span class="ms-auto">
+                            <i class="fas fa-chevron-down small"></i>
+                        </span>
+                    </a>
+                    <ul class="collapse list-unstyled {% if 'report' in request.endpoint %}show{% endif %}" id="reportSubmenu">
+                        <li>
+                            <a href="{{ url_for('admin.usage_report') }}" class="ps-4 {% if request.endpoint == 'admin.usage_reports' %}active{% endif %}">
+                                <i class="fas fa-chart-line me-2"></i>Usage Reports
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('admin.alarm_report') }}" class="ps-4 {% if request.endpoint == 'admin.alarm_reports' %}active{% endif %}">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Alarm Reports
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="{% if 'settings' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('admin.system_settings') }}" class="d-flex align-items-center">
+                        <i class="fas fa-cog me-2"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+                <li class="{% if 'logs' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('admin.system_logs') }}" class="d-flex align-items-center">
+                        <i class="fas fa-list-alt me-2"></i>
+                        <span>System Logs</span>
+                    </a>
+                </li>
+                
+                <li class="border-top border-secondary mt-3 pt-3">
+                    <a href="{{ url_for('dashboard') }}" class="d-flex align-items-center">
+                        <i class="fas fa-home me-2"></i>
+                        <span>Back to Main Site</span>
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="sidebar-footer p-3 mt-auto border-top border-secondary">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted">Server Time</small>
+                        <div id="server-time">{{ now.strftime('%H:%M:%S') }}</div>
+                    </div>
+                    <div>
+                        <span class="badge bg-success" id="connection-status">Online</span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Page Content -->
+        <div id="content">
+            <!-- Top Navigation -->
+            <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+                <div class="container-fluid">
+                    <button type="button" id="sidebarCollapse" class="btn btn-dark d-none d-md-block">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    
+                    <div class="d-flex d-md-none">
+                        <a href="{{ url_for('admin.dashboard') }}" class="navbar-brand">
+                            <i class="fas fa-tachometer-alt me-2"></i>Admin
+                        </a>
+                    </div>
+                    
+                    <div class="ms-auto d-flex align-items-center">
+                        <!-- Quick Actions Dropdown -->
+                        <div class="dropdown me-3">
+                            <button class="btn btn-outline-primary dropdown-toggle d-flex align-items-center" type="button" id="quickActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-bolt me-1"></i>
+                                <span class="d-none d-md-inline">Quick Actions</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="quickActionsDropdown">
+                                <li><a class="dropdown-item" href="{{ url_for('admin.create_tank') }}"><i class="fas fa-plus-circle me-2"></i>Add Tank</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin.new_user') }}"><i class="fas fa-user-plus me-2"></i>Add User</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin.create_company') }}"><i class="fas fa-building me-2"></i>Add Company</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin.create_site') }}"><i class="fas fa-map-marker-alt me-2"></i>Add Site</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin.backup_database') }}"><i class="fas fa-database me-2"></i>Backup Database</a></li>
+                            </ul>
+                        </div>
+                        
+                        <!-- Notifications Dropdown -->
+                        <div class="dropdown me-3">
+                            <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center position-relative" type="button" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-bell me-1"></i>
+                                <span class="d-none d-md-inline">Notifications</span>
+                                {% if active_alarms_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    {{ active_alarms_count }}
+                                    <span class="visually-hidden">unread notifications</span>
+                                </span>
+                                {% endif %}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationsDropdown">
+                                <li><h6 class="dropdown-header">Notifications</h6></li>
+                                {% if recent_notifications %}
+                                    {% for notification in recent_notifications %}
+                                    <li>
+                                        <a class="dropdown-item notification-item {% if not notification.is_read %}unread{% endif %}" href="{{ notification.link }}">
+                                            <div class="d-flex align-items-center">
+                                                <div class="notification-icon bg-{{ notification.type }} text-white rounded-circle me-2">
+                                                    <i class="fas fa-{{ notification.icon }}"></i>
+                                                </div>
+                                                <div class="notification-content">
+                                                    <p class="mb-0">{{ notification.message }}</p>
+                                                    <small class="text-muted">{{ notification.timestamp|timeago }}</small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-center" href="{{ url_for('admin.notifications') }}">View All Notifications</a></li>
+                                {% else %}
+                                    <li><p class="dropdown-item text-muted mb-0">No new notifications</p></li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        
+                        <!-- Last Login Info -->
+                        <div class="me-3 d-none d-md-block">
+                            <span class="text-muted me-2">Last Login:</span>
+                            <span title="{{ current_user.last_login.strftime('%Y-%m-%d %H:%M:%S') if current_user.last_login else 'Never' }}">
+                                {{ current_user.last_login.strftime('%Y-%m-%d %H:%M') if current_user.last_login else 'Never' }}
+                            </span>
+                        </div>
+                        
+                        <!-- User Dropdown -->
+                        <div class="dropdown">
+                            <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <div class="user-avatar bg-primary rounded-circle d-flex align-items-center justify-content-center me-1" style="width: 24px; height: 24px; font-size: 12px;">
+                                    {% if current_user.profile_image %}
+                                        <img src="{{ url_for('static', filename='uploads/profiles/' + current_user.profile_image) }}" alt="{{ current_user.username }}" class="rounded-circle" style="width: 100%; height: 100%; object-fit: cover;">
+                                    {% else %}
+                                        <i class="fas fa-user"></i>
+                                    {% endif %}
+                                </div>
+                                <span class="d-none d-md-inline">{{ current_user.username }}</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <li><h6 class="dropdown-header">Signed in as <strong>{{ current_user.username }}</strong></h6></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}"><i class="fas fa-user me-2"></i>Profile</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('admin.system_settings') }}"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Flash Messages -->
+            <div class="container-fluid mt-3">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            {% set icon_class = {
+                                'success': 'fa-check-circle',
+                                'danger': 'fa-exclamation-circle',
+                                'warning': 'fa-exclamation-triangle',
+                                'info': 'fa-info-circle'
+                            } %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                                <i class="fas {{ icon_class.get(category, 'fa-info-circle') }} me-2"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+            <!-- Main Content -->
+            <div class="container-fluid py-3">
+                {% block content %}{% endblock %}
+            </div>
+            
+            <!-- Footer -->
+            <footer class="bg-light py-3 border-top">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted">© {{ now.year }} Fuel Tank Monitoring System. All rights reserved.</small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <small class="text-muted">Version 1.0.0 | <a href="#" data-bs-toggle="modal" data-bs-target="#supportModal">Support</a></small>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    
+    
+    <!-- Custom JS -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle sidebar
+            document.getElementById('sidebarCollapse').addEventListener('click', function() {
+                document.getElementById('sidebar').classList.toggle('active');
+                document.getElementById('content').classList.toggle('active');
+                
+                // Store sidebar state in localStorage
+                const sidebarActive = document.getElementById('sidebar').classList.contains('active');
+                localStorage.setItem('sidebarCollapsed', sidebarActive);
+            });
+            
+            // Toggle sidebar on mobile
+            const sidebarCollapseSmall = document.getElementById('sidebarCollapseSmall');
+            if (sidebarCollapseSmall) {
+                sidebarCollapseSmall.addEventListener('click', function() {
+                    document.getElementById('sidebar').classList.toggle('active');
+                });
+            }
+            
+            // Restore sidebar state from localStorage
+            if (localStorage.getItem('sidebarCollapsed') === 'true') {
+                document.getElementById('sidebar').classList.add('active');
+                document.getElementById('content').classList.add('active');
+            }
+            
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(function() {
+                document.querySelectorAll('.alert').forEach(function(alert) {
+                    var bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                });
+            }, 5000);
+            
+            // Update server time
+            function updateServerTime() {
+                const serverTimeElement = document.getElementById('server-time');
+                if (serverTimeElement) {
+                    const now = new Date();
+                    serverTimeElement.textContent = now.toTimeString().split(' ')[0];
+                }
+            }
+            
+            // Update server time every second
+            setInterval(updateServerTime, 1000);
+            
+            // Support form submission
+            const supportForm = document.getElementById('support-form');
+            if (supportForm) {
+                supportForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const subject = document.getElementById('support-subject').value;
+                    const message = document.getElementById('support-message').value;
+                    
+                    // Show loading state
+                    const submitButton = this.querySelector('button[type="submit"]');
+                    const originalText = submitButton.innerHTML;
+                    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sending...';
+                    submitButton.disabled = true;
+                    
+                    // Send support request
+                    fetch('/api/admin/support', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            subject: subject,
+                            message: message
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Show success message
+                            showToast('Success', 'Your support request has been sent. We will get back to you soon.', 'success');
+                            
+                            // Reset form
+                            supportForm.reset();
+                            
+                            // Close modal
+                            const supportModal = bootstrap.Modal.getInstance(document.getElementById('supportModal'));
+                            supportModal.hide();
+                        } else {
+                            showToast('Error', data.message || 'Failed to send support request', 'danger');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('Error', 'An error occurred while sending your support request', 'danger');
+                    })
+                    .finally(() => {
+                        // Restore button state
+                        submitButton.innerHTML = originalText;
+                        submitButton.disabled = false;
+                    });
+                });
+            }
+            
+            // Initialize Socket.IO for real-time updates
+            try {
+                // Only initialize if the io function exists
+                if (typeof io !== 'undefined') {
+                    const socket = io();
+                    
+                    // Socket connection events
+                    socket.on('connect', function() {
+                        const connectionStatus = document.getElementById('connection-status');
+                        if (connectionStatus) {
+                            connectionStatus.textContent = 'Online';
+                            connectionStatus.className = 'badge bg-success';
+                        }
+                        //console.log('Connected to server');
+                    });
+                    
+                    socket.on('disconnect', function() {
+                        const connectionStatus = document.getElementById('connection-status');
+                        if (connectionStatus) {
+                            connectionStatus.textContent = 'Offline';
+                            connectionStatus.className = 'badge bg-danger';
+                        }
+                        //console.log('Disconnected from server');
+                    });
+                    
+                    // Listen for alarm notifications
+                    socket.on('alarm', function(data) {
+                        // Create browser notification
+                        if (Notification.permission === 'granted') {
+                            const notification = new Notification('Tank Alarm', {
+                                body: data.message,
+                                icon: '/static/favicon.ico',
+                                tag: 'tank-alarm-' + Date.now(),
+                                vibrate: [200, 100, 200]
+                            });
+                            
+                            notification.onclick = function() {
+                                window.focus();
+                                window.location.href = '/alarms';
+                                this.close();
+                            };
+                        }
+                        
+                        // Update alarm count in sidebar
+                        const alarmBadge = document.querySelector('.nav-link[href*="alarms"] .badge');
+                        if (alarmBadge) {
+                            const currentCount = parseInt(alarmBadge.textContent) || 0;
+                            alarmBadge.textContent = currentCount + 1;
+                            alarmBadge.classList.remove('d-none');
+                        } else {
+                            // Create new badge if it doesn't exist
+                            const alarmLink = document.querySelector('.nav-link[href*="alarms"]');
+                            if (alarmLink) {
+                                const newBadge = document.createElement('span');
+                                newBadge.className = 'badge bg-danger rounded-pill ms-auto';
+                                newBadge.textContent = '1';
+                                alarmLink.appendChild(newBadge);
+                            }
+                        }
+                        
+                        // Update notifications dropdown
+                        updateNotificationsDropdown(data);
+                        
+                        // Show toast notification
+                        showToast('Alarm', data.message, 'danger');
+                    });
+                    
+                    // Listen for system notifications
+                    socket.on('notification', function(data) {
+                        // Update notifications dropdown
+                        updateNotificationsDropdown(data);
+                        
+                        // Show toast notification
+                        showToast(data.title || 'Notification', data.message, data.type || 'info');
+                    });
+                    
+                    // Listen for tank status updates
+                    socket.on('tank_status', function(data) {
+                        // Update tank status in real-time if on tanks page
+                        if (window.location.pathname.includes('/admin/tanks')) {
+                            const tankRow = document.querySelector(`tr[data-tank-id="${data.tank_id}"]`);
+                            if (tankRow) {
+                                const statusCell = tankRow.querySelector('td:nth-child(5) .badge');
+                                if (statusCell) {
+                                    statusCell.className = data.connected ? 'badge bg-success' : 'badge bg-danger';
+                                    statusCell.textContent = data.connected ? 'Connected' : 'Disconnected';
+                                }
+                                
+                                const lastConnectionCell = tankRow.querySelector('td:nth-child(6)');
+                                if (lastConnectionCell && data.last_connection) {
+                                    lastConnectionCell.textContent = formatDate(data.last_connection);
+                                    lastConnectionCell.title = new Date(data.last_connection).toLocaleString();
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Listen for dashboard updates
+                    socket.on('dashboard_update', function(data) {
+                        // Update dashboard statistics if on dashboard page
+                        if (window.location.pathname.includes('/admin/dashboard')) {
+                            Object.keys(data).forEach(key => {
+                                const element = document.getElementById(key);
+                                if (element) {
+                                    element.textContent = data[key];
+                                }
+                            });
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('Socket.IO not available:', e);
+            }
+            
+            // Request notification permission
+            if ('Notification' in window) {
+                if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                    Notification.requestPermission();
+                }
+            }
+            
+            // Function to update notifications dropdown
+            function updateNotificationsDropdown(notification) {
+                const dropdown = document.querySelector('.notification-dropdown');
+                if (!dropdown) return;
+                
+                // Remove "no notifications" message if present
+                const emptyMessage = dropdown.querySelector('.text-muted');
+                if (emptyMessage) {
+                    emptyMessage.parentElement.remove();
+                }
+                
+                // Create new notification item
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <a class="dropdown-item notification-item unread" href="${notification.link || '#'}">
+                        <div class="d-flex align-items-center">
+                            <div class="notification-icon bg-${notification.type || 'primary'} text-white rounded-circle me-2">
+                                <i class="fas fa-${notification.icon || 'bell'}"></i>
+                            </div>
+                            <div class="notification-content">
+                                <p class="mb-0">${notification.message}</p>
+                                <small class="text-muted">Just now</small>
+                            </div>
+                        </div>
+                    </a>
+                `;
+                
+                // Insert at the top, after the header
+                const header = dropdown.querySelector('.dropdown-header');
+                if (header) {
+                    header.parentElement.insertBefore(li, header.nextSibling);
+                } else {
+                    dropdown.prepend(li);
+                }
+                
+                // Update notification badge in the button
+                const badge = document.querySelector('#notificationsDropdown .badge');
+                if (badge) {
+                    const count = parseInt(badge.textContent) || 0;
+                    badge.textContent = count + 1;
+                } else {
+                    const button = document.getElementById('notificationsDropdown');
+                    if (button) {
+                        const newBadge = document.createElement('span');
+                        newBadge.className = 'position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger';
+                        newBadge.textContent = '1';
+                        newBadge.innerHTML += '<span class="visually-hidden">unread notifications</span>';
+                        button.appendChild(newBadge);
+                    }
+                }
+            }
+            
+            // Global function to show toast notifications
+            window.showToast = function(title, message, type = 'info') {
+                // Create toast element
+                const toastId = 'toast-' + Date.now();
+                const toast = document.createElement('div');
+                toast.className = `toast align-items-center text-white bg-${type} border-0`;
+                toast.id = toastId;
+                toast.setAttribute('role', 'alert');
+                toast.setAttribute('aria-live', 'assertive');
+                toast.setAttribute('aria-atomic', 'true');
+                
+                // Create toast content
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <strong>${title}:</strong> ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                `;
+                
+                // Add toast to container
+                document.querySelector('.toast-container').appendChild(toast);
+                
+                // Initialize and show toast
+                const bsToast = new bootstrap.Toast(toast, {
+                    autohide: true,
+                    delay: 5000
+                });
+                bsToast.show();
+                
+                // Remove toast from DOM after it's hidden
+                toast.addEventListener('hidden.bs.toast', function() {
+                    toast.remove();
+                });
+            };
+            
+            // Helper function to format dates
+            window.formatDate = function(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleString();
+            };
+            
+            // Helper function to format numbers
+            window.formatNumber = function(value, decimals = 0) {
+                if (value === null || value === undefined) return '-';
+                return parseFloat(value).toFixed(decimals);
+            };
+            
+            // Function to handle common form submissions with AJAX
+            window.submitFormAjax = function(form, successCallback, errorCallback) {
+                const formData = new FormData(form);
+                const url = form.action;
+                const method = form.method.toUpperCase();
+                
+                // Convert FormData to JSON if needed
+                const jsonData = {};
+                formData.forEach((value, key) => {
+                    jsonData[key] = value;
+                });
+                
+                fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(jsonData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Server responded with status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        if (typeof successCallback === 'function') {
+                            successCallback(data);
+                        } else {
+                            showToast('Success', data.message || 'Operation completed successfully', 'success');
+                        }
+                    } else {
+                        throw new Error(data.message || 'Unknown error occurred');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    if (typeof errorCallback === 'function') {
+                        errorCallback(error);
+                    } else {
+                        showToast('Error', error.message || 'An error occurred', 'danger');
+                    }
+                });
+            };
+            
+            // Function to confirm dangerous actions
+            window.confirmAction = function(message, callback) {
+                if (confirm(message)) {
+                    callback();
+                }
+            };
+            
+            // Add active class to sidebar links based on current URL
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('#sidebar .components a').forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                    
+                    // If in a submenu, expand the parent
+                    const submenu = link.closest('.collapse');
+                    if (submenu) {
+                        submenu.classList.add('show');
+                        const parentLink = document.querySelector(`[data-bs-toggle="collapse"][href="#${submenu.id}"]`);
+                        if (parentLink) {
+                            parentLink.setAttribute('aria-expanded', 'true');
+                            parentLink.closest('li').classList.add('active');
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
+    <!-- Support Modal -->
+    <div class="modal fade" id="supportModal" tabindex="-1" aria-labelledby="supportModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="supportModalLabel">Contact Support</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>If you need assistance with the Fuel Tank Monitoring System, please contact our support team:</p>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-envelope me-2"></i> <a href="mailto:support@fueltankmonitoring.com">support@fueltankmonitoring.com</a></li>
+                        <li><i class="fas fa-phone me-2"></i> <a href="tel:+1234567890">+1 (234) 567-890</a></li>
+                    </ul>
+                    <hr>
+                    <form id="support-form">
+                        <div class="mb-3">
+                            <label for="support-subject" class="form-label">Subject</label>
+                            <input type="text" class="form-control" id="support-subject" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="support-message" class="form-label">Message</label>
+                            <textarea class="form-control" id="support-message" rows="3" required></textarea>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Send Message</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container for Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>

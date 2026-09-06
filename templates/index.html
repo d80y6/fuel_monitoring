@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Fuel Tank Monitoring System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="jumbotron text-center">
+                <h1 class="display-4">Fuel Tank Monitoring System</h1>
+                <p class="lead">Real-time monitoring of fuel levels, volume, and flow rates</p>
+                <hr class="my-4">
+                <p>Monitor your fuel tanks from anywhere with our advanced monitoring system.</p>
+                {% if current_user.is_authenticated %}
+                <a class="btn btn-primary btn-lg" href="{{ url_for('dashboard') }}" role="button">
+                    <i class="bi bi-speedometer2"></i> Go to Dashboard
+                </a>
+                {% else %}
+                <a class="btn btn-primary btn-lg" href="{{ url_for('auth.login') }}" role="button">
+                    <i class="bi bi-box-arrow-in-right"></i> Login
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-graph-up text-primary" style="font-size: 3rem;"></i>
+                    <h5 class="card-title mt-3">Real-time Monitoring</h5>
+                    <p class="card-text">Monitor your fuel tanks in real-time with accurate measurements and visualizations.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-bell text-warning" style="font-size: 3rem;"></i>
+                    <h5 class="card-title mt-3">Alerts & Notifications</h5>
+                    <p class="card-text">Receive alerts when fuel levels are low or when abnormal conditions are detected.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="bi bi-file-earmark-text text-success" style="font-size: 3rem;"></i>
+                    <h5 class="card-title mt-3">Historical Data</h5>
+                    <p class="card-text">Access historical data and generate reports for analysis and planning.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

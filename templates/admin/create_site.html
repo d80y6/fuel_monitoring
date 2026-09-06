@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Create Site - Admin - Fuel Tank Monitoring System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Create New Site</h1>
+        <a href="{{ url_for('admin.sites') }}" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Sites
+        </a>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <form action="{{ url_for('admin.create_site') }}" method="POST">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Site Name</label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                </div>
+                <div class="mb-3">
+                    <label for="company_id" class="form-label">Company</label>
+                    <select class="form-select" id="company_id" name="company_id" required>
+                        {% for company in companies %}
+                        <option value="{{ company.id }}">{{ company.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="location" class="form-label">Location</label>
+                    <input type="text" class="form-control" id="location" name="location">
+                </div>
+                <div class="mb-3">
+                    <label for="contact_name" class="form-label">Contact Name</label>
+                    <input type="text" class="form-control" id="contact_name" name="contact_name">
+                </div>
+                <div class="mb-3">
+                    <label for="contact_email" class="form-label">Contact Email</label>
+                    <input type="email" class="form-control" id="contact_email" name="contact_email">
+                </div>
+                <div class="mb-3">
+                    <label for="contact_phone" class="form-label">Contact Phone</label>
+                    <input type="text" class="form-control" id="contact_phone" name="contact_phone">
+                </div>
+                <div class="mb-3">
+                    <label for="address" class="form-label">Address</label>
+                    <textarea class="form-control" id="address" name="address" rows="3"></textarea>
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                    <label class="form-check-label" for="is_active">Active</label>
+                </div>
+                <button type="submit" class="btn btn-primary">Create Site</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
