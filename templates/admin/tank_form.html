@@ -2,352 +2,342 @@
 
 {% block title %}{{ 'Edit' if tank else 'Add' }} Tank{% endblock %}
 
+{% block page_title %}{{ 'Edit' if tank else 'Add New' }} Tank{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <h1>{{ 'Edit' if tank else 'Add New' }} Tank</h1>
-            <p class="text-muted">{{ 'Update existing' if tank else 'Configure a new' }} tank in the system</p>
-        </div>
-    </div>
+<div class="space-y-6">
+    <p class="text-gray-500 text-sm">{{ 'Update existing' if tank else 'Configure a new' }} tank in the system</p>
 
-    <!-- Form -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Tank Information</h5>
-                </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('admin.edit_tank', tank_id=tank.id) if tank else url_for('admin.add_tank') }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        
-                        <div class="row">
-                            <!-- Basic Information -->
-                            <div class="col-md-6">
-                                <h6 class="mb-3">Basic Information</h6>
-                                
-                                <div class="mb-3">
-                                    <label for="name" class="form-label">Tank Name *</label>
-                                    <input type="text" class="form-control" id="name" name="name" value="{{ tank.name if tank else '' }}" required>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="site_id" class="form-label">Site *</label>
-                                    <select class="form-control" id="site_id" name="site_id" required>
-                                        <option value="">Select a site</option>
-                                        {% for site in sites %}
-                                        <option value="{{ site.id }}" {% if tank and tank.site_id == site.id %}selected{% endif %}>
-                                            {{ site.name }} ({{ site.company.name }})
-                                        </option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="description" class="form-label">Description</label>
-                                    <textarea class="form-control" id="description" name="description" rows="3">{{ tank.description if tank else '' }}</textarea>
-                                </div>
-                                
-                                <div class="mb-3 form-check">
-                                    <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if not tank or tank.is_active %}checked{% endif %}>
-                                    <label class="form-check-label" for="is_active">Active</label>
-                                </div>
-                            </div>
-                            
-                            <!-- Connection Settings -->
-                            <div class="col-md-6">
-                                <h6 class="mb-3">Connection Settings</h6>
-                                
-                                <div class="mb-3">
-                                    <label for="device_address" class="form-label">Device Address *</label>
-                                    <input type="number" class="form-control" id="device_address" name="device_address" value="{{ tank.device_address if tank else 1 }}" required>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="pressure_channel" class="form-label">Pressure Channel *</label>
-                                    <input type="number" class="form-control" id="pressure_channel" name="pressure_channel" value="{{ tank.pressure_channel if tank else 1 }}" required>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="temp_channel" class="form-label">Temperature Channel</label>
-                                    <input type="number" class="form-control" id="temp_channel" name="temp_channel" value="{{ tank.temp_channel if tank else 4 }}">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <hr>
-                        
-                        <div class="row">
-                            <!-- Tank Parameters -->
-                            <div class="col-md-6">
-                                <h6 class="mb-3">Tank Parameters</h6>
-                                
-                                <div class="mb-3">
-                                    <label for="tank_orientation" class="form-label">Tank Orientation *</label>
-                                    <select class="form-control" id="tank_orientation" name="tank_orientation" required>
-                                        <option value="vertical" {% if tank and tank.tank_orientation == 'vertical' %}selected{% endif %}>Vertical</option>
-                                        <option value="horizontal" {% if tank and tank.tank_orientation == 'horizontal' %}selected{% endif %}>Horizontal</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="tank_height" class="form-label">Tank Height/Length (m) *</label>
-                                    <input type="number" step="0.01" class="form-control" id="tank_height" name="tank_height" value="{{ tank.tank_height if tank else 2.0 }}" required>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="tank_diameter" class="form-label">Tank Diameter (m) *</label>
-                                    <input type="number" step="0.01" class="form-control" id="tank_diameter" name="tank_diameter" value="{{ tank.tank_diameter if tank else 1.5 }}" required>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="fluid_density" class="form-label">Fluid Density (kg/m³) *</label>
-                                    <input type="number" step="0.1" class="form-control" id="fluid_density" name="fluid_density" value="{{ tank.fluid_density if tank else 840.0 }}" required>
-                                    <small class="form-text text-muted">
-                                        Typical values: Diesel = 840, Gasoline = 750, Water = 1000
-                                    </small>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="atmospheric_pressure" class="form-label">Atmospheric Pressure (bar)</label>
-                                    <input type="number" step="0.001" class="form-control" id="atmospheric_pressure" name="atmospheric_pressure" value="{{ tank.atmospheric_pressure if tank else 0.0 }}">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="elevation" class="form-label">Elevation (m)</label>
-                                    <input type="number" step="0.1" class="form-control" id="elevation" name="elevation" value="{{ tank.elevation if tank else 0.0 }}">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="calibration_factor" class="form-label">Calibration Factor</label>
-                                    <input type="number" step="0.001" class="form-control" id="calibration_factor" name="calibration_factor" value="{{ tank.calibration_factor if tank else 1.0 }}">
-                                </div>
-                            </div>
-                            
-                            <!-- Alarm Thresholds -->
-                            <div class="col-md-6">
-                                <h6 class="mb-3">Alarm Thresholds</h6>
-                                
-                                <div class="mb-3">
-                                    <label for="low_level_threshold" class="form-label">Low Level Threshold (%) *</label>
-                                    <input type="number" step="0.1" class="form-control" id="low_level_threshold" name="low_level_threshold" value="{{ tank.low_level_threshold if tank else 20.0 }}" required>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="critical_level_threshold" class="form-label">Critical Level Threshold (%) *</label>
-                                    <input type="number" step="0.1" class="form-control" id="critical_level_threshold" name="critical_level_threshold" value="{{ tank.critical_level_threshold if tank else 10.0 }}" required>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="high_level_threshold" class="form-label">High Level Threshold (%) *</label>
-                                    <input type="number" step="0.1" class="form-control" id="high_level_threshold" name="high_level_threshold" value="{{ tank.high_level_threshold if tank else 90.0 }}" required>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="fuel_type" class="form-label">Fuel Type</label>
-                                    <select class="form-control" id="fuel_type" name="fuel_type">
-                                        <option value="diesel" {% if tank and tank.fuel_type == 'diesel' %}selected{% endif %}>Diesel</option>
-                                        <option value="gasoline" {% if tank and tank.fuel_type == 'gasoline' %}selected{% endif %}>Gasoline</option>
-                                        <option value="water" {% if tank and tank.fuel_type == 'water' %}selected{% endif %}>Water</option>
+    <form method="POST" action="{{ url_for('admin.edit_tank', tank_id=tank.id) if tank else url_for('admin.add_tank') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-                                        <option value="other" {% if tank and tank.fuel_type == 'other' %}selected{% endif %}>Other</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="capacity" class="form-label">Nominal Capacity (liters)</label>
-                                    <input type="number" step="1" class="form-control" id="capacity" name="capacity" value="{{ tank.capacity if tank else '' }}">
-                                    <small class="form-text text-muted">
-                                        Will be calculated automatically if left blank
-                                    </small>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="color" class="form-label">Display Color</label>
-                                    <input type="color" class="form-control form-control-color" id="color" name="color" value="{{ tank.color if tank else '#007bff' }}">
-                                </div>
-                            </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Tank Information</h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Left Column -->
+                    <div class="space-y-6">
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Basic Information</h3>
+
+                        <div class="mb-4">
+                            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Tank Name *</label>
+                            <input type="text" id="name" name="name" value="{{ tank.name if tank else '' }}" required
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                         </div>
-                        
-                        <div class="row mt-4">
-                            <div class="col-md-12">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-save me-2"></i>{{ 'Update' if tank else 'Create' }} Tank
-                                </button>
-                                <a href="{{ url_for('admin.tanks') }}" class="btn btn-outline-secondary ms-2">
-                                    <i class="fas fa-times me-2"></i>Cancel
-                                </a>
-                                
-                                {% if tank %}
-                                <button type="button" class="btn btn-outline-success float-end" id="test-connection-btn" data-tank-id="{{ tank.id }}">
-                                    <i class="fas fa-plug me-2"></i>Test Connection
-                                </button>
-                                {% endif %}
-                            </div>
+
+                        <div class="mb-4">
+                            <label for="site_id" class="block text-sm font-medium text-gray-700 mb-1">Site *</label>
+                            <select id="site_id" name="site_id" required
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                <option value="">Select a site</option>
+                                {% for site in sites %}
+                                <option value="{{ site.id }}" {% if tank and tank.site_id == site.id %}selected{% endif %}>
+                                    {{ site.name }} ({{ site.company.name }})
+                                </option>
+                                {% endfor %}
+                            </select>
                         </div>
-                    </form>
+
+                        <div class="mb-4">
+                            <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                            <textarea id="description" name="description" rows="3"
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">{{ tank.description if tank else '' }}</textarea>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="gateway_mac" class="block text-sm font-medium text-gray-700 mb-1">Gateway MAC Address</label>
+                            <input type="text" id="gateway_mac" name="gateway_mac" value="{{ tank.gateway_mac if tank else '' }}" placeholder="AA:BB:CC:DD:EE:FF"
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="sensor_serial_number" class="block text-sm font-medium text-gray-700 mb-1">Sensor Serial Number</label>
+                            <input type="text" id="sensor_serial_number" name="sensor_serial_number" value="{{ tank.sensor_serial_number if tank else '' }}"
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+
+                        <div class="flex items-center gap-2 mb-4">
+                            <input type="checkbox" id="is_active" name="is_active" {% if not tank or tank.is_active %}checked{% endif %}
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                            <label for="is_active" class="text-sm font-medium text-gray-700">Active</label>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="space-y-6">
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Connection Settings</h3>
+
+                        <div class="mb-4">
+                            <label for="pressure_channel" class="block text-sm font-medium text-gray-700 mb-1">Pressure Channel *</label>
+                            <input type="number" id="pressure_channel" name="pressure_channel" value="{{ tank.pressure_channel if tank else 1 }}" required
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="temp_channel" class="block text-sm font-medium text-gray-700 mb-1">Temperature Channel</label>
+                            <input type="number" id="temp_channel" name="temp_channel" value="{{ tank.temp_channel if tank else 4 }}"
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+
+                        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider pt-4">Tank Parameters</h3>
+
+                        <div class="mb-4">
+                            <label for="tank_orientation" class="block text-sm font-medium text-gray-700 mb-1">Tank Orientation *</label>
+                            <select id="tank_orientation" name="tank_orientation" required
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                <option value="vertical" {% if tank and tank.tank_orientation == 'vertical' %}selected{% endif %}>Vertical</option>
+                                <option value="horizontal" {% if tank and tank.tank_orientation == 'horizontal' %}selected{% endif %}>Horizontal</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="tank_height" class="block text-sm font-medium text-gray-700 mb-1">Tank Height/Length (m) *</label>
+                            <input type="number" step="0.01" id="tank_height" name="tank_height" value="{{ tank.tank_height if tank else 2.0 }}" required
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="tank_diameter" class="block text-sm font-medium text-gray-700 mb-1">Tank Diameter (m) *</label>
+                            <input type="number" step="0.01" id="tank_diameter" name="tank_diameter" value="{{ tank.tank_diameter if tank else 1.5 }}" required
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="fluid_density" class="block text-sm font-medium text-gray-700 mb-1">Fluid Density (kg/m³) *</label>
+                            <input type="number" step="0.1" id="fluid_density" name="fluid_density" value="{{ tank.fluid_density if tank else 840.0 }}" required
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                            <p class="text-xs text-gray-500 mt-1">Typical values: Diesel = 840, Gasoline = 750, Water = 1000</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="atmospheric_pressure" class="block text-sm font-medium text-gray-700 mb-1">Atmospheric Pressure (bar)</label>
+                            <input type="number" step="0.001" id="atmospheric_pressure" name="atmospheric_pressure" value="{{ tank.atmospheric_pressure if tank else 0.0 }}"
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="elevation" class="block text-sm font-medium text-gray-700 mb-1">Elevation (m)</label>
+                            <input type="number" step="0.1" id="elevation" name="elevation" value="{{ tank.elevation if tank else 0.0 }}"
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="calibration_factor" class="block text-sm font-medium text-gray-700 mb-1">Calibration Factor</label>
+                            <input type="number" step="0.001" id="calibration_factor" name="calibration_factor" value="{{ tank.calibration_factor if tank else 1.0 }}"
+                                class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    
+
+        <!-- Alarm Thresholds -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mt-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Alarm Thresholds</h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="mb-4">
+                        <label for="low_level_threshold" class="block text-sm font-medium text-gray-700 mb-1">Low Level (%) *</label>
+                        <input type="number" step="0.1" id="low_level_threshold" name="low_level_threshold" value="{{ tank.low_level_threshold if tank else 20.0 }}" required
+                            class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="critical_level_threshold" class="block text-sm font-medium text-gray-700 mb-1">Critical Level (%) *</label>
+                        <input type="number" step="0.1" id="critical_level_threshold" name="critical_level_threshold" value="{{ tank.critical_level_threshold if tank else 10.0 }}" required
+                            class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="high_level_threshold" class="block text-sm font-medium text-gray-700 mb-1">High Level (%) *</label>
+                        <input type="number" step="0.1" id="high_level_threshold" name="high_level_threshold" value="{{ tank.high_level_threshold if tank else 90.0 }}" required
+                            class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-3 mt-6">
+            <button type="submit" class="bg-primary-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 inline-flex items-center gap-2">
+                <i data-lucide="save" class="h-4 w-4"></i>
+                {{ 'Update' if tank else 'Create' }} Tank
+            </button>
+            <a href="{{ url_for('admin.tanks') }}" class="border border-gray-300 px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 inline-flex items-center gap-2">
+                <i data-lucide="x" class="h-4 w-4"></i>
+                Cancel
+            </a>
+            {% if tank %}
+            <button type="button" class="ml-auto border border-emerald-300 text-emerald-700 px-6 py-2 rounded-lg text-sm font-medium hover:bg-emerald-50 inline-flex items-center gap-2" id="test-connection-btn" data-tank-id="{{ tank.id }}">
+                <i data-lucide="plug" class="h-4 w-4"></i>
+                Test Connection
+            </button>
+            {% endif %}
+        </div>
+    </form>
+
     {% if tank %}
-    <!-- Tank Measurements -->
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Recent Measurements</h5>
-                    <a href="{{ url_for('tank_history', tank_id=tank.id) }}" class="btn btn-sm btn-outline-primary">View All</a>
-                </div>
-                <div class="card-body">
-                    {% set measurements = tank.get_recent_measurements(10) %}
-                    {% if measurements %}
-                    <div class="table-responsive">
-                        <table class="table table-sm table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>Pressure (bar)</th>
-                                    <th>Temperature (°C)</th>
-                                    <th>Level (m)</th>
-                                    <th>Volume (L)</th>
-                                    <th>Fill (%)</th>
-                                    <th>Flow Rate (L/min)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for m in measurements %}
-                                <tr>
-                                    <td>{{ m.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                                    <td>{{ "%.3f"|format(m.pressure) }}</td>
-                                    <td>{{ "%.1f"|format(m.temperature) if m.temperature else 'N/A' }}</td>
-                                    <td>{{ "%.3f"|format(m.level) }}</td>
-                                    <td>{{ "%.1f"|format(m.volume) }}</td>
-                                    <td>{{ "%.1f"|format(m.fill_percent) }}%</td>
-                                    <td>{{ "%.2f"|format(m.flow_rate) }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>No measurements available for this tank.
-                    </div>
-                    {% endif %}
-                </div>
+    <!-- Recent Measurements -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900">Recent Measurements</h2>
+            <a href="{{ url_for('tank_history', tank_id=tank.id) }}" class="text-primary-600 text-sm font-medium hover:text-primary-700">View All</a>
+        </div>
+        <div class="p-6">
+            {% set measurements = tank.get_recent_measurements(10) %}
+            {% if measurements %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-200">
+                            <th class="text-left py-3 px-4 font-medium text-gray-500">Timestamp</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-500">Pressure (bar)</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-500">Temperature (°C)</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-500">Level (m)</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-500">Volume (L)</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-500">Fill (%)</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-500">Flow Rate (L/min)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for m in measurements %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 text-gray-900">{{ m.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td class="py-3 px-4 text-gray-700">{{ "%.3f"|format(m.pressure) }}</td>
+                            <td class="py-3 px-4 text-gray-700">{{ "%.1f"|format(m.temperature) if m.temperature else 'N/A' }}</td>
+                            <td class="py-3 px-4 text-gray-700">{{ "%.3f"|format(m.level) }}</td>
+                            <td class="py-3 px-4 text-gray-700">{{ "%.1f"|format(m.volume) }}</td>
+                            <td class="py-3 px-4 text-gray-700">{{ "%.1f"|format(m.fill_percent) }}%</td>
+                            <td class="py-3 px-4 text-gray-700">{{ "%.2f"|format(m.flow_rate) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <i data-lucide="info" class="h-8 w-8 mx-auto mb-2 text-gray-400"></i>
+                <p class="text-sm">No measurements available for this tank.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
-    
-    <!-- Tank Alarms -->
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Recent Alarms</h5>
-                    <a href="{{ url_for('alarms') }}?tank_id={{ tank.id }}" class="btn btn-sm btn-outline-primary">View All</a>
-                </div>
-                <div class="card-body">
-                    {% set alarms = tank.get_recent_alarms(5) %}
-                    {% if alarms %}
-                    <div class="table-responsive">
-                        <table class="table table-sm table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>Type</th>
-                                    <th>Level</th>
-                                    <th>Message</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for alarm in alarms %}
-                                <tr>
-                                    <td>{{ alarm.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                                    <td>{{ alarm.type }}</td>
-                                    <td>
-                                        {% if alarm.level == 'danger' %}
-                                        <span class="badge bg-danger">Critical</span>
-                                        {% elif alarm.level == 'warning' %}
-                                        <span class="badge bg-warning text-dark">Warning</span>
-                                        {% else %}
-                                        <span class="badge bg-info">Info</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ alarm.message }}</td>
-                                    <td>
-                                        {% if alarm.acknowledged %}
-                                        <span class="badge bg-success">Acknowledged</span>
-                                        {% else %}
-                                        <span class="badge bg-danger">Unacknowledged</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>No alarms recorded for this tank.
-                    </div>
-                    {% endif %}
-                </div>
+
+    <!-- Recent Alarms -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900">Recent Alarms</h2>
+            <a href="{{ url_for('alarms') }}?tank_id={{ tank.id }}" class="text-primary-600 text-sm font-medium hover:text-primary-700">View All</a>
+        </div>
+        <div class="p-6">
+            {% set alarms = tank.get_recent_alarms(5) %}
+            {% if alarms %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-200">
+                            <th class="text-left py-3 px-4 font-medium text-gray-500">Timestamp</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-500">Type</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-500">Level</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-500">Message</th>
+                            <th class="text-left py-3 px-4 font-medium text-gray-500">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% for alarm in alarms %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="py-3 px-4 text-gray-900">{{ alarm.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                            <td class="py-3 px-4 text-gray-700">{{ alarm.type }}</td>
+                            <td class="py-3 px-4">
+                                {% if alarm.level == 'danger' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Critical</span>
+                                {% elif alarm.level == 'warning' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Warning</span>
+                                {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Info</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 px-4 text-gray-700">{{ alarm.message }}</td>
+                            <td class="py-3 px-4">
+                                {% if alarm.acknowledged %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Acknowledged</span>
+                                {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Unacknowledged</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <i data-lucide="info" class="h-8 w-8 mx-auto mb-2 text-gray-400"></i>
+                <p class="text-sm">No alarms recorded for this tank.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
     {% endif %}
 </div>
 
 <!-- Connection Test Modal -->
-<div class="modal fade" id="connectionTestModal" tabindex="-1" aria-labelledby="connectionTestModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="connectionTestModalLabel">Connection Test</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div id="connectionTestModal" class="fixed inset-0 z-50 hidden">
+    <div class="fixed inset-0 bg-black/50" id="connectionTestModalBackdrop"></div>
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md relative">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900" id="connectionTestModalLabel">Connection Test</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-600" id="connectionTestModalClose">
+                    <i data-lucide="x" class="h-5 w-5"></i>
+                </button>
             </div>
-            <div class="modal-body">
-                <div id="connection-test-spinner" class="text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Testing connection...</span>
-                    </div>
-                    <p class="mt-2">Testing connection to tank...</p>
+            <div class="p-6">
+                <div id="connection-test-spinner" class="text-center py-4">
+                    <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-r-transparent"></div>
+                    <p class="mt-3 text-sm text-gray-600">Testing connection to tank...</p>
                 </div>
-                <div id="connection-test-result" class="d-none">
-                    <div id="connection-test-success" class="d-none">
-                        <div class="alert alert-success">
-                            <i class="fas fa-check-circle me-2"></i>Connection successful!
+                <div id="connection-test-result" class="hidden">
+                    <div id="connection-test-success" class="hidden">
+                        <div class="flex items-center gap-2 p-3 rounded-lg bg-green-50 border border-green-200 mb-4">
+                            <i data-lucide="check-circle" class="h-5 w-5 text-green-600"></i>
+                            <span class="text-sm font-medium text-green-800">Connection successful!</span>
                         </div>
-                        <div class="mb-3">
-                            <strong>Pressure Reading:</strong> <span id="pressure-reading"></span> bar
-                        </div>
-                        <div class="mb-3">
-                            <strong>Temperature Reading:</strong> <span id="temperature-reading"></span>
-                        </div>
-                        <div class="mb-3">
-                            <strong>Calculated Level:</strong> <span id="level-reading"></span> m
-                        </div>
-                        <div class="mb-3">
-                            <strong>Calculated Volume:</strong> <span id="volume-reading"></span> L
+                        <div class="space-y-3 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Pressure Reading:</span>
+                                <span class="font-medium text-gray-900"><span id="pressure-reading"></span> bar</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Temperature Reading:</span>
+                                <span class="font-medium text-gray-900"><span id="temperature-reading"></span></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Calculated Level:</span>
+                                <span class="font-medium text-gray-900"><span id="level-reading"></span> m</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Calculated Volume:</span>
+                                <span class="font-medium text-gray-900"><span id="volume-reading"></span> L</span>
+                            </div>
                         </div>
                     </div>
-                    <div id="connection-test-failure" class="d-none">
-                        <div class="alert alert-danger">
-                            <i class="fas fa-times-circle me-2"></i>Connection failed!
+                    <div id="connection-test-failure" class="hidden">
+                        <div class="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200 mb-4">
+                            <i data-lucide="x-circle" class="h-5 w-5 text-red-600"></i>
+                            <span class="text-sm font-medium text-red-800">Connection failed!</span>
                         </div>
-                        <div class="mb-3">
-                            <strong>Error:</strong> <span id="connection-error"></span>
+                        <div class="text-sm mb-4">
+                            <span class="text-gray-600">Error:</span>
+                            <span id="connection-error" class="font-medium text-gray-900"></span>
                         </div>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Troubleshooting Tips:</strong>
-                            <ul class="mb-0 mt-2">
+                        <div class="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                            <p class="text-sm font-medium text-blue-800 mb-2">Troubleshooting Tips:</p>
+                            <ul class="text-sm text-blue-700 space-y-1 list-disc list-inside">
                                 <li>Check that the device is powered on and connected to the network</li>
                                 <li>Verify the IP address and port are correct</li>
                                 <li>Ensure the device address matches the configuration</li>
@@ -357,8 +347,8 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end">
+                <button type="button" class="border border-gray-300 px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-50" id="connectionTestModalCloseFooter">Close</button>
             </div>
         </div>
     </div>
@@ -368,131 +358,98 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Calculate tank capacity automatically when dimensions change
     function updateCapacity() {
         const orientation = document.getElementById('tank_orientation').value;
         const height = parseFloat(document.getElementById('tank_height').value) || 0;
         const diameter = parseFloat(document.getElementById('tank_diameter').value) || 0;
         const capacityField = document.getElementById('capacity');
-        
+
         if (height > 0 && diameter > 0) {
-            // Calculate volume in cubic meters
-            let volumeM3 = 0;
-            if (orientation === 'vertical') {
-                volumeM3 = Math.PI * Math.pow(diameter/2, 2) * height;
-            } else {
-                volumeM3 = Math.PI * Math.pow(diameter/2, 2) * height;
-            }
-            
-            // Convert to liters (1 m³ = 1000 L)
+            let volumeM3 = Math.PI * Math.pow(diameter / 2, 2) * height;
             const capacityLiters = Math.round(volumeM3 * 1000);
-            
-            // Only update if the field is empty or was auto-calculated before
+
             if (!capacityField.value || capacityField._autoCalculated) {
                 capacityField.value = capacityLiters;
                 capacityField._autoCalculated = true;
             }
         }
     }
-    
-    // Update capacity when dimensions change
+
     document.getElementById('tank_orientation').addEventListener('change', updateCapacity);
     document.getElementById('tank_height').addEventListener('input', updateCapacity);
     document.getElementById('tank_diameter').addEventListener('input', updateCapacity);
-    
-    // Mark capacity as manually set when user changes it
-    document.getElementById('capacity').addEventListener('input', function() {
-        this._autoCalculated = false;
-    });
-    
-    // Update fluid density when fuel type changes
-    document.getElementById('fuel_type').addEventListener('change', function() {
-        const densityField = document.getElementById('fluid_density');
-        const fuelType = this.value;
-        
-        // Only update if not manually changed
-        if (!densityField._manuallySet) {
-            switch(fuelType) {
-                case 'diesel':
-                    densityField.value = 840.0;
-                    break;
-                case 'gasoline':
-                    densityField.value = 750.0;
-                    break;
-                case 'water':
-                    densityField.value = 1000.0;
-                    break;
-                default:
-                    // Don't change for 'other'
-                    break;
-            }
+
+    // Modal functions
+    const modal = document.getElementById('connectionTestModal');
+    const backdrop = document.getElementById('connectionTestModalBackdrop');
+    const closeBtn = document.getElementById('connectionTestModalClose');
+    const closeFooterBtn = document.getElementById('connectionTestModalCloseFooter');
+
+    function showModal() {
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function hideModal() {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    backdrop.addEventListener('click', hideModal);
+    closeBtn.addEventListener('click', hideModal);
+    closeFooterBtn.addEventListener('click', hideModal);
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            hideModal();
         }
     });
-    
-    // Mark density as manually set when user changes it
-    document.getElementById('fluid_density').addEventListener('input', function() {
-        this._manuallySet = true;
-    });
-    
-    // Test connection button
+
     const testConnectionBtn = document.getElementById('test-connection-btn');
     if (testConnectionBtn) {
         testConnectionBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            
             const tankId = this.getAttribute('data-tank-id');
-            const modal = new bootstrap.Modal(document.getElementById('connectionTestModal'));
-            
-            // Reset modal state
-            document.getElementById('connection-test-spinner').classList.remove('d-none');
-            document.getElementById('connection-test-result').classList.add('d-none');
-            document.getElementById('connection-test-success').classList.add('d-none');
-            document.getElementById('connection-test-failure').classList.add('d-none');
-            
-            // Show modal
-            modal.show();
-            
-            // Test connection
-            fetch(`/api/admin/tanks/${tankId}/test-connection`, {
+
+            document.getElementById('connection-test-spinner').classList.remove('hidden');
+            document.getElementById('connection-test-result').classList.add('hidden');
+            document.getElementById('connection-test-success').classList.add('hidden');
+            document.getElementById('connection-test-failure').classList.add('hidden');
+
+            showModal();
+
+            fetch('/api/admin/tanks/' + tankId + '/test-connection', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
+                headers: { 'Content-Type': 'application/json' }
             })
-            .then(response => response.json())
-            .then(data => {
-                // Hide spinner
-                document.getElementById('connection-test-spinner').classList.add('d-none');
-                document.getElementById('connection-test-result').classList.remove('d-none');
-                
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                document.getElementById('connection-test-spinner').classList.add('hidden');
+                document.getElementById('connection-test-result').classList.remove('hidden');
+
                 if (data.success) {
-                    // Show success
-                    document.getElementById('connection-test-success').classList.remove('d-none');
+                    document.getElementById('connection-test-success').classList.remove('hidden');
                     document.getElementById('pressure-reading').textContent = data.pressure.toFixed(3);
-                    document.getElementById('temperature-reading').textContent = 
+                    document.getElementById('temperature-reading').textContent =
                         data.temperature ? data.temperature.toFixed(1) + ' °C' : 'N/A';
                     document.getElementById('level-reading').textContent = data.level.toFixed(3);
                     document.getElementById('volume-reading').textContent = data.volume.toFixed(1);
                 } else {
-                    // Show failure
-                    document.getElementById('connection-test-failure').classList.remove('d-none');
+                    document.getElementById('connection-test-failure').classList.remove('hidden');
                     document.getElementById('connection-error').textContent = data.error || 'Unknown error';
                 }
             })
-            .catch(error => {
-                // Hide spinner
-                document.getElementById('connection-test-spinner').classList.add('d-none');
-                document.getElementById('connection-test-result').classList.remove('d-none');
-                
-                // Show failure
-                document.getElementById('connection-test-failure').classList.remove('d-none');
+            .catch(function(error) {
+                document.getElementById('connection-test-spinner').classList.add('hidden');
+                document.getElementById('connection-test-result').classList.remove('hidden');
+                document.getElementById('connection-test-failure').classList.remove('hidden');
                 document.getElementById('connection-error').textContent = 'Network error: ' + error.message;
             });
         });
     }
-    
-    // Initial capacity calculation
+
     updateCapacity();
+    lucide.createIcons();
 });
 </script>
 {% endblock %}
