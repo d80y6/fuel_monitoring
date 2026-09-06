@@ -620,13 +620,7 @@ def main():
         const="serial",
         help="Use serial connection",
     )
-    connection_type.add_argument(
-        "--tcp",
-        dest="connection_type",
-        action="store_const",
-        const="tcp",
-        help="Use TCP/IP connection",
-    )
+
 
     # Serial connection options
     serial_group = parser.add_argument_group("Serial Connection")
@@ -639,12 +633,7 @@ def main():
         help="Baudrate (default: 9600)",
     )
 
-    # TCP connection options
-    tcp_group = parser.add_argument_group("TCP Connection")
-    tcp_group.add_argument("--host", help="Hostname or IP address for TCP connection")
-    tcp_group.add_argument(
-        "--tcp-port", type=int, default=2000, help="TCP port number (default: 2000)"
-    )
+
 
     # Device options
     parser.add_argument(
@@ -722,19 +711,14 @@ def main():
     args = parser.parse_args()
 
     # Validate connection arguments
-    if args.connection_type == "serial" and not args.port:
+    if not args.port:
         parser.error("--port is required for serial connection")
-    elif args.connection_type == "tcp" and not args.host:
-        parser.error("--host is required for TCP connection")
 
     # Register signal handler for Ctrl+C
     signal.signal(signal.SIGINT, lambda sig, frame: sys.exit(0))
 
     # Create appropriate client
-    if args.connection_type == "tcp":
-        client = K114TCPReader(args.host, args.tcp_port, args.address)
-    else:
-        client = K114Reader(args.port, args.address, args.baudrate)
+    client = K114Reader(args.port, args.address, args.baudrate)
 
     # Connect to device
     if not client.connect():

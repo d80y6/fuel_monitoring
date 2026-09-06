@@ -2508,12 +2508,7 @@ def create_tank():
             details=f"Created tank '{tank.name}' for site '{tank.site.name}'"
         )
         
-        if is_active:
-            try:
-                from app import tank_monitor_manager as monitor_manager
-                monitor_manager.start_monitoring(tank.id)
-            except ImportError:
-                flash('Warning: Tank monitoring system not available', 'warning')
+
         
         flash('Tank created successfully', 'success')
         return redirect(url_for('admin.tanks_index'))
@@ -2583,31 +2578,7 @@ def edit_tank(tank_id):
         
         db.session.commit()
         
-        # Update monitor if it exists
-        try:
-            from app import tank_monitor_manager as monitor_manager
-            monitor = monitor_manager.get_monitor(tank_id)
-            if monitor:
-                monitor.device_address = tank.device_address
-                monitor.tank_orientation = tank.tank_orientation
-                monitor.tank_height = tank.tank_height
-                monitor.tank_diameter = tank.tank_diameter
-                monitor.fluid_density = tank.fluid_density
-                monitor.atmospheric_pressure = tank.atmospheric_pressure
-                monitor.pressure_channel = tank.pressure_channel
-                monitor.temp_channel = tank.temp_channel
-                monitor.calibration_factor = tank.calibration_factor
-                
-                # Recalculate tank volume
-                monitor.tank_volume = 3.14159 * (tank.tank_diameter/2)**2 * tank.tank_height
-                
-                # Reconnect to apply new connection settings
-                if monitor.connected:
-                    monitor.disconnect()
-                    monitor.connect()
-        except ImportError:
-            # If monitor_manager is not available, just continue
-            pass
+
         
         flash('Tank updated successfully', 'success')
         return redirect(url_for('admin.tanks_index'))
@@ -2617,50 +2588,9 @@ def edit_tank(tank_id):
     
     return render_template('admin/edit_tank.html', tank=tank, sites=sites)
 
-@admin.route('/tanks/<int:tank_id>/start-monitoring')
-@admin_required
-@handle_db_errors
-def start_monitoring(tank_id):
-    """Start monitoring a tank"""
-    tank = Tank.query.get_or_404(tank_id)
-    
-    try:
-        from app import tank_monitor_manager as monitor_manager
-        success = monitor_manager.start_monitoring(tank_id)
-        
-        if success:
-            # Update last_connection time
-            tank.last_connection = dt.now()
-            db.session.commit()
-            flash('Tank monitoring started successfully', 'success')
-        else:
-            flash('Failed to start tank monitoring', 'danger')
-    except ImportError:
-        flash('Tank monitoring system not available', 'danger')
-    except Exception as e:
-        flash(f'Error starting monitoring: {str(e)}', 'danger')
-    
-    return redirect(url_for('admin.tank_detail', tank_id=tank_id))
 
-@admin.route('/tanks/<int:tank_id>/stop-monitoring')
-@admin_required
-@handle_db_errors
-def stop_monitoring(tank_id):
-    """Stop monitoring a tank"""
-    try:
-        from app import tank_monitor_manager as monitor_manager
-        success = monitor_manager.stop_monitoring(tank_id)
-        
-        if success:
-            flash('Tank monitoring stopped successfully', 'success')
-        else:
-            flash('Failed to stop tank monitoring', 'danger')
-    except ImportError:
-        flash('Tank monitoring system not available', 'danger')
-    except Exception as e:
-        flash(f'Error stopping monitoring: {str(e)}', 'danger')
-    
-    return redirect(url_for('admin.tank_detail', tank_id=tank_id))
+
+
 
 @admin.route('/tanks/delete/<int:tank_id>', methods=['POST'])
 @admin_required
@@ -2668,18 +2598,6 @@ def stop_monitoring(tank_id):
 def delete_tank(tank_id):
     """Delete tank"""
     tank = Tank.query.get_or_404(tank_id)
-    
-    # Disconnect monitor if it exists
-    try:
-        from app import tank_monitor_manager as monitor_manager
-        monitor = monitor_manager.get_monitor(tank_id)
-        if monitor:
-            monitor.stop_monitoring()
-            monitor.disconnect()
-            del monitor_manager.monitors[tank_id]
-    except (ImportError, AttributeError):
-        # If monitor_manager is not available or monitor doesn't exist, just continue
-        pass
     
     # Use soft delete instead of hard delete
     tank.soft_delete()
@@ -3144,80 +3062,6 @@ def api_daily_usage():
             'message': str(e)
         }), 500
 
-@admin.route('/start-all-monitoring')
-@login_required
-def start_all_monitoring():
-    """Start monitoring all active tanks."""
-    if not current_user.is_admin():
-        flash('Access denied', 'danger')
-        return redirect(url_for('admin.dashboard'))
-    
-    # Start monitoring in a background thread to avoid blocking
-    def start_monitoring_thread():
-        with current_app.app_context():
-            active_tanks = Tank.query.filter_by(is_active=True).all()
-            for tank in active_tanks:
-                try:
-                    from app import tank_monitor_manager as monitor_manager
-                    monitor_manager.start_monitoring(tank.id)
-                    current_app.logger.info(f"Started monitoring tank {tank.id} ({tank.name})")
-                except Exception as e:
-                    current_app.logger.error(f"Failed to start monitoring tank {tank.id} ({tank.name}): {str(e)}")
-    
-    Thread(target=start_monitoring_thread, daemon=True).start()
-    flash('Started monitoring all active tanks', 'success')
-    return redirect(url_for('admin.dashboard'))
-
-@admin.route('/stop-all-monitoring')
-@login_required
-def stop_all_monitoring():
-    """Stop monitoring all tanks."""
-    if not current_user.is_admin():
-        flash('Access denied', 'danger')
-        return redirect(url_for('admin.dashboard'))
-    
-    try:
-        from app import tank_monitor_manager as monitor_manager
-        monitor_manager.stop_monitoring()
-        flash('Stopped monitoring all tanks', 'success')
-    except Exception as e:
-        current_app.logger.error(f"Error stopping all monitoring: {str(e)}")
-        flash(f'Error stopping monitoring: {str(e)}', 'danger')
-    
-    return redirect(url_for('admin.dashboard'))
-
-@admin.route('/api/reset-all-statistics', methods=['POST'])
-@login_required
-def reset_all_statistics():
-    """Reset statistics for all tanks."""
-    if not current_user.is_admin():
-        return jsonify({
-            'success': False,
-            'error': 'Access denied'
-        }), 403
-    
-    try:
-        # Get all active tanks
-        tanks = Tank.not_deleted().filter_by(is_active=True).all()
-        
-        # Reset statistics for each tank
-        for tank in tanks:
-            try:
-                from app import tank_monitor_manager as monitor_manager
-                monitor_manager.reset_statistics(tank.id)
-            except Exception as e:
-                current_app.logger.error(f"Error resetting statistics for tank {tank.id}: {str(e)}")
-        
-        return jsonify({
-            'success': True,
-            'message': f'Statistics reset for {len(tanks)} tanks'
-        })
-    except Exception as e:
-        current_app.logger.error(f"Error resetting all statistics: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
 @admin.route('/activity-log')
 @login_required
 def activity_log():
@@ -5337,13 +5181,6 @@ def bulk_action_tanks():
         for tank_id in tank_ids:
             tank = Tank.query.get(tank_id)
             if tank:
-                # Stop monitoring if active
-                try:
-                    from app import tank_monitor_manager as monitor_manager
-                    monitor_manager.stop_monitoring(tank_id)
-                except (ImportError, AttributeError):
-                    pass
-                
                 tank.soft_delete()
         
         db.session.commit()
@@ -5355,13 +5192,6 @@ def bulk_action_tanks():
             tank = Tank.query.get(tank_id)
             if tank:
                 tank.is_active = True
-                
-                # Start monitoring
-                try:
-                    from app import tank_monitor_manager as monitor_manager
-                    monitor_manager.start_monitoring(tank_id)
-                except (ImportError, AttributeError):
-                    pass
         
         db.session.commit()
         flash(f'{len(tank_ids)} tanks activated', 'success')
@@ -5372,13 +5202,6 @@ def bulk_action_tanks():
             tank = Tank.query.get(tank_id)
             if tank:
                 tank.is_active = False
-                
-                # Stop monitoring
-                try:
-                    from app import tank_monitor_manager as monitor_manager
-                    monitor_manager.stop_monitoring(tank_id)
-                except (ImportError, AttributeError):
-                    pass
         
         db.session.commit()
         flash(f'{len(tank_ids)} tanks deactivated', 'success')

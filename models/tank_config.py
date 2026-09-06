@@ -29,8 +29,6 @@ class TankConfig:
         self.tank_volume = 0.0
 
         # Connection settings
-        self.host = None
-        self.tcp_port = 2000
         self.device_address = 1
 
         # Sensor settings
@@ -59,8 +57,6 @@ class TankConfig:
         config.atmospheric_pressure = tank.atmospheric_pressure
         config.elevation = tank.elevation
 
-        config.host = tank.host
-        config.tcp_port = int(tank.tcp_port)
         config.device_address = int(tank.device_address)
 
         config.pressure_channel = tank.pressure_channel
@@ -111,8 +107,6 @@ class TankConfig:
             'atmospheric_pressure': self.atmospheric_pressure,
             'elevation': self.elevation,
             'tank_volume': self.tank_volume,
-            'host': self.host,
-            'tcp_port': self.tcp_port,
             'device_address': self.device_address,
             'pressure_channel': self.pressure_channel,
             'temp_channel': self.temp_channel,
