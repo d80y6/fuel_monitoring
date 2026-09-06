@@ -190,8 +190,6 @@ class Tank(db.Model, SoftDeleteMixin):
     sensor_serial_number = db.Column(db.BigInteger, nullable=True, index=True, unique=True)
 
     # Connection settings
-    host = db.Column(db.String(100), nullable=False)
-    tcp_port = db.Column(db.Integer, default=2000)
     device_address = db.Column(db.Integer, default=1)
     connection_mode = db.Column(db.String(20), default='mqtt')
 
