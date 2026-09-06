@@ -5,7 +5,6 @@ Provides environment-specific configuration classes and validates
 that critical secrets are present in production.
 """
 import os
-import secrets
 import logging
 from dotenv import load_dotenv
 
@@ -15,7 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 def _require_secret_key():
-    """Return the SECRET_KEY from the environment, warning if absent."""
+    """Return the SECRET_KEY from the environment, warning if absent.
+
+    Note: ProductionConfig enforces that SECRET_KEY is set and strong.
+    This base-class helper is permissive for development convenience.
+    """
     secret = os.environ.get('SECRET_KEY')
     if not secret:
         logger.warning(
@@ -33,7 +36,6 @@ class Config:
     SECRET_KEY = _require_secret_key()
 
     # Database
-    DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///fuel_tank.db')
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///fuel_tank.db'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
