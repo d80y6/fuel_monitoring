@@ -9,7 +9,6 @@
 </nav>
 
 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-    <!-- Tank Info Sidebar -->
     <div class="lg:col-span-1 space-y-4">
         <div class="bg-white rounded-xl shadow-sm border p-5">
             <h2 class="font-semibold mb-3">Tank Info</h2>
@@ -21,7 +20,6 @@
                 <div class="flex justify-between"><dt class="text-gray-500">Diameter</dt><dd>{{ tank.tank_diameter|default(1.5) }} m</dd></div>
             </dl>
         </div>
-
         <div class="bg-white rounded-xl shadow-sm border p-5">
             <h2 class="font-semibold mb-3">Current Status</h2>
             <div class="space-y-3">
@@ -49,9 +47,7 @@
         </div>
     </div>
 
-    <!-- Main Content -->
     <div class="lg:col-span-3 space-y-6">
-        <!-- Time Range Selector -->
         <div class="flex items-center gap-2 flex-wrap">
             <button onclick="setRange(1)" class="range-btn px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-primary-50 hover:border-primary-300 transition">1h</button>
             <button onclick="setRange(3)" class="range-btn px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-primary-50 hover:border-primary-300 transition">3h</button>
@@ -61,13 +57,11 @@
             <button onclick="setRange(720)" class="range-btn px-3 py-1.5 text-sm rounded-lg border border-gray-300 hover:bg-primary-50 hover:border-primary-300 transition">30d</button>
         </div>
 
-        <!-- Main Chart -->
         <div class="bg-white rounded-xl shadow-sm border p-5">
             <h3 class="font-semibold mb-4">Fuel Level</h3>
             <div style="height: 350px;"><canvas id="mainChart"></canvas></div>
         </div>
 
-        <!-- Secondary Charts -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white rounded-xl shadow-sm border p-5">
                 <h3 class="font-semibold mb-4">Temperature</h3>
@@ -79,7 +73,6 @@
             </div>
         </div>
 
-        <!-- Recent Alarms -->
         <div class="bg-white rounded-xl shadow-sm border p-5">
             <h3 class="font-semibold mb-4">Recent Alarms</h3>
             <div id="alarms-list" class="space-y-2">
