@@ -3,115 +3,128 @@
 {% block title %}Calibrate {{ tank.name }} - Fuel Tank Monitoring System{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-12">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                <li class="breadcrumb-item">{{ company.name }}</li>
-                <li class="breadcrumb-item">{{ site.name }}</li>
-                <li class="breadcrumb-item"><a href="{{ url_for('tank_detail', tank_id=tank.id) }}">{{ tank.name }}</a></li>
-                <li class="breadcrumb-item active">Calibration</li>
+<div class="space-y-6">
+    <div>
+        <nav class="flex text-sm text-gray-500 mb-3" aria-label="breadcrumb">
+            <ol class="flex items-center gap-1">
+                <li><a href="{{ url_for('dashboard') }}" class="hover:text-primary-600 transition">Dashboard</a></li>
+                <li><span class="mx-1">/</span></li>
+                <li>{{ company.name }}</li>
+                <li><span class="mx-1">/</span></li>
+                <li>{{ site.name }}</li>
+                <li><span class="mx-1">/</span></li>
+                <li><a href="{{ url_for('tank_detail', tank_id=tank.id) }}" class="hover:text-primary-600 transition">{{ tank.name }}</a></li>
+                <li><span class="mx-1">/</span></li>
+                <li class="text-gray-900 font-medium">Calibration</li>
             </ol>
         </nav>
-        <h1 class="mb-4">Calibrate {{ tank.name }}</h1>
+        <h1 class="text-2xl font-bold">Calibrate {{ tank.name }}</h1>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-md-8">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="card-title mb-0">Calibration</h5>
-            </div>
-            <div class="card-body">
-                <p class="mb-4">
-                    Calibration helps improve the accuracy of volume measurements. To calibrate the tank:
-                </p>
-                <ol>
-                    <li>Ensure you know the exact volume of fluid in the tank</li>
-                    <li>Enter this known volume in the form below</li>
-                    <li>Click "Calibrate" to calculate and apply the calibration factor</li>
-                </ol>
-                
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle"></i> The current calibration factor is <strong>{{ tank.calibration_factor }}</strong>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div class="px-4 py-3 border-b border-primary-600 bg-primary-600">
+                    <h5 class="font-medium text-white">Calibration</h5>
                 </div>
-                
-                <form method="POST" action="{{ url_for('calibration', tank_id=tank.id) }}">
-                    <div class="mb-3">
-                        <label for="known_volume" class="form-label">Known Volume (liters)</label>
-                        <input type="number" class="form-control" id="known_volume" name="known_volume" step="0.1" min="0" required>
-                        <div class="form-text">Enter the actual volume of fluid currently in the tank</div>
+                <div class="p-4">
+                    <p class="mb-4 text-gray-600">
+                        Calibration helps improve the accuracy of volume measurements. To calibrate the tank:
+                    </p>
+                    <ol class="list-decimal list-inside space-y-1 mb-4 text-gray-600 text-sm">
+                        <li>Ensure you know the exact volume of fluid in the tank</li>
+                        <li>Enter this known volume in the form below</li>
+                        <li>Click "Calibrate" to calculate and apply the calibration factor</li>
+                    </ol>
+
+                    <div class="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm mb-4">
+                        <i data-lucide="info" class="h-4 w-4 mt-0.5 flex-shrink-0"></i>
+                        <span>The current calibration factor is <strong>{{ tank.calibration_factor }}</strong></span>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label">Current Measurements</label>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="input-group mb-3">
-                                    <span class="input-group-text">Pressure</span>
-                                    <input type="text" class="form-control" id="current-pressure" readonly>
-                                    <span class="input-group-text">bar</span>
+
+                    <form method="POST" action="{{ url_for('calibration', tank_id=tank.id) }}">
+                        <div class="mb-4">
+                            <label for="known_volume" class="block text-sm font-medium text-gray-700 mb-1">Known Volume (liters)</label>
+                            <input type="number" class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-primary-500 focus:border-primary-500" id="known_volume" name="known_volume" step="0.1" min="0" required>
+                            <p class="mt-1 text-xs text-gray-500">Enter the actual volume of fluid currently in the tank</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Current Measurements</label>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div>
+                                    <div class="flex items-center">
+                                        <span class="inline-flex items-center px-3 py-2 bg-gray-100 border border-r-0 border-gray-300 rounded-l-md text-sm text-gray-600">Pressure</span>
+                                        <input type="text" class="flex-1 rounded-r-md border border-gray-300 px-3 py-2 text-sm bg-white" id="current-pressure" readonly>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="input-group mb-3">
-                                    <span class="input-group-text">Level</span>
-                                    <input type="text" class="form-control" id="current-level" readonly>
-                                    <span class="input-group-text">m</span>
+                                <div>
+                                    <div class="flex items-center">
+                                        <span class="inline-flex items-center px-3 py-2 bg-gray-100 border border-r-0 border-gray-300 rounded-l-md text-sm text-gray-600">Level</span>
+                                        <input type="text" class="flex-1 rounded-r-md border border-gray-300 px-3 py-2 text-sm bg-white" id="current-level" readonly>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="input-group mb-3">
-                                    <span class="input-group-text">Volume</span>
-                                    <input type="text" class="form-control" id="current-volume" readonly>
-                                    <span class="input-group-text">L</span>
+                                <div>
+                                    <div class="flex items-center">
+                                        <span class="inline-flex items-center px-3 py-2 bg-gray-100 border border-r-0 border-gray-300 rounded-l-md text-sm text-gray-600">Volume</span>
+                                        <input type="text" class="flex-1 rounded-r-md border border-gray-300 px-3 py-2 text-sm bg-white" id="current-volume" readonly>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">Calibrate</button>
-                    <a href="{{ url_for('tank_detail', tank_id=tank.id) }}" class="btn btn-secondary">Cancel</a>
-                </form>
+
+                        <div class="flex items-center gap-3">
+                            <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 text-sm font-medium transition">
+                                Calibrate
+                            </button>
+                            <a href="{{ url_for('tank_detail', tank_id=tank.id) }}" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 text-sm font-medium transition">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-info text-white">
-                <h5 class="card-title mb-0">About Calibration</h5>
-            </div>
-            <div class="card-body">
-                <h5>Why Calibrate?</h5>
-                <p>
-                    Calibration compensates for variations in tank geometry, sensor placement, and fluid properties
-                    that might affect the accuracy of volume calculations.
-                </p>
-                
-                <h5>How It Works</h5>
-                <p>
-                    The system calculates a calibration factor by comparing the measured volume (based on pressure)
-                    with the known actual volume. This factor is then applied to all future measurements.
-                </p>
-                
-                <h5>When to Calibrate</h5>
-                <ul>
-                    <li>After initial installation</li>
-                    <li>When changing fluid types</li>
-                    <li>If measurements seem inaccurate</li>
-                    <li>Periodically for maintenance</li>
-                </ul>
-                
-                <h5>Best Practices</h5>
-                <ul>
-                    <li>Use a reliable method to determine the actual volume</li>
-                    <li>Perform calibration when the tank is at least 25% full</li>
-                    <li>Ensure the fluid is settled and not in motion</li>
-                    <li>Verify results after calibration</li>
-                </ul>
+
+        <div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div class="px-4 py-3 border-b border-cyan-600 bg-cyan-600">
+                    <h5 class="font-medium text-white">About Calibration</h5>
+                </div>
+                <div class="p-4 space-y-4">
+                    <div>
+                        <h6 class="font-medium text-sm mb-1">Why Calibrate?</h6>
+                        <p class="text-sm text-gray-600">
+                            Calibration compensates for variations in tank geometry, sensor placement, and fluid properties
+                            that might affect the accuracy of volume calculations.
+                        </p>
+                    </div>
+                    <div>
+                        <h6 class="font-medium text-sm mb-1">How It Works</h6>
+                        <p class="text-sm text-gray-600">
+                            The system calculates a calibration factor by comparing the measured volume (based on pressure)
+                            with the known actual volume. This factor is then applied to all future measurements.
+                        </p>
+                    </div>
+                    <div>
+                        <h6 class="font-medium text-sm mb-1">When to Calibrate</h6>
+                        <ul class="text-sm text-gray-600 list-disc list-inside space-y-1">
+                            <li>After initial installation</li>
+                            <li>When changing fluid types</li>
+                            <li>If measurements seem inaccurate</li>
+                            <li>Periodically for maintenance</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h6 class="font-medium text-sm mb-1">Best Practices</h6>
+                        <ul class="text-sm text-gray-600 list-disc list-inside space-y-1">
+                            <li>Use a reliable method to determine the actual volume</li>
+                            <li>Perform calibration when the tank is at least 25% full</li>
+                            <li>Ensure the fluid is settled and not in motion</li>
+                            <li>Verify results after calibration</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -120,32 +133,27 @@
 
 {% block scripts %}
 <script>
-    // Initialize Socket.IO
-    const socket = io();
-    
-    // Tank ID
-    const tankId = {{ tank.id }};
-    
-    // Request to monitor this tank
-    socket.emit('monitor_tank', { tank_id: tankId });
-    
-    // Listen for measurements
-    socket.on(`tank_${tankId}_measurements`, function(data) {
-        // Update current measurements
-        document.getElementById('current-pressure').value = data.pressure.toFixed(4);
-        document.getElementById('current-level').value = data.level.toFixed(3);
-        document.getElementById('current-volume').value = data.volume.toFixed(1);
-    });
-    
-    // Fetch initial measurements
-    fetch(`/api/measurements/${tankId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (!data.error) {
-                document.getElementById('current-pressure').value = data.pressure.toFixed(4);
-                document.getElementById('current-level').value = data.level.toFixed(3);
-                document.getElementById('current-volume').value = data.volume.toFixed(1);
-            }
-        });
+document.addEventListener('DOMContentLoaded', function() {
+    lucide.createIcons();
+
+    var tankId = {{ tank.id }};
+    var pollInterval = null;
+
+    function fetchMeasurements() {
+        fetch('/api/measurements/' + tankId)
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (!data.error) {
+                    document.getElementById('current-pressure').value = data.pressure.toFixed(4);
+                    document.getElementById('current-level').value = data.level.toFixed(3);
+                    document.getElementById('current-volume').value = data.volume.toFixed(1);
+                }
+            })
+            .catch(function(err) { console.error('Poll error:', err); });
+    }
+
+    fetchMeasurements();
+    pollInterval = setInterval(fetchMeasurements, 5000);
+});
 </script>
 {% endblock %}
