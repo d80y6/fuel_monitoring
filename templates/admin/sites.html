@@ -3,241 +3,240 @@
 {% block title %}Manage Sites{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="space-y-6">
     <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <h1 class="h2 mb-1">Manage Sites</h1>
-            <p class="text-muted">View and manage all sites across companies</p>
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Manage Sites</h1>
+            <p class="text-sm text-gray-500">View and manage all sites across companies</p>
         </div>
-        <div class="col-md-4 text-end">
-            <a href="{{ url_for('admin.create_site') }}" class="btn btn-primary">
-                <i class="fas fa-plus-circle me-2"></i>Add New Site
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('admin.create_site') }}" class="inline-flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition">
+                <i data-lucide="plus-circle" class="h-4 w-4"></i>
+                Add New Site
             </a>
-            <button id="map-view-btn" class="btn btn-outline-info ms-2">
-                <i class="fas fa-map-marked-alt me-1"></i>Map View
+            <button id="map-view-btn-header" class="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+                <i data-lucide="map" class="h-4 w-4"></i>
+                Map View
             </button>
         </div>
     </div>
 
     <!-- Filters -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card shadow">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0 fw-bold"><i class="fas fa-filter me-2"></i>Filters</h5>
+    <div class="bg-white rounded-lg shadow border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <i data-lucide="filter" class="h-4 w-4"></i>
+                Filters
+            </h2>
+        </div>
+        <div class="p-6">
+            <form id="filter-form" method="GET" action="{{ url_for('admin.sites') }}">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label for="company" class="block text-sm font-medium text-gray-700 mb-1">Company:</label>
+                        <select id="company" name="company" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-primary-500 focus:border-primary-500">
+                            <option value="all">All Companies</option>
+                            {% for company in companies %}
+                            <option value="{{ company.id }}" {% if request.args.get('company')|int == company.id %}selected{% endif %}>{{ company.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="active" class="block text-sm font-medium text-gray-700 mb-1">Status:</label>
+                        <select id="active" name="active" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-primary-500 focus:border-primary-500">
+                            <option value="all" {% if request.args.get('active') == 'all' %}selected{% endif %}>All</option>
+                            <option value="active" {% if request.args.get('active') == 'active' %}selected{% endif %}>Active</option>
+                            <option value="inactive" {% if request.args.get('active') == 'inactive' %}selected{% endif %}>Inactive</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Search:</label>
+                        <input type="text" id="search" name="search" class="w-full rounded-lg border-gray-300 border px-3 py-2 text-sm focus:ring-primary-500 focus:border-primary-500" placeholder="Site name, location..." value="{{ request.args.get('search', '') }}">
+                    </div>
+                    <div class="flex items-end gap-2">
+                        <button type="submit" class="inline-flex items-center gap-1 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition">
+                            <i data-lucide="filter" class="h-4 w-4"></i>
+                            Apply
+                        </button>
+                        <a href="{{ url_for('admin.sites') }}" class="inline-flex items-center gap-1 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+                            <i data-lucide="x" class="h-4 w-4"></i>
+                            Clear
+                        </a>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <form id="filter-form" method="GET" action="{{ url_for('admin.sites') }}">
-                        <div class="row">
-                            <div class="col-md-3 mb-3">
-                                <div class="form-group">
-                                    <label for="company" class="form-label">Company:</label>
-                                    <select id="company" name="company" class="form-select">
-                                        <option value="all">All Companies</option>
-                                        {% for company in companies %}
-                                        <option value="{{ company.id }}" {% if request.args.get('company')|int == company.id %}selected{% endif %}>{{ company.name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <div class="form-group">
-                                    <label for="active" class="form-label">Status:</label>
-                                    <select id="active" name="active" class="form-select">
-                                        <option value="all" {% if request.args.get('active') == 'all' %}selected{% endif %}>All</option>
-                                        <option value="active" {% if request.args.get('active') == 'active' %}selected{% endif %}>Active</option>
-                                        <option value="inactive" {% if request.args.get('active') == 'inactive' %}selected{% endif %}>Inactive</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <div class="form-group">
-                                    <label for="search" class="form-label">Search:</label>
-                                    <input type="text" id="search" name="search" class="form-control" placeholder="Site name, location..." value="{{ request.args.get('search', '') }}">
-                                </div>
-                            </div>
-                            <div class="col-md-3 mb-3 d-flex align-items-end">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-filter me-1"></i>Apply Filters
-                                </button>
-                                <a href="{{ url_for('admin.sites') }}" class="btn btn-outline-secondary ms-2">
-                                    <i class="fas fa-times me-1"></i>Clear
-                                </a>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
+            </form>
         </div>
     </div>
 
     <!-- Sites Table -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Sites</h5>
-                    <div>
-                        <button id="export-csv-btn" class="btn btn-outline-success btn-sm">
-                            <i class="fas fa-download me-1"></i>Export CSV
-                        </button>
-                        <button id="map-view-btn" class="btn btn-outline-primary btn-sm ms-2">
-                            <i class="fas fa-map-marked-alt me-1"></i>Map View
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    {% if sites %}
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Name</th>
-                                    <th>Company</th>
-                                    <th>Location</th>
-                                    <th>Tanks</th>
-                                    <th>Status</th>
-                                    <th>Last Update</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for site in sites %}
-                                <tr>
-                                    <td>{{ site.id }}</td>
-                                    <td>{{ site.name }}</td>
-                                    <td>
-                                        <a href="{{ url_for('admin.edit_company', company_id=site.company.id) }}">
-                                            {{ site.company.name }}
-                                        </a>
-                                    </td>
-                                    <td>
-                                        {% if site.city and site.state %}
-                                            {{ site.city }}, {{ site.state }}
-                                        {% elif site.city %}
-                                            {{ site.city }}
-                                        {% elif site.state %}
-                                            {{ site.state }}
-                                        {% else %}
-                                            <span class="text-muted">Not specified</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-secondary">{{ site.tanks|length }}</span>
-                                    </td>
-                                    <td>
-                                        {% if site.is_active %}
-                                        <span class="badge bg-success">Active</span>
-                                        {% else %}
-                                        <span class="badge bg-secondary">Inactive</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if site.last_updated %}
-                                            {{ site.last_updated.strftime('%Y-%m-%d %H:%M') }}
-                                        {% else %}
-                                            <span class="text-muted">Never</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <a href="{{ url_for('admin.edit_site', site_id=site.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <a href="{{ url_for('admin.api_site_tanks', site_id=site.id) }}" class="btn btn-sm btn-outline-info" title="View Tanks">
-                                                <i class="fas fa-gas-pump"></i>
-                                            </a>
-                                            <button class="btn btn-sm btn-outline-{{ 'danger' if site.is_active else 'success' }} toggle-status-btn" 
-                                                    data-site-id="{{ site.id }}" 
-                                                    data-active="{{ 'true' if site.is_active else 'false' }}"
-                                                    title="{{ 'Deactivate' if site.is_active else 'Activate' }}">
-                                                <i class="fas {{ 'fa-toggle-off' if site.is_active else 'fa-toggle-on' }}"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger delete-site-btn" 
-                                                    data-site-id="{{ site.id }}" 
-                                                    data-site-name="{{ site.name }}"
-                                                    title="Delete">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>No sites found matching the current filters.
-                    </div>
-                    {% endif %}
-                </div>
-                {% if sites %}
-                <div class="card-footer">
-                    <nav aria-label="Sites pagination">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
-                                <a class="page-link" href="{{ url_for('admin.sites', page=pagination.prev_num, **request.args) if pagination.has_prev else '#' }}">Previous</a>
-                            </li>
-                            {% for page in pagination.iter_pages() %}
-                                {% if page %}
-                                    <li class="page-item {% if page == pagination.page %}active{% endif %}">
-                                        <a class="page-link" href="{{ url_for('admin.sites', page=page, **request.args) }}">{{ page }}</a>
-                                    </li>
-                                {% else %}
-                                    <li class="page-item disabled">
-                                        <span class="page-link">...</span>
-                                    </li>
-                                {% endif %}
-                            {% endfor %}
-                            <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
-                                <a class="page-link" href="{{ url_for('admin.sites', page=pagination.next_num, **request.args) if pagination.has_next else '#' }}">Next</a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
-                {% endif %}
+    <div class="bg-white rounded-lg shadow border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-gray-900">Sites</h2>
+            <div class="flex items-center gap-2">
+                <button id="export-csv-btn" class="inline-flex items-center gap-1 bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+                    <i data-lucide="download" class="h-4 w-4"></i>
+                    Export CSV
+                </button>
+                <button id="map-view-btn" class="inline-flex items-center gap-1 bg-white border border-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+                    <i data-lucide="map" class="h-4 w-4"></i>
+                    Map View
+                </button>
             </div>
         </div>
+        <div class="p-6">
+            {% if sites %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanks</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Update</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for site in sites %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ site.id }}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ site.name }}</td>
+                            <td class="px-4 py-3 text-sm text-primary-600 hover:underline">
+                                <a href="{{ url_for('admin.edit_company', company_id=site.company.id) }}">{{ site.company.name }}</a>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500">
+                                {% if site.city and site.state %}
+                                    {{ site.city }}, {{ site.state }}
+                                {% elif site.city %}
+                                    {{ site.city }}
+                                {% elif site.state %}
+                                    {{ site.state }}
+                                {% else %}
+                                    Not specified
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                <span class="inline-flex items-center justify-center bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full text-xs font-medium">{{ site.tanks|length }}</span>
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                {% if site.is_active %}
+                                <span class="inline-flex items-center bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">Active</span>
+                                {% else %}
+                                <span class="inline-flex items-center bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs font-medium">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500">
+                                {% if site.last_updated %}
+                                    {{ site.last_updated.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                    Never
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                <div class="flex items-center gap-1">
+                                    <a href="{{ url_for('admin.edit_site', site_id=site.id) }}" class="inline-flex items-center justify-center p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition" title="Edit">
+                                        <i data-lucide="pencil" class="h-4 w-4"></i>
+                                    </a>
+                                    <a href="{{ url_for('admin.api_site_tanks', site_id=site.id) }}" class="inline-flex items-center justify-center p-1.5 rounded-md text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition" title="View Tanks">
+                                        <i data-lucide="fuel" class="h-4 w-4"></i>
+                                    </a>
+                                    <button class="toggle-status-btn inline-flex items-center justify-center p-1.5 rounded-md text-gray-400 {% if site.is_active %}hover:text-amber-600 hover:bg-amber-50{% else %}hover:text-green-600 hover:bg-green-50{% endif %} transition"
+                                            data-site-id="{{ site.id }}"
+                                            data-active="{{ 'true' if site.is_active else 'false' }}"
+                                            title="{{ 'Deactivate' if site.is_active else 'Activate' }}">
+                                        <i data-lucide="{% if site.is_active %}toggle-right{% else %}toggle-left{% endif %}" class="h-4 w-4"></i>
+                                    </button>
+                                    <button class="delete-site-btn inline-flex items-center justify-center p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition"
+                                            data-site-id="{{ site.id }}"
+                                            data-site-name="{{ site.name }}"
+                                            title="Delete">
+                                        <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800 flex items-center gap-2">
+                <i data-lucide="info" class="h-4 w-4"></i>
+                No sites found matching the current filters.
+            </div>
+            {% endif %}
+        </div>
+        {% if sites %}
+        <div class="px-6 py-4 border-t border-gray-200">
+            <nav class="flex items-center justify-center gap-1">
+                <a href="{{ url_for('admin.sites', page=pagination.prev_num, **request.args) if pagination.has_prev else '#' }}"
+                   class="px-3 py-2 rounded-lg text-sm font-medium {% if not pagination.has_prev %}text-gray-300 pointer-events-none{% else %}text-gray-700 hover:bg-gray-100{% endif %} transition">
+                    Previous
+                </a>
+                {% for page in pagination.iter_pages() %}
+                    {% if page %}
+                        <a href="{{ url_for('admin.sites', page=page, **request.args) }}"
+                           class="px-3 py-2 rounded-lg text-sm font-medium {% if page == pagination.page %}bg-primary-600 text-white{% else %}text-gray-700 hover:bg-gray-100{% endif %} transition">
+                            {{ page }}
+                        </a>
+                    {% else %}
+                        <span class="px-3 py-2 text-sm text-gray-400">...</span>
+                    {% endif %}
+                {% endfor %}
+                <a href="{{ url_for('admin.sites', page=pagination.next_num, **request.args) if pagination.has_next else '#' }}"
+                   class="px-3 py-2 rounded-lg text-sm font-medium {% if not pagination.has_next %}text-gray-300 pointer-events-none{% else %}text-gray-700 hover:bg-gray-100{% endif %} transition">
+                    Next
+                </a>
+            </nav>
+        </div>
+        {% endif %}
     </div>
 </div>
 
 <!-- Map View Modal -->
-<div class="modal fade" id="mapViewModal" tabindex="-1" aria-labelledby="mapViewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="mapViewModalLabel">Site Locations</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div id="mapViewModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/50" id="mapViewModalBackdrop"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900" id="mapViewModalTitle">Site Locations</h3>
+                <button id="mapViewModalClose" class="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition">
+                    <i data-lucide="x" class="h-5 w-5"></i>
+                </button>
             </div>
-            <div class="modal-body">
-                <div id="sitesMap" style="height: 600px;"></div>
+            <div class="flex-1 overflow-auto p-6">
+                <div id="sitesMap" class="w-full rounded-lg bg-gray-100" style="height: 600px;"></div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end">
+                <button id="mapViewModalFooterClose" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">Close</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Delete Site Modal -->
-<div class="modal fade" id="deleteSiteModal" tabindex="-1" aria-labelledby="deleteSiteModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteSiteModalLabel">Confirm Delete</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div id="deleteSiteModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/50" id="deleteSiteModalBackdrop"></div>
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Confirm Delete</h3>
+                <button id="deleteSiteModalClose" class="absolute top-4 right-4 p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition">
+                    <i data-lucide="x" class="h-5 w-5"></i>
+                </button>
             </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete the site "<span id="delete-site-name"></span>"?</p>
-                <p class="text-danger">This action cannot be undone. All tanks associated with this site will also be deleted.</p>
+            <div class="p-6">
+                <p class="text-sm text-gray-600">Are you sure you want to delete the site "<span id="delete-site-name" class="font-medium text-gray-900"></span>"?</p>
+                <p class="text-sm text-red-600 mt-2">This action cannot be undone. All tanks associated with this site will also be deleted.</p>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+                <button id="deleteSiteModalCancel" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">Cancel</button>
                 <form id="delete-site-form" method="POST">
-                    <button type="submit" class="btn btn-danger">Delete Site</button>
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition">Delete Site</button>
                 </form>
             </div>
         </div>
@@ -252,28 +251,21 @@ let map;
 let markers = [];
 let siteData = [];
 
-// Initialize map
 function initMap() {
-    // Create map centered on average of all site locations
     map = new google.maps.Map(document.getElementById('sitesMap'), {
         zoom: 5,
         center: {lat: 0, lng: 0}
     });
-    
-    // Load site data
+
     fetch('/api/admin/sites/locations')
         .then(response => response.json())
         .then(data => {
             siteData = data.sites;
-            
             if (siteData.length === 0) {
-                document.getElementById('sitesMap').innerHTML = '<div class="alert alert-info">No sites with location data available.</div>';
+                document.getElementById('sitesMap').innerHTML = '<div class="flex items-center justify-center h-full bg-blue-50 text-blue-800 rounded-lg text-sm">No sites with location data available.</div>';
                 return;
             }
-            
             const bounds = new google.maps.LatLngBounds();
-            
-            // Add markers for each site
             siteData.forEach(site => {
                 if (site.latitude && site.longitude) {
                     const position = {lat: parseFloat(site.latitude), lng: parseFloat(site.longitude)};
@@ -282,86 +274,88 @@ function initMap() {
                         map: map,
                         title: site.name
                     });
-                    
-                    // Create info window with site details
-                    const infoContent = `
-                        <div>
-                            <h5>${site.name}</h5>
-                            <p><strong>Company:</strong> ${site.company_name}</p>
-                            <p><strong>Address:</strong> ${site.address || 'N/A'}</p>
-                            <p><strong>Tanks:</strong> ${site.tank_count}</p>
-                            <p><a href="/admin/sites/${site.id}" class="btn btn-sm btn-primary">View Details</a></p>
-                        </div>
-                    `;
-                    
-                    const infoWindow = new google.maps.InfoWindow({
-                        content: infoContent
-                    });
-                    
-                    marker.addListener('click', () => {
-                        infoWindow.open(map, marker);
-                    });
-                    
+                    const infoContent = '<div style="padding:8px"><h6 style="margin:0 0 8px;font-weight:600">' + site.name + '</h6>' +
+                        '<p style="margin:0 0 4px"><strong>Company:</strong> ' + site.company_name + '</p>' +
+                        '<p style="margin:0 0 4px"><strong>Address:</strong> ' + (site.address || 'N/A') + '</p>' +
+                        '<p style="margin:0 0 4px"><strong>Tanks:</strong> ' + site.tank_count + '</p>' +
+                        '<p style="margin:0"><a href="/admin/sites/' + site.id + '" style="color:#3b82f6">View Details</a></p></div>';
+                    const infoWindow = new google.maps.InfoWindow({ content: infoContent });
+                    marker.addListener('click', () => { infoWindow.open(map, marker); });
                     markers.push(marker);
                     bounds.extend(position);
                 }
             });
-            
-            // Fit map to bounds
             if (markers.length > 0) {
                 map.fitBounds(bounds);
-                
-                // If only one marker, zoom out a bit
-                if (markers.length === 1) {
-                    map.setZoom(10);
-                }
+                if (markers.length === 1) { map.setZoom(10); }
             }
         })
         .catch(error => {
             console.error('Error loading site data:', error);
-            document.getElementById('sitesMap').innerHTML = '<div class="alert alert-danger">Error loading map data.</div>';
+            document.getElementById('sitesMap').innerHTML = '<div class="flex items-center justify-center h-full bg-red-50 text-red-800 rounded-lg text-sm">Error loading map data.</div>';
         });
 }
 
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+function openModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Handle company filter change
     document.getElementById('company').addEventListener('change', function() {
         document.getElementById('filter-form').submit();
     });
-    
-    // Handle status filter change
     document.getElementById('active').addEventListener('change', function() {
         document.getElementById('filter-form').submit();
     });
-    
-    // Handle map view button
-    document.getElementById('map-view-btn').addEventListener('click', function() {
-        const mapModal = new bootstrap.Modal(document.getElementById('mapViewModal'));
-        mapModal.show();
+
+    document.querySelectorAll('#map-view-btn, #map-view-btn-header').forEach(function(btn) {
+        btn.addEventListener('click', function() { openModal('mapViewModal'); });
     });
-    
-    // Handle export CSV button
+    document.getElementById('mapViewModalClose').addEventListener('click', function() { closeModal('mapViewModal'); });
+    document.getElementById('mapViewModalBackdrop').addEventListener('click', function() { closeModal('mapViewModal'); });
+    document.getElementById('mapViewModalFooterClose').addEventListener('click', function() { closeModal('mapViewModal'); });
+
     document.getElementById('export-csv-btn').addEventListener('click', function() {
         window.location.href = '/api/admin/sites/export';
     });
+
+    document.querySelectorAll('.delete-site-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var siteId = this.dataset.siteId;
+            var siteName = this.dataset.siteName;
+            document.getElementById('delete-site-name').textContent = siteName;
+            document.getElementById('delete-site-form').action = '/admin/sites/' + siteId + '/delete';
+            openModal('deleteSiteModal');
+        });
+    });
+    document.getElementById('deleteSiteModalClose').addEventListener('click', function() { closeModal('deleteSiteModal'); });
+    document.getElementById('deleteSiteModalBackdrop').addEventListener('click', function() { closeModal('deleteSiteModal'); });
+    document.getElementById('deleteSiteModalCancel').addEventListener('click', function() { closeModal('deleteSiteModal'); });
+
+    document.querySelectorAll('.toggle-status-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var siteId = this.dataset.siteId;
+            var isActive = this.dataset.active === 'true';
+            var action = isActive ? 'deactivate' : 'activate';
+            if (confirm('Are you sure you want to ' + action + ' this site?')) {
+                window.location.href = '/admin/sites/' + siteId + '/toggle';
+            }
+        });
+    });
+
+    lucide.createIcons();
 });
 </script>
 {% endblock %}
 
 {% block styles %}
 <style>
-/* Custom styles for map info windows */
-.map-info-window {
-    padding: 5px;
-}
-.map-info-window h5 {
-    margin-top: 0;
-    margin-bottom: 10px;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 5px;
-}
-.map-info-window p {
-    margin-bottom: 5px;
-}
+#sitesMap img { max-width: none; }
 </style>
 {% endblock %}
