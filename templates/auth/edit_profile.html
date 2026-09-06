@@ -3,52 +3,56 @@
 {% block title %}Edit Profile - Fuel Tank Monitoring System{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">Edit Profile</h4>
-                    <a href="{{ url_for('auth.profile') }}" class="btn btn-secondary btn-sm">
-                        <i class="bi bi-arrow-left"></i> Back to Profile
-                    </a>
-                </div>
-                <div class="card-body">
-                    <form method="post" action="{{ url_for('auth.edit_profile') }}">
-                        {{ form.hidden_tag() }}
-                        
-                        <div class="mb-3">
-                            {{ form.username.label(class="form-label") }}
-                            {{ form.username(class="form-control") }}
-                            {% for error in form.username.errors %}
-                            <div class="text-danger">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        
-                        <div class="mb-3">
-                            {{ form.email.label(class="form-label") }}
-                            {{ form.email(class="form-control") }}
-                            {% for error in form.email.errors %}
-                            <div class="text-danger">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        
-                        
-                        
-                        <div class="mb-3">
-                            {{ form.phone.label(class="form-label") }}
-                            {{ form.phone(class="form-control") }}
-                            {% for error in form.phone.errors %}
-                            <div class="text-danger">{{ error }}</div>
-                            {% endfor %}
-                        </div>
-                        
-                        <div class="d-grid">
-                            {{ form.submit(class="btn btn-primary") }}
-                        </div>
-                    </form>
-                </div>
+<div class="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-lg">
+        <h2 class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">Edit Profile</h2>
+    </div>
+
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-lg">
+        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-medium text-gray-900">Edit Profile</h3>
+                <a href="{{ url_for('auth.profile') }}" class="text-sm text-primary-600 hover:text-primary-500">
+                    <i data-lucide="arrow-left" class="h-4 w-4 inline mr-1"></i> Back to Profile
+                </a>
             </div>
+            <form method="post" action="{{ url_for('auth.edit_profile') }}" class="space-y-6">
+                {{ form.hidden_tag() }}
+                
+                <div>
+                    {{ form.username.label(class="block text-sm font-medium text-gray-700") }}
+                    <div class="mt-1">
+                        {{ form.username(class="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500") }}
+                    </div>
+                    {% for error in form.username.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                
+                <div>
+                    {{ form.email.label(class="block text-sm font-medium text-gray-700") }}
+                    <div class="mt-1">
+                        {{ form.email(class="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500") }}
+                    </div>
+                    {% for error in form.email.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                
+                <div>
+                    {{ form.phone.label(class="block text-sm font-medium text-gray-700") }}
+                    <div class="mt-1">
+                        {{ form.phone(class="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500") }}
+                    </div>
+                    {% for error in form.phone.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+                
+                <div>
+                    {{ form.submit(class="flex w-full justify-center rounded-md border border-transparent bg-primary-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2") }}
+                </div>
+            </form>
         </div>
     </div>
 </div>
