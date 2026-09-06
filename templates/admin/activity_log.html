@@ -3,136 +3,131 @@
 {% block title %}Activity Log{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
+<div class="space-y-6">
     <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <h1>Activity Log</h1>
-            <p class="text-muted">View and filter system activity</p>
-        </div>
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Activity Log</h1>
+        <p class="text-gray-500 text-sm mt-1">View and filter system activity</p>
     </div>
 
     <!-- Filters -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Filters</h5>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <h5 class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <i data-lucide="filter" class="h-4 w-4"></i> Filters
+        </h5>
+        <form method="get" action="{{ url_for('admin.activity_log') }}">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label for="user_id" class="block text-sm font-medium text-gray-700 mb-1">User</label>
+                    <select name="user_id" id="user_id" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="all" {% if user_id == 'all' %}selected{% endif %}>All Users</option>
+                        {% for u in users %}
+                        <option value="{{ u.id }}" {% if user_id|int == u.id %}selected{% endif %}>{{ u.username }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-                <div class="card-body">
-                    <form method="get" action="{{ url_for('admin.activity_log') }}">
-                        <div class="row">
-                            <div class="col-md-3 mb-3">
-                                <label for="user_id" class="form-label">User</label>
-                                <select name="user_id" id="user_id" class="form-select">
-                                    <option value="all" {% if user_id == 'all' %}selected{% endif %}>All Users</option>
-                                    {% for u in users %}
-                                    <option value="{{ u.id }}" {% if user_id|int == u.id %}selected{% endif %}>{{ u.username }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label for="action" class="form-label">Action</label>
-                                <select name="action" id="action" class="form-select">
-                                    <option value="all" {% if action == 'all' %}selected{% endif %}>All Actions</option>
-                                    {% for a in actions %}
-                                    <option value="{{ a }}" {% if action == a %}selected{% endif %}>{{ a|replace('_', ' ')|title }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label for="date_from" class="form-label">From Date</label>
-                                <input type="date" name="date_from" id="date_from" class="form-control" value="{{ date_from }}">
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label for="date_to" class="form-label">To Date</label>
-                                <input type="date" name="date_to" id="date_to" class="form-control" value="{{ date_to }}">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-filter me-2"></i>Apply Filters
-                                </button>
-                                <a href="{{ url_for('admin.activity_log') }}" class="btn btn-outline-secondary">
-                                    <i class="fas fa-times me-2"></i>Clear Filters
-                                </a>
-                            </div>
-                        </div>
-                    </form>
+                <div>
+                    <label for="action" class="block text-sm font-medium text-gray-700 mb-1">Action</label>
+                    <select name="action" id="action" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="all" {% if action == 'all' %}selected{% endif %}>All Actions</option>
+                        {% for a in actions %}
+                        <option value="{{ a }}" {% if action == a %}selected{% endif %}>{{ a|replace('_', ' ')|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                    <input type="date" name="date_from" id="date_from" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" value="{{ date_from }}">
+                </div>
+                <div>
+                    <label for="date_to" class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                    <input type="date" name="date_to" id="date_to" class="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" value="{{ date_to }}">
                 </div>
             </div>
-        </div>
+            <div class="mt-4 flex gap-2">
+                <button type="submit" class="inline-flex items-center gap-1.5 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition text-sm font-medium">
+                    <i data-lucide="filter" class="h-4 w-4"></i> Apply Filters
+                </button>
+                <a href="{{ url_for('admin.activity_log') }}" class="inline-flex items-center gap-1.5 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
+                    <i data-lucide="x" class="h-4 w-4"></i> Clear Filters
+                </a>
+            </div>
+        </form>
     </div>
 
     <!-- Activity Table -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Activity Log</h5>
-                    <span>
-                        Showing {{ activities.items|length }} of {{ activities.total }} entries
-                    </span>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped" id="activity-table">
-                            <thead>
-                                <tr>
-                                    <th>Time</th>
-                                    <th>User</th>
-                                    <th>Action</th>
-                                    <th>Details</th>
-                                    <th>IP Address</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% if activities.items %}
-                                    {% for activity in activities.items %}
-                                    <tr>
-                                        <td>{{ activity.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                                        <td>{{ activity.user.username if activity.user else 'System' }}</td>
-                                        <td>{{ activity.action|replace('_', ' ')|title }}</td>
-                                        <td>{{ activity.details }}</td>
-                                        <td>{{ activity.ip_address }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                {% else %}
-                                    <tr>
-                                        <td colspan="5" class="text-center">No activity found</td>
-                                    </tr>
-                                {% endif %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                <div class="card-footer">
-                    <nav aria-label="Activity log pagination">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item {% if not activities.has_prev %}disabled{% endif %}">
-                                <a class="page-link" href="{{ url_for('admin.activity_log', page=activities.prev_num, user_id=user_id, action=action, date_from=date_from, date_to=date_to) if activities.has_prev else '#' }}">Previous</a>
-                            </li>
-                            
-                            {% for page_num in activities.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
-                                {% if page_num %}
-                                    <li class="page-item {% if page_num == activities.page %}active{% endif %}">
-                                        <a class="page-link" href="{{ url_for('admin.activity_log', page=page_num, user_id=user_id, action=action, date_from=date_from, date_to=date_to) }}">{{ page_num }}</a>
-                                    </li>
-                                {% else %}
-                                    <li class="page-item disabled">
-                                        <a class="page-link" href="#">...</a>
-                                    </li>
-                                {% endif %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-5 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h5 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <i data-lucide="activity" class="h-4 w-4"></i> Activity Log
+            </h5>
+            <span class="text-sm text-gray-500">
+                Showing {{ activities.items|length }} of {{ activities.total }} entries
+            </span>
+        </div>
+        <div class="p-5">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm" id="activity-table">
+                    <thead>
+                        <tr class="border-b border-gray-200">
+                            <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Time</th>
+                            <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">User</th>
+                            <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Action</th>
+                            <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">Details</th>
+                            <th class="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        {% if activities.items %}
+                            {% for activity in activities.items %}
+                            <tr>
+                                <td class="py-3 px-4 text-gray-600 whitespace-nowrap">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td class="py-3 px-4 font-medium text-gray-900">{{ activity.user.username if activity.user else 'System' }}</td>
+                                <td class="py-3 px-4 text-gray-700">{{ activity.action|replace('_', ' ')|title }}</td>
+                                <td class="py-3 px-4 text-gray-700 max-w-sm truncate">{{ activity.details }}</td>
+                                <td class="py-3 px-4 text-gray-600">{{ activity.ip_address }}</td>
+                            </tr>
                             {% endfor %}
-                            
-                            <li class="page-item {% if not activities.has_next %}disabled{% endif %}">
-                                <a class="page-link" href="{{ url_for('admin.activity_log', page=activities.next_num, user_id=user_id, action=action, date_from=date_from, date_to=date_to) if activities.has_next else '#' }}">Next</a>
-                            </li>
-                        </ul>
-                    </nav>
-                </div>
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="py-8 text-center text-gray-500">No activity found</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
+        </div>
+        <div class="px-5 py-4 border-t border-gray-200">
+            <nav aria-label="Activity log pagination">
+                <ul class="flex items-center justify-center gap-1">
+                    <li>
+                        <a href="{{ url_for('admin.activity_log', page=activities.prev_num, user_id=user_id, action=action, date_from=date_from, date_to=date_to) if activities.has_prev else '#' }}"
+                           class="px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 {% if not activities.has_prev %}text-gray-300 pointer-events-none{% else %}text-gray-700 hover:bg-gray-50{% endif %} transition">
+                            Previous
+                        </a>
+                    </li>
+                    {% for page_num in activities.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if page_num %}
+                            <li>
+                                <a href="{{ url_for('admin.activity_log', page=page_num, user_id=user_id, action=action, date_from=date_from, date_to=date_to) }}"
+                                   class="px-3 py-2 rounded-lg text-sm font-medium border {% if page_num == activities.page %}bg-primary-600 text-white border-primary-600{% else %}border-gray-200 text-gray-700 hover:bg-gray-50{% endif %} transition">
+                                    {{ page_num }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li>
+                                <span class="px-3 py-2 text-sm text-gray-400">...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    <li>
+                        <a href="{{ url_for('admin.activity_log', page=activities.next_num, user_id=user_id, action=action, date_from=date_from, date_to=date_to) if activities.has_next else '#' }}"
+                           class="px-3 py-2 rounded-lg text-sm font-medium border border-gray-200 {% if not activities.has_next %}text-gray-300 pointer-events-none{% else %}text-gray-700 hover:bg-gray-50{% endif %} transition">
+                            Next
+                        </a>
+                    </li>
+                </ul>
+            </nav>
         </div>
     </div>
 </div>
@@ -141,92 +136,106 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Connect to Socket.IO for real-time updates
-    const socket = io('/admin');
-    
-    socket.on('connect', function() {
-        //console.log('Connected to admin namespace');
-    });
-    
-    socket.on('new_activity', function(activity) {
-        // Check if we need to add this activity (based on current filters)
-        const shouldAdd = checkActivityFilters(activity);
-        
-        if (shouldAdd) {
-            // Add new activity to the table
-            const table = document.getElementById('activity-table').getElementsByTagName('tbody')[0];
-            
-            // Remove "No activity found" row if it exists
-            if (table.rows.length === 1 && table.rows[0].cells.length === 1) {
-                table.deleteRow(0);
-            }
-            
-            // Insert new row at the top
-            const newRow = table.insertRow(0);
-            
-            // Format the timestamp
-            const timestamp = new Date(activity.timestamp);
-            const formattedTime = timestamp.toLocaleString();
-            
-            // Add cells
-            newRow.innerHTML = `
-                <td>${formattedTime}</td>
-                <td>${activity.user ? activity.user.username : 'System'}</td>
-                <td>${activity.action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
-                <td>${activity.details}</td>
-                <td>${activity.ip_address || ''}</td>
-            `;
-            
-            // Highlight the new row
-            newRow.classList.add('table-info');
-            setTimeout(() => {
-                newRow.classList.remove('table-info');
-            }, 5000);
-        }
-    });
-    
-    // Function to check if an activity matches the current filters
+    lucide.createIcons();
+
+    var POLL_INTERVAL = 15000;
+    var pollTimer = null;
+
+    function getFilterParams() {
+        return {
+            user_id: document.getElementById('user_id').value,
+            action: document.getElementById('action').value,
+            date_from: document.getElementById('date_from').value,
+            date_to: document.getElementById('date_to').value
+        };
+    }
+
+    function formatAction(action) {
+        return action.replace(/_/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+    }
+
     function checkActivityFilters(activity) {
-        // Get current filter values
-        const userFilter = document.getElementById('user_id').value;
-        const actionFilter = document.getElementById('action').value;
-        const dateFromFilter = document.getElementById('date_from').value;
-        const dateToFilter = document.getElementById('date_to').value;
-        
-        // Check user filter
-        if (userFilter !== 'all') {
-            if (!activity.user || activity.user.id.toString() !== userFilter) {
-                return false;
+        var filters = getFilterParams();
+
+        if (filters.user_id !== 'all') {
+            if (!activity.user || activity.user.id.toString() !== filters.user_id) return false;
+        }
+
+        if (filters.action !== 'all' && activity.action !== filters.action) return false;
+
+        if (filters.date_from || filters.date_to) {
+            var activityDate = new Date(activity.timestamp);
+            if (filters.date_from) {
+                var fromDate = new Date(filters.date_from);
+                if (activityDate < fromDate) return false;
+            }
+            if (filters.date_to) {
+                var toDate = new Date(filters.date_to);
+                toDate.setDate(toDate.getDate() + 1);
+                if (activityDate >= toDate) return false;
             }
         }
-        
-        // Check action filter
-        if (actionFilter !== 'all' && activity.action !== actionFilter) {
-            return false;
-        }
-        
-        // Check date filters
-        if (dateFromFilter || dateToFilter) {
-            const activityDate = new Date(activity.timestamp);
-            
-            if (dateFromFilter) {
-                const fromDate = new Date(dateFromFilter);
-                if (activityDate < fromDate) {
-                    return false;
-                }
-            }
-            
-            if (dateToFilter) {
-                const toDate = new Date(dateToFilter);
-                toDate.setDate(toDate.getDate() + 1); // Include the end date
-                if (activityDate >= toDate) {
-                    return false;
-                }
-            }
-        }
-        
+
         return true;
     }
+
+    function pollActivityLog() {
+        var filters = getFilterParams();
+        var params = new URLSearchParams(filters);
+
+        fetch('/admin/api/activity-log?' + params.toString())
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.activities || !data.activities.length) return;
+
+                var table = document.getElementById('activity-table');
+                var tbody = table.querySelector('tbody');
+
+                var firstNewId = data.activities[0] && data.activities[0].id;
+                var existingRows = tbody.querySelectorAll('tr[data-activity-id]');
+
+                if (firstNewId && existingRows.length > 0) {
+                    var latestShown = existingRows[0].getAttribute('data-activity-id');
+                    if (latestShown && latestShown === String(firstNewId)) return;
+                }
+
+                var fragment = document.createDocumentFragment();
+
+                data.activities.forEach(function(activity) {
+                    if (checkActivityFilters(activity)) {
+                        var row = document.createElement('tr');
+                        row.setAttribute('data-activity-id', activity.id);
+                        row.className = 'bg-blue-50';
+                        row.innerHTML =
+                            '<td class="py-3 px-4 text-gray-600 whitespace-nowrap">' + activity.timestamp + '</td>' +
+                            '<td class="py-3 px-4 font-medium text-gray-900">' + (activity.user ? activity.user.username : 'System') + '</td>' +
+                            '<td class="py-3 px-4 text-gray-700">' + formatAction(activity.action) + '</td>' +
+                            '<td class="py-3 px-4 text-gray-700 max-w-sm truncate">' + (activity.details || '') + '</td>' +
+                            '<td class="py-3 px-4 text-gray-600">' + (activity.ip_address || '') + '</td>';
+                        fragment.appendChild(row);
+                    }
+                });
+
+                var emptyRow = tbody.querySelector('tr td[colspan]');
+                if (emptyRow) emptyRow.closest('tr').remove();
+
+                tbody.insertBefore(fragment, tbody.firstChild);
+
+                var newRows = tbody.querySelectorAll('tr.bg-blue-50');
+                newRows.forEach(function(r) {
+                    setTimeout(function() { r.classList.remove('bg-blue-50'); }, 5000);
+                });
+            })
+            .catch(function(err) {
+                console.error('Polling error:', err);
+            });
+    }
+
+    pollTimer = setInterval(pollActivityLog, POLL_INTERVAL);
+
+    window.addEventListener('beforeunload', function() {
+        if (pollTimer) clearInterval(pollTimer);
+    });
 });
 </script>
 {% endblock %}
