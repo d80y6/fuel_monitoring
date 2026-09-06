@@ -1,262 +1,276 @@
-{% extends "base.html" %}
+{% extends "admin/base.html" %}
 
 {% block title %}System Settings - Admin - Fuel Tank Monitoring System{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>System Settings</h1>
-        <a href="{{ url_for('admin.admin_index') }}" class="btn btn-secondary">
-            <i class="bi bi-arrow-left"></i> Back to Dashboard
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+        <h1 class="text-2xl font-bold text-gray-900">System Settings</h1>
+        <a href="{{ url_for('admin.admin_index') }}" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
+            <i data-lucide="arrow-left" class="h-4 w-4"></i> Back to Dashboard
         </a>
     </div>
-    
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">General Settings</h5>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">General Settings</h2>
                 </div>
-                <div class="card-body">
-                    <form id="general-settings-form" method="post" action="{{ url_for('admin.system_settings') }}">
+                <div class="px-6 py-6">
+                    <form id="general-settings-form" method="post" action="{{ url_for('admin.system_settings') }}" class="space-y-5">
                         <input type="hidden" name="form_type" value="general">
                         {{ general_form.csrf_token }}
-                        
-                        <div class="mb-3">
-                            <label for="system_name" class="form-label">System Name</label>
-                            {{ general_form.system_name(class="form-control") }}
+
+                        <div>
+                            <label for="system_name" class="block text-sm font-medium text-gray-700 mb-1">System Name</label>
+                            {{ general_form.system_name(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition") }}
                             {% for error in general_form.system_name.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="company_name" class="form-label">Company Name</label>
-                            {{ general_form.company_name(class="form-control") }}
+
+                        <div>
+                            <label for="company_name" class="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                            {{ general_form.company_name(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition") }}
                             {% for error in general_form.company_name.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="contact_email" class="form-label">Contact Email</label>
-                            {{ general_form.contact_email(class="form-control") }}
+
+                        <div>
+                            <label for="contact_email" class="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
+                            {{ general_form.contact_email(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition") }}
                             {% for error in general_form.contact_email.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="timezone" class="form-label">Default Timezone</label>
-                            {{ general_form.timezone(class="form-select") }}
+
+                        <div>
+                            <label for="timezone" class="block text-sm font-medium text-gray-700 mb-1">Default Timezone</label>
+                            {{ general_form.timezone(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition bg-white") }}
                             {% for error in general_form.timezone.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="date_format" class="form-label">Date Format</label>
-                            {{ general_form.date_format(class="form-select") }}
+
+                        <div>
+                            <label for="date_format" class="block text-sm font-medium text-gray-700 mb-1">Date Format</label>
+                            {{ general_form.date_format(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition bg-white") }}
                             {% for error in general_form.date_format.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="time_format" class="form-label">Time Format</label>
-                            {{ general_form.time_format(class="form-select") }}
+
+                        <div>
+                            <label for="time_format" class="block text-sm font-medium text-gray-700 mb-1">Time Format</label>
+                            {{ general_form.time_format(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition bg-white") }}
                             {% for error in general_form.time_format.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3 form-check">
-                            {{ general_form.enable_registration(class="form-check-input") }}
-                            <label class="form-check-label" for="enable_registration">Enable User Registration</label>
+
+                        <div class="flex items-center gap-3">
+                            {{ general_form.enable_registration(class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500") }}
+                            <label class="text-sm text-gray-700" for="enable_registration">Enable User Registration</label>
                             {% for error in general_form.enable_registration.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Save General Settings</button>
-                        </div>
+
+                        <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium">
+                            Save General Settings
+                        </button>
                     </form>
                 </div>
             </div>
-            
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Email Settings</h5>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Email Settings</h2>
                 </div>
-                <div class="card-body">
-                    <form id="email-settings-form" method="post" action="{{ url_for('admin.update_system_settings') }}">
+                <div class="px-6 py-6">
+                    <form id="email-settings-form" method="post" action="{{ url_for('admin.update_system_settings') }}" class="space-y-5">
                         <input type="hidden" name="form_type" value="email">
                         {{ email_form.csrf_token }}
-                        
-                        <div class="mb-3">
-                            <label for="mail_server" class="form-label">Mail Server</label>
-                            {{ email_form.mail_server(class="form-control") }}
+
+                        <div>
+                            <label for="mail_server" class="block text-sm font-medium text-gray-700 mb-1">Mail Server</label>
+                            {{ email_form.mail_server(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition") }}
                             {% for error in email_form.mail_server.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="mail_port" class="form-label">Mail Port</label>
-                            {{ email_form.mail_port(class="form-control") }}
+
+                        <div>
+                            <label for="mail_port" class="block text-sm font-medium text-gray-700 mb-1">Mail Port</label>
+                            {{ email_form.mail_port(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition") }}
                             {% for error in email_form.mail_port.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="mail_username" class="form-label">Mail Username</label>
-                            {{ email_form.mail_username(class="form-control") }}
+
+                        <div>
+                            <label for="mail_username" class="block text-sm font-medium text-gray-700 mb-1">Mail Username</label>
+                            {{ email_form.mail_username(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition") }}
                             {% for error in email_form.mail_username.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="mail_password" class="form-label">Mail Password</label>
-                            {{ email_form.mail_password(class="form-control") }}
+
+                        <div>
+                            <label for="mail_password" class="block text-sm font-medium text-gray-700 mb-1">Mail Password</label>
+                            {{ email_form.mail_password(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition") }}
                             {% for error in email_form.mail_password.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="mail_use_tls" class="form-label">Security</label>
-                            <div>
-                                <div class="form-check form-check-inline">
-                                    {{ email_form.mail_use_tls(class="form-check-input") }}
-                                    <label class="form-check-label" for="mail_use_tls">Use TLS</label>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Security</label>
+                            <div class="flex items-center gap-6">
+                                <div class="flex items-center gap-2">
+                                    {{ email_form.mail_use_tls(class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500") }}
+                                    <label class="text-sm text-gray-700" for="mail_use_tls">Use TLS</label>
                                 </div>
-                                <div class="form-check form-check-inline">
-                                    {{ email_form.mail_use_ssl(class="form-check-input") }}
-                                    <label class="form-check-label" for="mail_use_ssl">Use SSL</label>
+                                <div class="flex items-center gap-2">
+                                    {{ email_form.mail_use_ssl(class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500") }}
+                                    <label class="text-sm text-gray-700" for="mail_use_ssl">Use SSL</label>
                                 </div>
                             </div>
                             {% for error in email_form.mail_use_tls.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                             {% for error in email_form.mail_use_ssl.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="mail_default_sender" class="form-label">Default Sender</label>
-                            {{ email_form.mail_default_sender(class="form-control") }}
+
+                        <div>
+                            <label for="mail_default_sender" class="block text-sm font-medium text-gray-700 mb-1">Default Sender</label>
+                            {{ email_form.mail_default_sender(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition") }}
                             {% for error in email_form.mail_default_sender.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Save Email Settings</button>
-                        </div>
+
+                        <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium">
+                            Save Email Settings
+                        </button>
                     </form>
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Monitoring Settings</h5>
+
+        <div class="space-y-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Monitoring Settings</h2>
                 </div>
-                <div class="card-body">
-                    <form id="monitoring-settings-form" method="post" action="{{ url_for('admin.update_system_settings') }}">
+                <div class="px-6 py-6">
+                    <form id="monitoring-settings-form" method="post" action="{{ url_for('admin.update_system_settings') }}" class="space-y-5">
                         <input type="hidden" name="form_type" value="monitoring">
                         {{ monitoring_form.csrf_token }}
-                        
-                        <div class="mb-3">
-                            <label for="default_update_interval" class="form-label">Default Update Interval (seconds)</label>
-                            {{ monitoring_form.default_update_interval(class="form-control") }}
+
+                        <div>
+                            <label for="default_update_interval" class="block text-sm font-medium text-gray-700 mb-1">Default Update Interval (seconds)</label>
+                            {{ monitoring_form.default_update_interval(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition") }}
                             {% for error in monitoring_form.default_update_interval.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="default_atmospheric_pressure" class="form-label">Default Atmospheric Pressure (bar)</label>
-                            {{ monitoring_form.default_atmospheric_pressure(class="form-control") }}
+
+                        <div>
+                            <label for="default_atmospheric_pressure" class="block text-sm font-medium text-gray-700 mb-1">Default Atmospheric Pressure (bar)</label>
+                            {{ monitoring_form.default_atmospheric_pressure(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition") }}
                             {% for error in monitoring_form.default_atmospheric_pressure.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="default_fluid_density" class="form-label">Default Fluid Density (kg/m³)</label>
-                            {{ monitoring_form.default_fluid_density(class="form-control") }}
+
+                        <div>
+                            <label for="default_fluid_density" class="block text-sm font-medium text-gray-700 mb-1">Default Fluid Density (kg/m³)</label>
+                            {{ monitoring_form.default_fluid_density(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition") }}
                             {% for error in monitoring_form.default_fluid_density.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="default_pressure_channel" class="form-label">Default Pressure Channel</label>
-                            {{ monitoring_form.default_pressure_channel(class="form-control") }}
+
+                        <div>
+                            <label for="default_pressure_channel" class="block text-sm font-medium text-gray-700 mb-1">Default Pressure Channel</label>
+                            {{ monitoring_form.default_pressure_channel(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition") }}
                             {% for error in monitoring_form.default_pressure_channel.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="default_temp_channel" class="form-label">Default Temperature Channel</label>
-                            {{ monitoring_form.default_temp_channel(class="form-control") }}
+
+                        <div>
+                            <label for="default_temp_channel" class="block text-sm font-medium text-gray-700 mb-1">Default Temperature Channel</label>
+                            {{ monitoring_form.default_temp_channel(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition") }}
                             {% for error in monitoring_form.default_temp_channel.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3 form-check">
-                            {{ monitoring_form.enable_data_logging(class="form-check-input") }}
-                            <label class="form-check-label" for="enable_data_logging">Enable Data Logging</label>
+
+                        <div class="flex items-center gap-3">
+                            {{ monitoring_form.enable_data_logging(class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500") }}
+                            <label class="text-sm text-gray-700" for="enable_data_logging">Enable Data Logging</label>
                             {% for error in monitoring_form.enable_data_logging.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="max_history_records" class="form-label">Maximum History Records</label>
-                            {{ monitoring_form.max_history_records(class="form-control") }}
+
+                        <div>
+                            <label for="max_history_records" class="block text-sm font-medium text-gray-700 mb-1">Maximum History Records</label>
+                            {{ monitoring_form.max_history_records(class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition") }}
                             {% for error in monitoring_form.max_history_records.errors %}
-                            <div class="text-danger">{{ error }}</div>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
-                        
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Save Monitoring Settings</button>
-                        </div>
+
+                        <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium">
+                            Save Monitoring Settings
+                        </button>
                     </form>
                 </div>
             </div>
-            
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Backup & Maintenance</h5>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Backup & Maintenance</h2>
                 </div>
-                <div class="card-body">
-                    <div class="mb-4">
-                        <h6>Database Backup</h6>
-                        <p>Create a backup of the system database.</p>
-                        <button id="create-backup-btn" class="btn btn-primary">Create Backup</button>
-                        <a href="{{ url_for('admin.download_latest_backup') }}" class="btn btn-secondary">Download Latest</a>
+                <div class="px-6 py-6 space-y-6">
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-900">Database Backup</h3>
+                        <p class="text-sm text-gray-500 mt-1">Create a backup of the system database.</p>
+                        <div class="flex gap-2 mt-3">
+                            <button id="create-backup-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium">
+                                <i data-lucide="database" class="h-4 w-4"></i> Create Backup
+                            </button>
+                            <a href="{{ url_for('admin.download_latest_backup') }}" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
+                                <i data-lucide="download" class="h-4 w-4"></i> Download Latest
+                            </a>
+                        </div>
                     </div>
-                    
-                    <div class="mb-4">
-                        <h6>System Logs</h6>
-                        <p>Download system logs for troubleshooting.</p>
-                        <a href="{{ url_for('admin.download_system_logs') }}" class="btn btn-primary">Download Logs</a>
+
+                    <div class="border-t border-gray-100 pt-6">
+                        <h3 class="text-sm font-semibold text-gray-900">System Logs</h3>
+                        <p class="text-sm text-gray-500 mt-1">Download system logs for troubleshooting.</p>
+                        <div class="mt-3">
+                            <a href="{{ url_for('admin.download_system_logs') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium">
+                                <i data-lucide="file-text" class="h-4 w-4"></i> Download Logs
+                            </a>
+                        </div>
                     </div>
-                    
-                    <div class="mb-4">
-                        <h6>Clear Old Data</h6>
-                        <p>Remove old measurement data to free up space.</p>
-                        <button id="clear-old-data-btn" class="btn btn-warning">Clear Old Data</button>
+
+                    <div class="border-t border-gray-100 pt-6">
+                        <h3 class="text-sm font-semibold text-gray-900">Clear Old Data</h3>
+                        <p class="text-sm text-gray-500 mt-1">Remove old measurement data to free up space.</p>
+                        <div class="mt-3">
+                            <button id="clear-old-data-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition text-sm font-medium">
+                                <i data-lucide="trash-2" class="h-4 w-4"></i> Clear Old Data
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -265,41 +279,63 @@
 </div>
 
 <!-- Clear Data Confirmation Modal -->
-<div class="modal fade" id="clearDataModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Clear Old Data</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Please select how old the data should be to be removed:</p>
-                <form id="clear-data-form">
-                    <div class="mb-3">
-                        <label for="data-age" class="form-label">Remove data older than:</label>
-                        <select class="form-select" id="data-age" name="data_age">
-                            <option value="30">30 days</option>
-                            <option value="60">60 days</option>
-                            <option value="90">90 days</option>
-                            <option value="180">6 months</option>
-                            <option value="365">1 year</option>
-                        </select>
-                    </div>
-                    <div class="alert alert-warning">
-                                            <i class="bi bi-exclamation-triangle"></i> Warning: This action cannot be undone. Make sure you have a
-                                            backup before proceeding.
-                                        </div>
-                                    </form>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-danger" id="confirm-clear-data-btn">Clear Data</button>
-                                </div>
-                            </div>
+<div id="clearDataModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" id="clearDataModalBackdrop"></div>
+        <div class="inline-block overflow-hidden text-left align-bottom transition-all transform bg-white rounded-xl shadow-xl sm:my-8 sm:max-w-lg sm:w-full">
+            <div class="px-6 pt-6 pb-4">
+                <div class="flex items-center justify-center w-12 h-12 mx-auto bg-yellow-100 rounded-full mb-4">
+                    <i data-lucide="alert-triangle" class="h-6 w-6 text-yellow-600"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 text-center">Clear Old Data</h3>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-600">Please select how old the data should be to be removed:</p>
+                    <form id="clear-data-form" class="mt-4">
+                        <div>
+                            <label for="data-age" class="block text-sm font-medium text-gray-700 mb-1">Remove data older than:</label>
+                            <select class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition bg-white" id="data-age" name="data_age">
+                                <option value="30">30 days</option>
+                                <option value="60">60 days</option>
+                                <option value="90">90 days</option>
+                                <option value="180">6 months</option>
+                                <option value="365">1 year</option>
+                            </select>
                         </div>
+                        <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg px-4 py-3 text-sm text-yellow-800 flex items-start gap-2">
+                            <i data-lucide="alert-triangle" class="h-4 w-4 mt-0.5 flex-shrink-0"></i>
+                            <span>Warning: This action cannot be undone. Make sure you have a backup before proceeding.</span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+                <button type="button" id="cancel-clear-data" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition text-sm font-medium">
+                    Cancel
+                </button>
+                <button type="button" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium" id="confirm-clear-data-btn">
+                    Clear Data
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('clear-old-data-btn').addEventListener('click', function() {
+        document.getElementById('clearDataModal').classList.remove('hidden');
+    });
+
+    document.getElementById('cancel-clear-data').addEventListener('click', function() {
+        document.getElementById('clearDataModal').classList.add('hidden');
+    });
+
+    document.getElementById('clearDataModalBackdrop').addEventListener('click', function() {
+        document.getElementById('clearDataModal').classList.add('hidden');
+    });
+});
+</script>
 <script src="{{ url_for('static', filename='js/admin_settings.js') }}"></script>
 {% endblock %}
