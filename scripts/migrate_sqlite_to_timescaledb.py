@@ -26,7 +26,7 @@ SQLITE_DB_PATH = 'instance/fuel_tank.db'  # Update this to your SQLite DB path
 PG_PARAMS = {
     'dbname': 'fuel_tank_monitoring',
     'user': 'fuel_tank_user',
-    'password': '1980',
+    'password': os.environ.get('PG_PASSWORD'),
     'host': 'localhost',
     'port': '5432'
 }
