@@ -46,16 +46,16 @@
     <div class="bg-white rounded-xl shadow-sm border p-5">
         <h2 class="text-lg font-semibold mb-4">Quick Actions</h2>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <a href="{{ url_for('admin.admin_create_tank') }}" class="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-300 transition text-sm font-medium">
+            <a href="{{ url_for('admin.create_tank') }}" class="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-300 transition text-sm font-medium">
                 <i data-lucide="plus-circle" class="h-4 w-4 text-primary-600"></i> Add Tank
             </a>
-            <a href="{{ url_for('admin.admin_create_user') }}" class="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-300 transition text-sm font-medium">
+            <a href="{{ url_for('admin.new_user') }}" class="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-300 transition text-sm font-medium">
                 <i data-lucide="user-plus" class="h-4 w-4 text-primary-600"></i> Add User
             </a>
-            <a href="{{ url_for('admin.admin_create_site') }}" class="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-300 transition text-sm font-medium">
+            <a href="{{ url_for('admin.create_site') }}" class="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-300 transition text-sm font-medium">
                 <i data-lucide="map-pin" class="h-4 w-4 text-primary-600"></i> Add Site
             </a>
-            <a href="{{ url_for('admin.admin_create_company') }}" class="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-300 transition text-sm font-medium">
+            <a href="{{ url_for('admin.create_company') }}" class="flex items-center gap-2 px-4 py-3 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-300 transition text-sm font-medium">
                 <i data-lucide="building-2" class="h-4 w-4 text-primary-600"></i> Add Company
             </a>
         </div>

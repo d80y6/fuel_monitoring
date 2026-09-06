@@ -28,6 +28,7 @@ from admin import admin, init_admin
 from datetime import datetime, timedelta
 from sqlalchemy import func, and_
 from flask_migrate import Migrate
+from flask_wtf import CSRFProtect
 
 import custom_translations
 from custom_translations import gettext as _
@@ -88,6 +89,9 @@ custom_translations.init_app(app)
 db.init_app(app)
 migrate = Migrate(app, db)
 login_manager.init_app(app)
+
+# CSRF protection (provides csrf_token() in Jinja2 templates)
+csrf = CSRFProtect(app)
 
 # Rate limiter (Redis-backed)
 init_rate_limiter(app)

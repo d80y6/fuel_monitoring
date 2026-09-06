@@ -5,14 +5,14 @@
 {% block main_content %}
 <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-bold text-gray-900">Edit Tank: {{ tank.name }}</h1>
-    <a href="{{ url_for('admin.admin_tank_detail', tank_id=tank.id) }}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+    <a href="{{ url_for('admin.tank_detail', tank_id=tank.id) }}" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
         <i data-lucide="arrow-left" class="h-4 w-4 mr-2"></i> Back to Tank Details
     </a>
 </div>
 
 <div class="bg-white shadow rounded-lg">
     <div class="p-6">
-        <form method="POST" action="{{ url_for('admin.admin_edit_tank', tank_id=tank.id) }}">
+        <form method="POST" action="{{ url_for('admin.edit_tank', tank_id=tank.id) }}">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-4">
                     <h3 class="text-lg font-medium text-gray-900">Basic Information</h3>
@@ -125,7 +125,7 @@
             </div>
             
             <div class="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
-                <a href="{{ url_for('admin.admin_tank_detail', tank_id=tank.id) }}" class="inline-flex justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Cancel</a>
+                <a href="{{ url_for('admin.tank_detail', tank_id=tank.id) }}" class="inline-flex justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">Cancel</a>
                 <button type="submit" class="inline-flex justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">Save Changes</button>
             </div>
         </form>
