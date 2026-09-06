@@ -59,9 +59,6 @@ class Config:
     MQTT_PASS = os.environ.get('MQTT_PASS')
 
     # Tank monitoring defaults
-    HOST = os.environ.get('FUEL_TANK_HOST') or 'localhost'
-    TCP_PORT = int(os.environ.get('FUEL_TANK_TCP_PORT') or 2000)
-    DEVICE_ADDRESS = int(os.environ.get('FUEL_TANK_DEVICE_ADDRESS') or 1)
     TANK_ORIENTATION = os.environ.get('FUEL_TANK_ORIENTATION') or 'vertical'
     TANK_DIAMETER = float(os.environ.get('FUEL_TANK_DIAMETER') or 1.5)
     TANK_HEIGHT = float(os.environ.get('FUEL_TANK_HEIGHT') or 2.0)

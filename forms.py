@@ -82,9 +82,6 @@ class TankForm(FlaskForm):
     calibration_factor = FloatField('Calibration Factor', validators=[NumberRange(min=0.1, max=10)])
     
     # Connection settings
-    host = StringField('Host/IP Address', validators=[DataRequired()])
-    tcp_port = IntegerField('TCP Port', validators=[DataRequired(), NumberRange(min=1, max=65535)])
-    device_address = IntegerField('Device Address', validators=[DataRequired(), NumberRange(min=1, max=255)])
     pressure_channel = IntegerField('Pressure Channel', validators=[DataRequired(), NumberRange(min=1)])
     temp_channel = IntegerField('Temperature Channel', validators=[DataRequired(), NumberRange(min=1)])
     update_interval = FloatField('Update Interval (s)', validators=[DataRequired(), NumberRange(min=0.1)])
