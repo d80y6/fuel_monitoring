@@ -1,20 +1,14 @@
-$(document).ready(function() {
-    // Initialize variables
+document.addEventListener('DOMContentLoaded', function() {
     let currentPage = 1;
     let itemsPerPage = 10;
     let totalCompanies = 0;
     let companies = [];
 
-    // Function to fetch companies
     function fetchCompanies(page, search, status) {
-        $.ajax({
-            url: '/admin/api/companies',
-            method: 'GET',
-            data: { page: page, search: search, status: status },
-            dataType: 'json',
-            success: function(response) {
-                //console.log('diya');
-                //console.log(response);
+        const params = new URLSearchParams({ page: page, search: search, status: status });
+        fetch('/admin/api/companies?' + params.toString())
+            .then(response => response.json())
+            .then(response => {
                 if (response.success) {
                     companies = response.companies;
                     totalCompanies = response.total;
@@ -24,160 +18,143 @@ $(document).ready(function() {
                     alert('Error fetching companies: ' + response.message);
                     console.error('Error fetching companies:', response);
                 }
-            },
-            error: function(error) {
-                alert('Error fetching companies: ' + error.responseText);
+            })
+            .catch(error => {
+                alert('Error fetching companies: ' + error);
                 console.error('Error fetching companies:', error);
-            }
-        });
-    }
-
-    // Function to render companies
-    function renderCompanies(companies) {
-        let companyList = $('#company-list');
-        companyList.empty();
-        companies.forEach(company => {
-            let row = $('<tr>');
-            row.append(`<td>${company.name}</td>`);
-            row.append(`<td>${company.contact_person || 'N/A'}</td>`);
-            row.append(`<td>${company.email || 'N/A'}</td>`);
-            row.append(`<td>${company.phone || 'N/A'}</td>`);
-            row.append(`<td>${company.sites.length}</td>`);
-            row.append(`<td>${company.get_tank_count}</td>`);
-            row.append(`<td><span class="badge ${company.is_active ? 'bg-success' : 'bg-danger'}">${company.is_active ? 'Active' : 'Inactive'}</span></td>`);
-            row.append(`<td>
-                <div class="btn-group btn-group-sm">
-                    <button type="button" class="btn btn-primary edit-company-btn" data-company-id="${company.id}" data-bs-toggle="modal" data-bs-target="#editCompanyModal">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <a href="/admin/companies/${company.id}" class="btn btn-info">
-                        <i class="bi bi-eye"></i>
-                    </a>
-                    <button type="button" class="btn btn-danger delete-company-btn" data-company-id="${company.id}" data-company-name="${company.name}">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-            </td>`);
-            companyList.append(row);
-        });
-    }
-
-    // Function to render pagination
-    function renderPagination(total, currentPage, itemsPerPage) {
-        let totalPages = Math.ceil(total / itemsPerPage);
-        let pagination = $('#pagination');
-        pagination.empty();
-        for (let i = 1; i <= totalPages; i++) {
-            let li = $('<li class="page-item">');
-            let a = $('<a class="page-link" href="#">' + i + '</a>');
-            a.click(function() {
-                currentPage = i;
-                fetchCompanies(currentPage, $('#company-search').val(), $('#status-filter').val());
             });
-            li.append(a);
-            pagination.append(li);
+    }
+
+    function renderCompanies(companies) {
+        const companyList = document.getElementById('company-list');
+        companyList.innerHTML = '';
+        companies.forEach(company => {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td>${company.name}</td><td>${company.contact_person || 'N/A'}</td><td>${company.email || 'N/A'}</td><td>${company.phone || 'N/A'}</td><td>${company.sites.length}</td><td>${company.get_tank_count}</td><td><span class="badge ${company.is_active ? 'bg-success' : 'bg-danger'}">${company.is_active ? 'Active' : 'Inactive'}</span></td><td><div class="btn-group btn-group-sm"><button type="button" class="btn btn-primary edit-company-btn" data-company-id="${company.id}" data-bs-toggle="modal" data-bs-target="#editCompanyModal"><i class="bi bi-pencil"></i></button><a href="/admin/companies/${company.id}" class="btn btn-info"><i class="bi bi-eye"></i></a><button type="button" class="btn btn-danger delete-company-btn" data-company-id="${company.id}" data-company-name="${company.name}"><i class="bi bi-trash"></i></button></div></td>`;
+            companyList.appendChild(row);
+        });
+    }
+
+    function renderPagination(total, currentPage, itemsPerPage) {
+        const totalPages = Math.ceil(total / itemsPerPage);
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+        for (let i = 1; i <= totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = 'page-item';
+            const a = document.createElement('a');
+            a.className = 'page-link';
+            a.href = '#';
+            a.textContent = i;
+            a.addEventListener('click', function(e) {
+                e.preventDefault();
+                currentPage = i;
+                fetchCompanies(currentPage, document.getElementById('company-search').value, document.getElementById('status-filter').value);
+            });
+            li.appendChild(a);
+            pagination.appendChild(li);
         }
     }
 
-    // Initial fetch
     fetchCompanies(currentPage, '', 'all');
 
-    // Search and filter
-    $('#company-search, #status-filter').change(function() {
+    document.getElementById('company-search').addEventListener('change', function() {
         currentPage = 1;
-        fetchCompanies(currentPage, $('#company-search').val(), $('#status-filter').val());
+        fetchCompanies(currentPage, document.getElementById('company-search').value, document.getElementById('status-filter').value);
     });
 
-    // Add company
-    $('#save-new-company-btn').click(function() {
-        $.ajax({
-            url: '/admin/companies/create',
+    document.getElementById('status-filter').addEventListener('change', function() {
+        currentPage = 1;
+        fetchCompanies(currentPage, document.getElementById('company-search').value, document.getElementById('status-filter').value);
+    });
+
+    document.getElementById('save-new-company-btn').addEventListener('click', function() {
+        const form = document.getElementById('add-company-form');
+        fetch('/admin/companies/create', {
             method: 'POST',
-            data: $('#add-company-form').serialize(),
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    $('#addCompanyModal').modal('hide');
-                    fetchCompanies(currentPage, $('#company-search').val(), $('#status-filter').val());
-                    alert(response.message);
-                } else {
-                    alert('Error adding company: ' + response.message);
-                }
-            },
-            error: function(error) {
-                alert('Error adding company: ' + error.responseText);
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(new FormData(form)).toString()
+        })
+        .then(response => response.json())
+        .then(response => {
+            if (response.success) {
+                document.getElementById('addCompanyModal').classList.add('hidden');
+                fetchCompanies(currentPage, document.getElementById('company-search').value, document.getElementById('status-filter').value);
+                alert(response.message);
+            } else {
+                alert('Error adding company: ' + response.message);
             }
+        })
+        .catch(error => {
+            alert('Error adding company: ' + error);
         });
     });
 
-    // Edit company
-    $('#company-list').on('click', '.edit-company-btn', function() {
-        let companyId = $(this).data('company-id');
-        $.ajax({
-            url: `/admin/companies/${companyId}`,
-            method: 'GET',
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    $('#edit-company-id').val(response.company.id);
-                    $('#edit-name').val(response.company.name);
-                    $('#edit-contact-person').val(response.company.contact_person);
-                    $('#edit-email').val(response.company.email);
-                    $('#edit-phone').val(response.company.phone);
-                    $('#edit-address').val(response.company.address);
-                    $('#edit-is-active').prop('checked', response.company.is_active);
-                } else {
-                    alert('Error fetching company: ' + response.message);
-                }
-            },
-            error: function(error) {
-                alert('Error fetching company: ' + error.responseText);
-            }
-        });
-    });
-
-    $('#update-company-btn').click(function() {
-        $.ajax({
-            url: '/admin/companies/edit',
-            method: 'POST',
-            data: $('#edit-company-form').serialize(),
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    $('#editCompanyModal').modal('hide');
-                    fetchCompanies(currentPage, $('#company-search').val(), $('#status-filter').val());
-                    alert(response.message);
-                } else {
-                    alert('Error updating company: ' + response.message);
-                }
-            },
-            error: function(error) {
-                alert('Error updating company: ' + error.responseText);
-            }
-        });
-    });
-
-    // Delete company
-    $('#company-list').on('click', '.delete-company-btn', function() {
-        let companyId = $(this).data('company-id');
-        let companyName = $(this).data('company-name');
-        if (confirm(`Are you sure you want to delete company "${companyName}"?`)) {
-            $.ajax({
-                url: `/admin/companies/delete/${companyId}`,
-                method: 'POST',
-                dataType: 'json',
-                success: function(response) {
+    document.getElementById('company-list').addEventListener('click', function(e) {
+        const editBtn = e.target.closest('.edit-company-btn');
+        if (editBtn) {
+            const companyId = editBtn.dataset.companyId;
+            fetch(`/admin/companies/${companyId}`)
+                .then(response => response.json())
+                .then(response => {
                     if (response.success) {
-                        fetchCompanies(currentPage, $('#company-search').val(), $('#status-filter').val());
-                        alert(response.message);
+                        document.getElementById('edit-company-id').value = response.company.id;
+                        document.getElementById('edit-name').value = response.company.name;
+                        document.getElementById('edit-contact-person').value = response.company.contact_person;
+                        document.getElementById('edit-email').value = response.company.email;
+                        document.getElementById('edit-phone').value = response.company.phone;
+                        document.getElementById('edit-address').value = response.company.address;
+                        document.getElementById('edit-is-active').checked = response.company.is_active;
                     } else {
-                        alert('Error deleting company: ' + response.message);
+                        alert('Error fetching company: ' + response.message);
                     }
-                },
-                error: function(error) {
-                    alert('Error deleting company: ' + error.responseText);
-                }
-            });
+                })
+                .catch(error => {
+                    alert('Error fetching company: ' + error);
+                });
         }
+
+        const deleteBtn = e.target.closest('.delete-company-btn');
+        if (deleteBtn) {
+            const companyId = deleteBtn.dataset.companyId;
+            const companyName = deleteBtn.dataset.companyName;
+            if (confirm(`Are you sure you want to delete company "${companyName}"?`)) {
+                fetch(`/admin/companies/delete/${companyId}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(response => {
+                        if (response.success) {
+                            fetchCompanies(currentPage, document.getElementById('company-search').value, document.getElementById('status-filter').value);
+                            alert(response.message);
+                        } else {
+                            alert('Error deleting company: ' + response.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('Error deleting company: ' + error);
+                    });
+            }
+        }
+    });
+
+    document.getElementById('update-company-btn').addEventListener('click', function() {
+        const form = document.getElementById('edit-company-form');
+        fetch('/admin/companies/edit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams(new FormData(form)).toString()
+        })
+        .then(response => response.json())
+        .then(response => {
+            if (response.success) {
+                document.getElementById('editCompanyModal').classList.add('hidden');
+                fetchCompanies(currentPage, document.getElementById('company-search').value, document.getElementById('status-filter').value);
+                alert(response.message);
+            } else {
+                alert('Error updating company: ' + response.message);
+            }
+        })
+        .catch(error => {
+            alert('Error updating company: ' + error);
+        });
     });
 });
