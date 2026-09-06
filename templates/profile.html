@@ -3,244 +3,220 @@
 {% block title %}My Profile - Fuel Tank Monitoring System{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-md-8 mx-auto">
-            <div class="card">
-                <div class="card-header">
-                    <h3>My Profile</h3>
+<div class="max-w-4xl mx-auto space-y-8">
+    <h1 class="text-2xl font-bold text-gray-900">My Profile</h1>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex flex-col sm:flex-row items-center gap-6">
+            <div class="flex-shrink-0">
+                {% if current_user.profile_image %}
+                <img src="{{ url_for('user.profile_image', filename=current_user.profile_image) }}" alt="Profile Image" class="h-24 w-24 rounded-full object-cover border-2 border-gray-200">
+                {% else %}
+                <div class="h-24 w-24 rounded-full bg-gray-200 flex items-center justify-center">
+                    <i data-lucide="user" class="h-12 w-12 text-gray-400"></i>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4 text-center mb-4">
-                            <div class="profile-image-container mb-3">
-                                {% if current_user.profile_image %}
-                                <img src="{{ url_for('user.profile_image', filename=current_user.profile_image) }}" alt="Profile Image" class="img-fluid rounded-circle profile-image">
-                                {% else %}
-                                <div class="profile-placeholder rounded-circle d-flex align-items-center justify-content-center">
-                                    <i class="bi bi-person-fill display-1"></i>
-                                </div>
-                                {% endif %}
-                            </div>
-                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadImageModal">
-                                <i class="bi bi-upload"></i> Change Image
-                            </button>
-                        </div>
-                        <div class="col-md-8">
-                            <h4>{{ current_user.username }}</h4>
-                            <p class="text-muted">{{ current_user.email }}</p>
-                            
-                            <div class="mb-3">
-                                <h5>Role</h5>
-                                <p>{{ current_user.role.name }}</p>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <h5>Company</h5>
-                                <p>{{ current_user.company.name if current_user.company else 'Not assigned to a company' }}</p>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <h5>Account Status</h5>
-                                <p>
-                                    {% if current_user.is_active %}
-                                    <span class="badge bg-success">Active</span>
-                                    {% else %}
-                                    <span class="badge bg-danger">Inactive</span>
-                                    {% endif %}
-                                </p>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <h5>Last Login</h5>
-                                <p>{{ current_user.last_login.strftime('%Y-%m-%d %H:%M:%S') if current_user.last_login else 'Never' }}</p>
-                            </div>
-                            
-                            <div class="d-grid gap-2 d-md-flex">
-                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editProfileModal">
-                                    <i class="bi bi-pencil"></i> Edit Profile
-                                </button>
-                                <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
-                                    <i class="bi bi-key"></i> Change Password
-                                </button>
-                            </div>
-                        </div>
+                {% endif %}
+            </div>
+
+            <div class="flex-1 text-center sm:text-left">
+                <h2 class="text-xl font-semibold text-gray-900">{{ current_user.username }}</h2>
+                <p class="text-sm text-gray-500">{{ current_user.email }}</p>
+
+                <div class="flex flex-wrap gap-4 mt-3 text-sm">
+                    <div>
+                        <span class="text-gray-500">Role:</span>
+                        <span class="ml-1 font-medium text-gray-900">{{ current_user.role.name }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Company:</span>
+                        <span class="ml-1 font-medium text-gray-900">{{ current_user.company.name if current_user.company else 'None' }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Status:</span>
+                        {% if current_user.is_active %}
+                        <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
+                        {% else %}
+                        <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Inactive</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Last Login:</span>
+                        <span class="ml-1 font-medium text-gray-900">{{ current_user.last_login.strftime('%Y-%m-%d %H:%M') if current_user.last_login else 'Never' }}</span>
                     </div>
                 </div>
             </div>
-            
-            <div class="card mt-4">
-                <div class="card-header">
-                    <h3>Recent Activity</h3>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Time</th>
-                                    <th>Action</th>
-                                    <th>Details</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for activity in recent_activity %}
-                                <tr>
-                                    <td>{{ activity.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                                    <td>
-                                        {% if activity.action == 'login' %}
-                                        <span class="badge bg-success">Login</span>
-                                        {% elif activity.action == 'logout' %}
-                                        <span class="badge bg-secondary">Logout</span>
-                                        {% elif activity.action == 'update_profile' %}
-                                        <span class="badge bg-info">Profile Update</span>
-                                        {% elif activity.action == 'password_change' %}
-                                        <span class="badge bg-warning">Password Change</span>
-                                        {% else %}
-                                        <span class="badge bg-primary">{{ activity.action|capitalize }}</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>{{ activity.details }}</td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="3" class="text-center">No recent activity</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="text-center mt-3">
-                        <a href="{{ url_for('user.activity') }}" class="btn btn-outline-primary">View All Activity</a>
-                    </div>
-                </div>
+
+            <div class="flex flex-col gap-2">
+                <button onclick="openModal('uploadImageModal')" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition">
+                    <i data-lucide="upload" class="h-4 w-4"></i>
+                    Upload Image
+                </button>
+                <button onclick="openModal('editProfileModal')" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition">
+                    <i data-lucide="pencil" class="h-4 w-4"></i>
+                    Edit Profile
+                </button>
+                <button onclick="openModal('changePasswordModal')" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition">
+                    <i data-lucide="key" class="h-4 w-4"></i>
+                    Change Password
+                </button>
             </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <i data-lucide="activity" class="h-5 w-5 text-primary-600"></i>
+            Recent Activity
+        </h2>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="border-b border-gray-200">
+                    <tr>
+                        <th class="text-left py-3 px-4 font-medium text-gray-600">Time</th>
+                        <th class="text-left py-3 px-4 font-medium text-gray-600">Action</th>
+                        <th class="text-left py-3 px-4 font-medium text-gray-600">Details</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for activity in recent_activity %}
+                    <tr>
+                        <td class="py-3 px-4 text-gray-500">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td class="py-3 px-4">
+                            {% if activity.action == 'login' %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Login</span>
+                            {% elif activity.action == 'logout' %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Logout</span>
+                            {% elif activity.action == 'update_profile' %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Profile Update</span>
+                            {% elif activity.action == 'password_change' %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Password Change</span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">{{ activity.action|capitalize }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-gray-600">{{ activity.details }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="py-8 text-center text-gray-500">No recent activity</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4 text-center">
+            <a href="{{ url_for('user.activity') }}" class="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 transition">
+                <i data-lucide="external-link" class="h-4 w-4"></i>
+                View All Activity
+            </a>
         </div>
     </div>
 </div>
 
-<!-- Edit Profile Modal -->
-<div class="modal fade" id="editProfileModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Edit Profile</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="edit-profile-form" method="post" action="{{ url_for('user.update_profile') }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="username" name="username" value="{{ current_user.username }}" readonly>
-                        <small class="text-muted">Username cannot be changed</small>
+<div id="editProfileModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-black/50" onclick="closeModal('editProfileModal')"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit Profile</h3>
+            <form method="post" action="{{ url_for('user.update_profile') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                        <input type="text" value="{{ current_user.username }}" readonly class="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-500 cursor-not-allowed">
+                        <p class="text-xs text-gray-500 mt-1">Username cannot be changed</p>
                     </div>
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="email" name="email" value="{{ current_user.email }}" required>
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" id="email" name="email" value="{{ current_user.email }}" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
                     </div>
-                    <div class="mb-3">
-                        <label for="first_name" class="form-label">First Name</label>
-                        <input type="text" class="form-control" id="first_name" name="first_name" value="{{ current_user.first_name or '' }}">
+                    <div>
+                        <label for="first_name" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                        <input type="text" id="first_name" name="first_name" value="{{ current_user.first_name or '' }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
                     </div>
-                    <div class="mb-3">
-                        <label for="last_name" class="form-label">Last Name</label>
-                        <input type="text" class="form-control" id="last_name" name="last_name" value="{{ current_user.last_name or '' }}">
+                    <div>
+                        <label for="last_name" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                        <input type="text" id="last_name" name="last_name" value="{{ current_user.last_name or '' }}" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
                     </div>
-                    <div class="mb-3">
-                        <label for="phone" class="form-label">Phone Number</label>
-                        <input type="tel" class="form-control" id="phone" name="phone" value="{{ current_user.phone or '' }}">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" form="edit-profile-form" class="btn btn-primary">Save Changes</button>
-            </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeModal('editProfileModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Change Password Modal -->
-<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Change Password</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="change-password-form" method="post" action="{{ url_for('user.change_password') }}">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="mb-3">
-                        <label for="current_password" class="form-label">Current Password</label>
-                        <input type="password" class="form-control" id="current_password" name="current_password" required>
+<div id="changePasswordModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-black/50" onclick="closeModal('changePasswordModal')"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Change Password</h3>
+            <form method="post" action="{{ url_for('user.change_password') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="space-y-4">
+                    <div>
+                        <label for="current_password" class="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                        <input type="password" id="current_password" name="current_password" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
                     </div>
-                    <div class="mb-3">
-                        <label for="new_password" class="form-label">New Password</label>
-                        <input type="password" class="form-control" id="new_password" name="new_password" required>
+                    <div>
+                        <label for="new_password" class="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                        <input type="password" id="new_password" name="new_password" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
                     </div>
-                    <div class="mb-3">
-                        <label for="confirm_password" class="form-label">Confirm New Password</label>
-                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                    <div>
+                        <label for="confirm_password" class="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
                     </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" form="change-password-form" class="btn btn-warning">Change Password</button>
-            </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeModal('changePasswordModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-lg hover:bg-yellow-700 transition">Change Password</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Upload Image Modal -->
-<div class="modal fade" id="uploadImageModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Upload Profile Image</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="upload-image-form" method="post" action="{{ url_for('user.upload_profile_image') }}" enctype="multipart/form-data">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="mb-3">
-                        <label for="profile_image" class="form-label">Select Image</label>
-                        <input type="file" class="form-control" id="profile_image" name="profile_image" accept="image/*" required>
-                        <small class="text-muted">Maximum file size: 5MB. Supported formats: JPG, PNG, GIF.</small>
+<div id="uploadImageModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="fixed inset-0 bg-black/50" onclick="closeModal('uploadImageModal')"></div>
+    <div class="flex min-h-full items-center justify-center p-4">
+        <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Upload Profile Image</h3>
+            <form method="post" action="{{ url_for('user.upload_profile_image') }}" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="space-y-4">
+                    <div>
+                        <label for="profile_image" class="block text-sm font-medium text-gray-700 mb-1">Select Image</label>
+                        <input type="file" id="profile_image" name="profile_image" accept="image/*" required
+                               class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100">
+                        <p class="text-xs text-gray-500 mt-1">Max 5MB. JPG, PNG, GIF.</p>
                     </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" form="upload-image-form" class="btn btn-primary">Upload</button>
-            </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeModal('uploadImageModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition">Upload</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block styles %}
-<style>
-    .profile-image-container {
-        width: 150px;
-        height: 150px;
-        margin: 0 auto;
-        overflow: hidden;
-    }
-    
-    .profile-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    
-    .profile-placeholder {
-        width: 100%;
-        height: 100%;
-        background-color: #e9ecef;
-        color: #6c757d;
-    }
-</style>
+{% block scripts %}
+<script>
+function openModal(id) {
+    document.getElementById(id).classList.remove('hidden');
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    lucide.createIcons();
+});
+</script>
 {% endblock %}
