@@ -50,7 +50,7 @@ def _natural_cubic_spline(fx: list[float], fy: list[float]) -> tuple[list[float]
     return m2, [0.0] * n
 
 
-def _spline_eval(fx, fy, m2, x: float) -> float:
+def _spline_eval(fx: list[float], fy: list[float], m2: list[float], x: float) -> float:
     n = len(fx) - 1
     if x <= fx[0]:
         return fy[0]
@@ -84,6 +84,10 @@ def interpolate_strapping(
     pts = sorted((float(h), float(v)) for h, v in points)
     if len(pts) < 2:
         raise ValueError("strapping table requires at least 2 points")
+    if any(pts[i][0] >= pts[i + 1][0] for i in range(len(pts) - 1)):
+        raise ValueError("strapping heights must be strictly increasing")
+    if method not in ("linear", "cubic_spline"):
+        raise ValueError(f"unknown interpolation method: {method}")
     hs = [p[0] for p in pts]
     vs = [p[1] for p in pts]
     if level <= hs[0]:
@@ -95,7 +99,6 @@ def interpolate_strapping(
             if hs[i] <= level <= hs[i + 1]:
                 t = (level - hs[i]) / (hs[i + 1] - hs[i])
                 return vs[i] + t * (vs[i + 1] - vs[i])
-        return vs[0]
     if method == "cubic_spline":
         m2, _ = _natural_cubic_spline(hs, vs)
         return _spline_eval(hs, vs, m2, level)
