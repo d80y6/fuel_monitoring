@@ -1,369 +1,115 @@
 {% extends "base.html" %}
-
-{% block title %}Tank Consumption Analysis - {{ tank.name }}{% endblock %}
-
+{% block title %}Consumption Analysis - {{ tank.name }}{% endblock %}
 {% block content %}
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-2">
-                <h1 class="h2">Consumption Analysis: {{ tank.name }}</h1>
-                <a href="{{ url_for('tank_detail', tank_id=tank.id) }}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Back to Tank Details
-                </a>
-            </div>
-            <p class="text-muted">Analyze consumption patterns and refill history</p>
-        </div>
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900">Consumption Analysis</h1>
+        <p class="text-sm text-gray-500">{{ tank.name }}</p>
     </div>
-
-    <!-- Controls -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-12 col-md-4">
-                            <label for="days-select" class="form-label">Time Range:</label>
-                            <select id="days-select" class="form-select">
-                                <option value="7">Last 7 days</option>
-                                <option value="14">Last 14 days</option>
-                                <option value="30" selected>Last 30 days</option>
-                                <option value="60">Last 60 days</option>
-                                <option value="90">Last 90 days</option>
-                                <option value="180">Last 180 days</option>
-                                <option value="365">Last 365 days</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-8">
-                            <label class="form-label">Display Options:</label>
-                            <div class="d-flex flex-wrap gap-3">
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" id="toggle-consumption" checked>
-                                    <label class="form-check-label" for="toggle-consumption">Daily Consumption</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" id="toggle-overnight" checked>
-                                    <label class="form-check-label" for="toggle-overnight">Overnight Consumption</label>
-                                </div>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" id="toggle-refills" checked>
-                                    <label class="form-check-label" for="toggle-refills">Refills</label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Summary Statistics -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Consumption Summary</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-6 col-md-4 col-lg-2 text-center">
-                            <div class="p-2 p-md-3 bg-primary text-white rounded mb-2">
-                                <h4 id="total-consumption" class="h5 h4-md mb-0">0.0 L</h4>
-                            </div>
-                            <p class="small">Total Consumption</p>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2 text-center">
-                            <div class="p-2 p-md-3 bg-danger text-white rounded mb-2">
-                                <h4 id="avg-daily-consumption" class="h5 h4-md mb-0">0.0 L</h4>
-                            </div>
-                            <p class="small">Avg. Daily Consumption</p>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2 text-center">
-                            <div class="p-2 p-md-3 bg-info text-white rounded mb-2">
-                                <h4 id="avg-overnight-consumption" class="h5 h4-md mb-0">0.0 L</h4>
-                            </div>
-                            <p class="small">Avg. Overnight Consumption</p>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2 text-center">
-                            <div class="p-2 p-md-3 bg-success text-white rounded mb-2">
-                                <h4 id="total-refill" class="h5 h4-md mb-0">0.0 L</h4>
-                            </div>
-                            <p class="small">Total Refill Volume</p>
-                        </div>
-                        <div class="col-6 col-md-4 col-lg-2 text-center">
-                            <div class="p-2 p-md-3 bg-secondary text-white rounded mb-2">
-                                <h4 id="net-change" class="h5 h4-md mb-0">0.0 L</h4>
-                            </div>
-                            <p class="small">Net Volume Change</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Consumption Chart -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Consumption and Refill History</h5>
-                </div>
-                <div class="card-body">
-                    <div id="consumption-chart-error" class="alert alert-danger" style="display: none;"></div>
-                    <div id="consumption-chart" style="min-height: 300px; height: 400px;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Pattern Charts -->
-    <div class="row g-3">
-        <div class="col-12 col-lg-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="mb-0">Weekly Consumption Pattern</h5>
-                </div>
-                <div class="card-body">
-                    <div id="weekly-pattern-chart-error" class="alert alert-danger" style="display: none;"></div>
-                    <div id="weekly-pattern-chart" style="min-height: 250px;"></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-lg-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <h5 class="mb-0">Hourly Consumption Pattern</h5>
-                </div>
-                <div class="card-body">
-                    <div id="hourly-pattern-chart-error" class="alert alert-danger" style="display: none;"></div>
-                    <div id="hourly-pattern-chart" style="min-height: 250px;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Hidden input for tank ID -->
-    <input type="hidden" id="tank-id" value="{{ tank.id }}">
+    <a href="{{ url_for('tank_detail', tank_id=tank.id) }}" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition">
+        <i data-lucide="arrow-left" class="h-4 w-4"></i> Back to Tank
+    </a>
 </div>
-{% endblock %}
 
-{% block styles %}
-<style>
-    /* Responsive font sizes */
-    @media (max-width: 576px) {
-        h1 {
-            font-size: 1.75rem;
-        }
-        h4 {
-            font-size: 1.1rem;
-        }
-        .card-header h5 {
-            font-size: 1rem;
-        }
-    }
-    
-    @media (min-width: 768px) {
-        .h4-md {
-            font-size: 1.5rem;
-        }
-    }
-</style>
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+    <div class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Time Range</label>
+            <select id="days-select" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500">
+                <option value="7">Last 7 days</option>
+                <option value="14">Last 14 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="60">Last 60 days</option>
+                <option value="90">Last 90 days</option>
+            </select>
+        </div>
+        <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Display</label>
+            <div class="flex flex-wrap gap-4 mt-1">
+                <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="toggle-consumption" checked class="h-4 w-4 text-primary-600 rounded"> Consumption</label>
+                <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="toggle-overnight" checked class="h-4 w-4 text-primary-600 rounded"> Overnight</label>
+                <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="toggle-refills" checked class="h-4 w-4 text-primary-600 rounded"> Refills</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+    <div class="bg-primary-600 text-white rounded-xl p-4 text-center">
+        <p class="text-2xl font-bold" id="total-consumption">0 L</p>
+        <p class="text-xs text-primary-100">Total Consumption</p>
+    </div>
+    <div class="bg-red-600 text-white rounded-xl p-4 text-center">
+        <p class="text-2xl font-bold" id="avg-daily-consumption">0 L</p>
+        <p class="text-xs text-red-100">Avg Daily</p>
+    </div>
+    <div class="bg-cyan-600 text-white rounded-xl p-4 text-center">
+        <p class="text-2xl font-bold" id="avg-overnight-consumption">0 L</p>
+        <p class="text-xs text-cyan-100">Avg Overnight</p>
+    </div>
+    <div class="bg-emerald-600 text-white rounded-xl p-4 text-center">
+        <p class="text-2xl font-bold" id="total-refill">0 L</p>
+        <p class="text-xs text-emerald-100">Total Refill</p>
+    </div>
+    <div class="bg-gray-600 text-white rounded-xl p-4 text-center">
+        <p class="text-2xl font-bold" id="net-change">0 L</p>
+        <p class="text-xs text-gray-100">Net Change</p>
+    </div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Consumption & Refill History</h2>
+    <div class="h-96"><canvas id="consumptionChart"></canvas></div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Weekly Pattern</h2>
+        <div class="h-64"><canvas id="weeklyChart"></canvas></div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Hourly Pattern</h2>
+        <div class="h-64"><canvas id="hourlyChart"></canvas></div>
+    </div>
+</div>
+
+<input type="hidden" id="tank-id" value="{{ tank.id }}">
 {% endblock %}
 
 {% block scripts %}
-<script src="https://code.highcharts.com/highcharts.js"></script>
 <script src="{{ url_for('static', filename='js/consumption_analysis.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize consumption chart with responsive options
-    const consumptionChart = new ConsumptionAnalysisChart('consumption-chart', {
-        height: null // Let the container control the height
-    });
-    
-    // Load initial data
-    consumptionChart.loadData({{ tank.id }}, 30);
-    
-    // Set up days select
+    const tankId = {{ tank.id }};
+    const consumptionChart = new ConsumptionAnalysisChart('consumptionChart', { height: null });
+    consumptionChart.loadData(tankId, 30);
+
     document.getElementById('days-select').addEventListener('change', function() {
-        const days = parseInt(this.value, 10);
-        consumptionChart.loadData({{ tank.id }}, days);
+        consumptionChart.loadData(tankId, parseInt(this.value));
     });
-    
-    // Set up toggle buttons
-    document.getElementById('toggle-consumption').addEventListener('click', function() {
-        consumptionChart.toggleConsumption(this.checked);
-    });
-    
-    document.getElementById('toggle-overnight').addEventListener('click', function() {
-        consumptionChart.toggleOvernight(this.checked);
-    });
-    
-    document.getElementById('toggle-refills').addEventListener('click', function() {
-        consumptionChart.toggleRefills(this.checked);
-    });
-    
-    // Initialize daily pattern chart with responsive options
-    const dailyPatternChart = new Highcharts.Chart('hourly-pattern-chart', {
-        chart: {
-            type: 'column',
-            height: null // Let the container control the height
-        },
-        title: {
-            text: 'Average Consumption by Hour'
-        },
-        xAxis: {
-            categories: Array.from({length: 24}, (_, i) => i),
-            title: {
-                text: 'Hour of Day'
+    document.getElementById('toggle-consumption').addEventListener('click', function() { consumptionChart.toggleConsumption(this.checked); });
+    document.getElementById('toggle-overnight').addEventListener('click', function() { consumptionChart.toggleOvernight(this.checked); });
+    document.getElementById('toggle-refills').addEventListener('click', function() { consumptionChart.toggleRefills(this.checked); });
+
+    fetch(`/admin/api/tanks/${tankId}/consumption-patterns`)
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            if (data.weekly_patterns) {
+                new Chart(document.getElementById('weeklyChart').getContext('2d'), {
+                    type: 'bar',
+                    data: { labels: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], datasets: [{ label: 'Avg L/day', data: data.weekly_patterns, backgroundColor: '#ef4444' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
             }
-        },
-        yAxis: {
-            title: {
-                text: 'Average Consumption (L/h)'
-            },
-            min: 0
-        },
-        tooltip: {
-            formatter: function() {
-                return `<b>${this.x}:00 - ${this.x}:59</b><br/>
-                        <span style="color:${this.color}">\u25CF</span> ${this.series.name}: <b>${this.y.toFixed(1)} L/h</b>`;
+            if (data.hourly_patterns) {
+                new Chart(document.getElementById('hourlyChart').getContext('2d'), {
+                    type: 'bar',
+                    data: { labels: Array.from({length:24},(_,i)=>i+':00'), datasets: [{ label: 'Avg L/h', data: data.hourly_patterns, backgroundColor: '#3b82f6' }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                });
             }
-        },
-        plotOptions: {
-            column: {
-                pointPadding: 0.2,
-                borderWidth: 0
-            }
-        },
-        series: [{
-            name: 'Consumption',
-            color: '#d9534f',
-            data: []
-        }],
-        credits: {
-            enabled: false
-        },
-        responsive: {
-            rules: [{
-                condition: {
-                    maxWidth: 500
-                },
-                chartOptions: {
-                    legend: {
-                        enabled: false
-                    },
-                    xAxis: {
-                        labels: {
-                            step: 2
-                        }
-                    }
-                }
-            }]
-        }
-    });
-    
-    // Initialize weekly pattern chart with responsive options
-    const weeklyPatternChart = new Highcharts.Chart('weekly-pattern-chart', {
-        chart: {
-            type: 'column',
-            height: null // Let the container control the height
-        },
-        title: {
-            text: 'Average Consumption by Day of Week'
-        },
-        xAxis: {
-            categories: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-            title: {
-                text: 'Day of Week'
-            }
-        },
-        yAxis: {
-            title: {
-                text: 'Average Consumption (L/day)'
-            },
-            min: 0
-        },
-        tooltip: {
-            formatter: function() {
-                return `<b>${this.x}</b><br/>
-                        <span style="color:${this.color}">\u25CF</span> ${this.series.name}: <b>${this.y.toFixed(1)} L/day</b>`;
-            }
-        },
-        plotOptions: {
-            column: {
-                pointPadding: 0.2,
-                borderWidth: 0
-            }
-        },
-        series: [{
-            name: 'Consumption',
-            color: '#d9534f',
-            data: []
-        }],
-        credits: {
-            enabled: false
-        },
-        responsive: {
-            rules: [{
-                condition: {
-                    maxWidth: 500
-                },
-                chartOptions: {
-                    legend: {
-                        enabled: false
-                    },
-                    xAxis: {
-                        labels: {
-                            formatter: function() {
-                                return this.value.substring(0, 3); // Show only first 3 letters on small screens
-                            }
-                        }
-                    }
-                }
-            }]
-        }
-    });
-    
-    // Load pattern data
-    loadConsumptionPatterns({{ tank.id }});
-    
-    function loadConsumptionPatterns(tankId) {
-        fetch(`/admin/api/tanks/${tankId}/consumption-patterns`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(result => {
-                if (result.success) {
-                    // Update daily pattern chart
-                    if (result.hourly_patterns && dailyPatternChart) {
-                        dailyPatternChart.series[0].setData(result.hourly_patterns);
-                    }
-                    
-                    // Update weekly pattern chart
-                    if (result.weekly_patterns && weeklyPatternChart) {
-                        weeklyPatternChart.series[0].setData(result.weekly_patterns);
-                    }
-                } else {
-                    console.error('Failed to load pattern data:', result.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error loading pattern data:', error);
-            });
-    }
-    
-    // Add resize event listener to redraw charts when window is resized
-    window.addEventListener('resize', function() {
-        if (dailyPatternChart) dailyPatternChart.reflow();
-        if (weeklyPatternChart) weeklyPatternChart.reflow();
-        if (consumptionChart && typeof consumptionChart.reflow === 'function') {
-            consumptionChart.reflow();
-        }
-    });
+        });
 });
 </script>
 {% endblock %}
