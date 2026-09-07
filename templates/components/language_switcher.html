@@ -1,19 +1,18 @@
-<div class="language-switcher">
-    <div class="dropdown">
-        <button class="btn btn-sm dropdown-toggle" type="button" id="languageDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-            {% if current_language == 'en' %}
-                <span class="flag-icon flag-icon-us"></span> English
-            {% elif current_language == 'ar' %}
-                <span class="flag-icon flag-icon-sa"></span> العربية
-            {% endif %}
-        </button>
-        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="languageDropdown">
-            <a class="dropdown-item {% if current_language == 'en' %}active{% endif %}" href="{{ url_for('set_language', language='en') }}">
-                <span class="flag-icon flag-icon-us"></span> English
-            </a>
-            <a class="dropdown-item {% if current_language == 'ar' %}active{% endif %}" href="{{ url_for('set_language', language='ar') }}">
-                <span class="flag-icon flag-icon-sa"></span> العربية
-            </a>
-        </div>
+<div class="relative" id="lang-menu-container">
+    <button onclick="document.getElementById('lang-dropdown').classList.toggle('hidden')" class="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition">
+        {% if current_language == 'en' %}
+            🇺🇸 English
+        {% elif current_language == 'ar' %}
+            🇸🇦 العربية
+        {% endif %}
+        <i data-lucide="chevron-down" class="h-3 w-3"></i>
+    </button>
+    <div id="lang-dropdown" class="hidden absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+        <a href="{{ url_for('set_language', language='en') }}" class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 rounded-t-lg {% if current_language == 'en' %}bg-primary-50 text-primary-700{% else %}text-gray-700{% endif %}">
+            🇺🇸 English
+        </a>
+        <a href="{{ url_for('set_language', language='ar') }}" class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 rounded-b-lg {% if current_language == 'ar' %}bg-primary-50 text-primary-700{% else %}text-gray-700{% endif %}">
+            🇸🇦 العربية
+        </a>
     </div>
 </div>
