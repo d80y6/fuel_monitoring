@@ -1,29 +1,58 @@
 """Security primitives: password hashing, JWT, RBAC dependencies."""
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
+import os
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import jwt
-from passlib.context import CryptContext
 
 from fmp.core.config import get_settings
 
 settings = get_settings()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# OWASP-recommended PBKDF2-SHA256 cost for interactive login as of 2023.
+PBKDF2_ITERATIONS = 210_000
+_SALT_BYTES = 16
+_HASH_BYTES = 32
 
 
 def hash_password(plain: str) -> str:
-    return pwd_context.hash(plain)
+    """PBKDF2-SHA256 password hash; format ``$pbkdf2-sha256$<iter>$<saltB64>$<dkB64>``.
+
+    Designed to verify identically to legacy bcrypt hashes via a separate
+    reader; new accounts always use PBKDF2. Stdlib-only (no bcrypt C binding).
+    """
+    salt = os.urandom(_SALT_BYTES)
+    dk = hashlib.pbkdf2_hmac(
+        "sha256", plain.encode("utf-8"), salt, PBKDF2_ITERATIONS, dklen=_HASH_BYTES
+    )
+    return "$pbkdf2-sha256${0}${1}${2}".format(
+        PBKDF2_ITERATIONS,
+        base64.b64encode(salt).decode("ascii"),
+        base64.b64encode(dk).decode("ascii"),
+    )
 
 
-def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+def verify_password(plain: str, stored: str) -> bool:
+    parts = stored.split("$")
+    if len(parts) != 5 or parts[1] != "pbkdf2-sha256":
+        return False
+    try:
+        iterations = int(parts[2])
+        salt = base64.b64decode(parts[3])
+        expected = base64.b64decode(parts[4])
+    except (ValueError, TypeError):
+        return False
+    dk = hashlib.pbkdf2_hmac(
+        "sha256", plain.encode("utf-8"), salt, iterations, dklen=len(expected)
+    )
+    return hmac.compare_digest(dk, expected)
 
 
 def create_access_token(subject: str | int, extra: dict | None = None) -> str:

@@ -55,12 +55,23 @@ services:
     command: ["uvicorn", "fmp.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
     env_file: .env
     depends_on:
-      db:
-        condition: service_healthy
+      db-init:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     expose:
       - "8000"
+
+  db-init:
+    build: ./platform
+    restart: "no"
+    command: ["python", "-m", "fmp.scripts.init_db"]
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   ingest:
     build: ./platform
@@ -68,9 +79,12 @@ services:
     command: ["uvicorn", "fmp.ingestion.main:app", "--host", "0.0.0.0", "--port", "8001"]
     env_file: .env
     depends_on:
-      - db
-      - redis
-      - emqx
+      db-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      emqx:
+        condition: service_started
     expose:
       - "8001"
 

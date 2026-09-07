@@ -92,12 +92,16 @@ fuel_monitoring/
 │   │   │
 │   │   ├── schemas/                    # Pydantic v2 schemas
 │   │   │   ├── __init__.py
+│   │   │   ├── user.py                 # User DTOs
+│   │   │   ├── org.py                  # Company/Site/Station/Dispenser DTOs
 │   │   │   ├── dispensing.py
-│   │   │   ├── notifications.py
-│   │   │   └── tanks.py                # tanks + telemetry + alarm DTOs
+│   │   │   ├── notifications.py        # dispatch DTOs + NotificationGateway CRUD
+│   │   │   ├── tanks.py                # tanks + telemetry + alarm DTOs
+│   │   │   └── totalizers.py           # secret counter readback DTOs
 │   │   │
 │   │   ├── services/
 │   │   │   ├── __init__.py
+│   │   │   ├── auth.py                 # authenticate + JWT issue/load
 │   │   │   ├── dispensing/
 │   │   │   │   ├── __init__.py
 │   │   │   │   ├── code_generator.py      # secure code gen
@@ -123,15 +127,24 @@ fuel_monitoring/
 │   │   │   ├── pipeline.py               # reading → calibrate → alarms → persist
 │   │   │   └── batch_writer.py           # hypertable promotion + batch inserts
 │   │   │
+│   │   ├── scripts/
+│   │   │   └── init_db.py              # compose db-init: create_all + hypertables
+│   │   │
 │   │   ├── api/                          # ===== Central API =====
 │   │   │   ├── __init__.py
+│   │   │   ├── deps.py                  # session, get_current_user, require_roles
 │   │   │   ├── main.py                   # FastAPI :8000, routers, CORS
 │   │   │   ├── realtime.py               # in-process WebSocket push manager
 │   │   │   └── v1/
 │   │   │       ├── __init__.py
-│   │   │       ├── dispensing.py         # upload / validate / complete
-│   │   │       ├── tanks.py              # tank inventory + telemetry + alarms
-│   │   │       └── realtime.py           # /ws/telemetry + /ws/alarms stream
+│   │   │       ├── auth.py              # POST /auth/login, GET /auth/me
+│   │   │       ├── companies.py         # company registry CRUD
+│   │   │       ├── sites.py             # site CRUD + stations
+│   │   │       ├── stations.py          # station CRUD + dispensers
+│   │   │       ├── dispensing.py        # upload / validate / complete
+│   │   │       ├── tanks.py             # tank inventory + telemetry + alarms
+│   │   │       ├── totalizers.py        # secret counter readback series
+│   │   │       └── realtime.py          # /ws/telemetry + /ws/alarms stream
 │   │   │
 │   │   ├── workers/                       # ===== Async workers =====
 │   │   │   ├── __init__.py
@@ -154,13 +167,13 @@ fuel_monitoring/
 │   │       │   ├── test_processor.py      # physics + EMA + MAD
 │   │       │   ├── test_alarm_rules.py
 │   │       │   ├── test_pipeline_events.py
-│   │       │   ├── test_realtime.py       # WS broadcast filters
-│   │       │   └── test_totalizer_audit.py
-│   │       └── integration/
-│   │           ├── test_dispense_flow.py
-│   │           └── test_telemetry_pipeline.py  # hypertables + full pipeline
-│   │       └── integration/
-│   │           └── test_dispense_flow.py
+│   │   │   ├── test_realtime.py       # WS broadcast filters
+│   │   │   ├── test_auth.py           # authenticate + JWT load
+│   │   │   └── test_totalizer_audit.py
+│   │   └── integration/
+│   │       ├── test_dispense_flow.py
+│   │       ├── test_telemetry_pipeline.py  # hypertables + full pipeline
+│   │       └── test_api_surface.py         # live org CRUD + authz via httpx
 │   │
 │   └── alembic/
 │
