@@ -18,7 +18,6 @@ def test_density_drops_when_hotter():
 
 def test_density_rises_when_colder():
     d = density_at_temperature(750.0, 0.00095, 5.0)
-    assert d > 750.0
     assert d == pytest.approx(750.0 * (1 - 0.00095 * (5 - 15)), rel=1e-9)
 
 
@@ -29,6 +28,14 @@ def test_density_without_temperature_returns_base():
 def test_vcf_is_linear_in_temperature():
     assert volume_correction_factor(0.0008, 25.0) == pytest.approx(1 - 0.0008 * (25 - 15))
     assert volume_correction_factor(0.0008, 15.0) == pytest.approx(1.0)
+
+
+def test_vcf_without_temperature_returns_one():
+    assert volume_correction_factor(0.0008, None) == pytest.approx(1.0)
+
+
+def test_nsv_without_temperature_returns_gov():
+    assert net_standard_volume(1000.0, 0.0008, None) == pytest.approx(1000.0)
 
 
 def test_nsv_equals_gov_times_vcf():
