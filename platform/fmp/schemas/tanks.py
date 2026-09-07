@@ -19,7 +19,6 @@ class TankBase(BaseModel):
     tank_height: float | None = Field(default=None, gt=0)
     tank_length: float | None = Field(default=None, gt=0)
     tank_volume: float = Field(gt=0)
-    fluid_density: float = Field(gt=0)
     elevation: float | None = None
     calibration_factor: float = 1.0
     atmospheric_pressure: float = 0.0

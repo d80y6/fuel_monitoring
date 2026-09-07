@@ -8,6 +8,7 @@ from fmp.models.dispensing import (
 )
 from fmp.models.notifications import NotificationGateway, NotificationLog
 from fmp.models.user import UploadBatch, User
+from fmp.models.fuel import FuelType, StrappingTable
 from fmp.models.tank import Alarm, Measurement, Tank
 
 __all__ = [
@@ -28,6 +29,8 @@ __all__ = [
     "NotificationLog",
     "UploadBatch",
     "User",
+    "FuelType",
+    "StrappingTable",
     "Tank",
     "Measurement",
     "Alarm",

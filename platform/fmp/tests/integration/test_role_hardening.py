@@ -47,7 +47,7 @@ async def tank_seed(db):
             name="SeedTank", site_id=site.id,
             sensor_serial_number=f"SN-SEED-{uuid.uuid4().hex[:6]}",
             tank_orientation="vertical", tank_diameter=2.0, tank_height=3.0,
-            tank_volume=9200.0, fluid_density=850.0, calibration_factor=1.0,
+            tank_volume=9200.0, calibration_factor=1.0,
         )
         session.add(tank)
         await session.commit()
@@ -79,7 +79,7 @@ async def test_tanks_require_auth_and_roles(db, users, tank_seed):
         r = await client.post("/api/v1/tanks", json={
             "name": "Blocked", "sensor_serial_number": f"SN-{uuid.uuid4().hex[:8]}",
             "tank_orientation": "vertical", "tank_diameter": 2.0, "tank_height": 3.0,
-            "tank_volume": 9200.0, "fluid_density": 850.0, "calibration_factor": 1.0,
+            "tank_volume": 9200.0, "calibration_factor": 1.0,
         })
         assert r.status_code == 403
 
@@ -97,7 +97,7 @@ async def test_tanks_require_auth_and_roles(db, users, tank_seed):
             "name": "Allowed", "site_id": site_id,
             "sensor_serial_number": f"SN-{uuid.uuid4().hex[:8]}",
             "tank_orientation": "vertical", "tank_diameter": 2.0, "tank_height": 3.0,
-            "tank_volume": 9200.0, "fluid_density": 850.0, "calibration_factor": 1.0,
+            "tank_volume": 9200.0, "calibration_factor": 1.0,
         })
         assert r.status_code == 201, r.text
         new_tank_id = r.json()["id"]

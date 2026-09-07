@@ -35,8 +35,9 @@ async def _seed_tank(session):
         name="Gen A", site_id=site.id,
         sensor_serial_number=f"SN-{uuid.uuid4().hex[:10]}",
         tank_orientation="vertical", tank_diameter=2.0, tank_height=3.0,
-        tank_volume=9200.0, fluid_density=850.0, elevation=0.0,
+        tank_volume=9200.0, elevation=0.0,
         calibration_factor=1.0,
+        fuel_type=None,
         critical_level_threshold=0.5, low_level_threshold=1.0,
         high_level_threshold=2.8, low_volume_threshold=2000.0,
     )

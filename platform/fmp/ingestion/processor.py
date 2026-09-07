@@ -11,34 +11,11 @@ from __future__ import annotations
 STANDARD_GRAVITY = 9.80665
 GRAVITY_GRADIENT = 3.086e-6
 
-THERMAL_EXPANSION = {
-    "gasoline": (0.00110, 0.6),
-    "diesel": (0.00080, 0.4),
-    "other_petroleum": (0.00095, 0.5),
-}
-
-
-def _fuel_class(base_density: float) -> tuple[str, float, float]:
-    if 720 <= base_density <= 780:
-        return "gasoline", *THERMAL_EXPANSION["gasoline"]
-    if 820 <= base_density <= 860:
-        return "diesel", *THERMAL_EXPANSION["diesel"]
-    return "other_petroleum", *THERMAL_EXPANSION["other_petroleum"]
-
 
 def elevation_compensated_gravity(elevation: float | None) -> float:
     if elevation is None:
         return STANDARD_GRAVITY
     return STANDARD_GRAVITY - GRAVITY_GRADIENT * elevation
-
-
-def fuel_expansion_coefficient(base_density: float) -> float:
-    """Thermal expansion coefficient for a legacy fuel-density heuristic.
-
-    Temporary bridge for the pipeline until real FuelType coefficients are
-    wired in a later task; returns the expansion coefficient by fuel class.
-    """
-    return _fuel_class(base_density)[1]
 
 
 def pressure_to_level(

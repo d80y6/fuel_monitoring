@@ -75,7 +75,7 @@ async def test_end_to_end_org_authz(db):
                 "name": "Tank1", "site_id": site_id,
                 "sensor_serial_number": (tank_serial := f"SN-{uuid.uuid4().hex[:10]}"),
                 "tank_orientation": "vertical", "tank_diameter": 2.0, "tank_height": 3.0,
-                "tank_volume": 9200.0, "fluid_density": 850.0, "calibration_factor": 1.0,
+                "tank_volume": 9200.0, "calibration_factor": 1.0,
                 "critical_level_threshold": 0.5, "low_level_threshold": 1.0,
                 "high_level_threshold": 2.8, "low_volume_threshold": 2000.0,
             }, headers=headers)
@@ -87,7 +87,7 @@ async def test_end_to_end_org_authz(db):
                 "name": "TankDup", "site_id": site_id,
                 "sensor_serial_number": tank_serial,  # reuse the first tank's serial
                 "tank_orientation": "vertical", "tank_diameter": 2.0, "tank_height": 3.0,
-                "tank_volume": 9200.0, "fluid_density": 850.0, "calibration_factor": 1.0,
+                "tank_volume": 9200.0, "calibration_factor": 1.0,
             }, headers=headers)
             assert r.status_code == 409
 

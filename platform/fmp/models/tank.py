@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import uuid as uuid_type
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, PrimaryKeyConstraint, String, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -14,6 +15,9 @@ from fmp.models.base import (
     TimestampMixin,
     UUIDPrimaryKeyMixin,
 )
+
+if TYPE_CHECKING:
+    from fmp.models.fuel import FuelType
 
 TANK_ORIENTATIONS = ("vertical", "horizontal")
 
@@ -36,7 +40,17 @@ class Tank(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     tank_diameter: Mapped[float] = mapped_column(Float)
     tank_length: Mapped[float | None] = mapped_column(Float)
     tank_volume: Mapped[float] = mapped_column(Float)
-    fluid_density: Mapped[float] = mapped_column(Float)
+    tank_shape: Mapped[str] = mapped_column(String(20), default="vertical_cylinder")
+    dish_depth: Mapped[float | None] = mapped_column(Float)
+    tank_width: Mapped[float | None] = mapped_column(Float)
+    fuel_type_id: Mapped[uuid_type.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("fuel_types.id"), index=True
+    )
+    strapping_table_id: Mapped[uuid_type.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("strapping_tables.id", name="fk_tanks_strapping_table_id"),
+        index=True,
+    )
     elevation: Mapped[float | None] = mapped_column(Float)
     calibration_factor: Mapped[float] = mapped_column(Float, default=1.0)
     atmospheric_pressure: Mapped[float] = mapped_column(Float, default=0.0)
@@ -55,6 +69,7 @@ class Tank(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     alarms: Mapped[list["Alarm"]] = relationship(
         back_populates="tank", cascade="all, delete-orphan"
     )
+    fuel_type: Mapped["FuelType"] = relationship(lazy="selectin")  # noqa: F821
 
     @property
     def total_capacity_liters(self) -> float:
@@ -100,6 +115,9 @@ class Measurement(Base):
     level: Mapped[float] = mapped_column(Float)
     volume: Mapped[float] = mapped_column(Float)
     flow_rate: Mapped[float | None] = mapped_column(Float)
+    gov_volume: Mapped[float | None] = mapped_column(Float)
+    net_volume: Mapped[float | None] = mapped_column(Float)
+    density_at_temperature: Mapped[float | None] = mapped_column(Float)
     fill_percent: Mapped[float | None] = mapped_column(Float)
     status: Mapped[int] = mapped_column(Integer, default=0)
     is_outlier: Mapped[bool] = mapped_column(Boolean, default=False)

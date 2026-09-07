@@ -117,25 +117,29 @@ class IngestionPipeline:
         captured_at=None,
     ) -> ProcessedReading | None:
         """Run a single reading through calibration -> smoothing -> alarms -> persist."""
+        from fmp.ingestion.batch_writer import insert_measurements
         from fmp.ingestion.processor import (
             calculate_volume,
             fill_percent,
-            fuel_expansion_coefficient,
             pressure_to_level,
         )
         from fmp.ingestion.tank_geometry import density_at_temperature
-        from fmp.ingestion.batch_writer import insert_measurements
 
         state = self.state_for(tank.id)
+
+        if getattr(tank, "fuel_type", None) is not None:
+            base_density = tank.fuel_type.base_density
+            expansion_coeff = tank.fuel_type.thermal_expansion_coeff
+        else:
+            base_density = 750.0
+            expansion_coeff = 0.00095
+            logger.warning("tank %s has no fuel_type; using gasoline defaults", tank.id)
+        density = density_at_temperature(base_density, expansion_coeff, temperature)
 
         level = pressure_to_level(
             pressure_bar=pressure,
             atmospheric_bar=tank.atmospheric_pressure or 0.0,
-            density=density_at_temperature(
-                tank.fluid_density,
-                fuel_expansion_coefficient(tank.fluid_density),
-                temperature,
-            ),
+            density=density,
             elevation=tank.elevation,
             calibration_factor=tank.calibration_factor,
         )
