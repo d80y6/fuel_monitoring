@@ -47,7 +47,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 fetch(`/admin/sites/delete/${siteId}`, {
                     method: 'POST',
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
                     }
                 })
                 .then(response => response.json())
@@ -185,7 +186,8 @@ function initializeTanksTable(siteId) {
                         fetch(`/admin/tanks/delete/${tankId}`, {
                             method: 'POST',
                             headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
                             }
                         })
                         .then(response => response.json())
@@ -276,7 +278,7 @@ function refreshSiteData(siteId) {
  */
 function acknowledgeAlarm(alarmId) {
     fetch(`/admin/alarms/acknowledge/${alarmId}`, {
-        method: 'POST'
+        method: 'POST', headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]).content }
     })
         .then(response => {
             if (!response.ok) {

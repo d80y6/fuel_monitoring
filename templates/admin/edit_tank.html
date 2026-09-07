@@ -13,6 +13,7 @@
 <div class="bg-white shadow rounded-lg">
     <div class="p-6">
         <form method="POST" action="{{ url_for('admin.edit_tank', tank_id=tank.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-4">
                     <h3 class="text-lg font-medium text-gray-900">Basic Information</h3>

@@ -174,23 +174,25 @@ class TankDetailController {
         const tankName = deleteBtn?.getAttribute('data-tank-name') || 'this tank';
         
         const tankNameElement = document.getElementById('delete-tank-name');
+
         if (tankNameElement) {
             tankNameElement.textContent = tankName;
         }
         
-        // Show modal
-        const deleteModal = new bootstrap.Modal(document.getElementById('deleteTankModal'));
-        if (deleteModal) {
-            deleteModal.show();
+        // Show modal using vanilla JS
+        const modal = document.getElementById('deleteTankModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
         }
     }
-    
     // Handle confirm delete tank button click
     handleConfirmDeleteTank() {
         fetch(`/admin/tanks/delete/${this.tankId}`, {
             method: 'POST',
             headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
             }
         })
         .then(response => {
@@ -203,17 +205,18 @@ class TankDetailController {
             if (data.success) {
                 window.location.href = '/admin/tanks';
             } else {
-                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteTankModal'));
-                if (deleteModal) {
-                    deleteModal.hide();
+                const modal = document.getElementById('deleteTankModal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
                 }
                 this.showAlert('danger', data.message || 'Error deleting tank');
             }
         })
         .catch(error => {
             console.error('Error deleting tank:', error);
-            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteTankModal'));
-            if (deleteModal) {
+            const modal = document.getElementById('deleteTankModal');
+            if (modal) {
                 deleteModal.hide();
             }
             this.showAlert('danger', 'Error deleting tank: ' + error.message);
@@ -243,7 +246,8 @@ class TankDetailController {
         fetch(`/admin/alarms/acknowledge/${alarmId}`, {
             method: 'POST',
             headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
             }
         })
         .then(response => {

@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const acknowledgeBtn = e.target.closest('.acknowledge-alarm-btn');
         if (acknowledgeBtn) {
             const alarmId = acknowledgeBtn.dataset.alarmId;
-            fetch(`/admin/alarms/acknowledge/${alarmId}`, { method: 'POST' })
+            fetch(`/admin/alarms/acknowledge/${alarmId}`, { method: 'POST', headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]).content } })
                 .then(response => response.json())
                 .then(response => {
                     if (response.success) {
@@ -192,7 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (deleteBtn) {
             const alarmId = deleteBtn.dataset.alarmId;
             if (confirm('Are you sure you want to delete this alarm?')) {
-                fetch(`/admin/alarms/delete/${alarmId}`, { method: 'POST' })
+                fetch(`/admin/alarms/delete/${alarmId}`, { method: 'POST', headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]).content } })
                     .then(response => response.json())
                     .then(response => {
                         if (response.success) {
@@ -212,7 +212,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (confirm('Are you sure you want to acknowledge all filtered alarms?')) {
             fetch('/admin/alarms/acknowledge-all', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                },
                 body: new URLSearchParams({
                     acknowledged: document.getElementById('acknowledged-filter').value,
                     type: document.getElementById('type-filter').value,
@@ -238,7 +241,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (confirm('Are you sure you want to delete all filtered alarms? This action cannot be undone.')) {
             fetch('/admin/alarms/clear-all', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                },
                 body: new URLSearchParams({
                     acknowledged: document.getElementById('acknowledged-filter').value,
                     type: document.getElementById('type-filter').value,

@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const alarmId = this.getAttribute('data-alarm-id');
             
             fetch(`/admin/alarms/acknowledge/${alarmId}`, {
-                method: 'POST'
+                method: 'POST', headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]).content }
             })
                 .then(response => response.json())
                 .then(data => {
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.disabled = true;
             
             fetch(`/admin/api/tanks/${tankId}/test-connection`, {
-                method: 'POST'
+                method: 'POST', headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]).content }
             })
                 .then(response => response.json())
                 .then(data => {
@@ -213,7 +213,8 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(`/admin/api/tanks/${tankId}/calibrate`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
                 },
                 body: JSON.stringify({ known_volume: volume })
             })
@@ -249,7 +250,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.disabled = true;
                 
                 fetch(`/admin/api/tanks/${tankId}/reset`, {
-                    method: 'POST'
+                    method: 'POST', headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]).content }
                 })
                     .then(response => response.json())
                     .then(data => {

@@ -1018,13 +1018,11 @@ function showError(message) {
     
     toastContainer.insertAdjacentHTML('beforeend', toastHtml);
     const toastElement = document.getElementById(toastId);
-    const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 5000 });
-    toast.show();
-    
-    // Auto-remove toast after it's hidden
-    toastElement.addEventListener('hidden.bs.toast', () => {
+    toastElement.style.display = 'block';
+    setTimeout(() => {
+        toastElement.style.display = 'none';
         toastElement.remove();
-    });
+    }, 5000);
 }
 
 function toggleAutoRefresh() {
@@ -1390,8 +1388,21 @@ function showEventDetails(eventId) {
             contentDiv.innerHTML = html;
             
             // Show modal
-            const modal = new bootstrap.Modal(document.getElementById('eventDetailsModal'));
-            modal.show();
+            const modalEl = document.getElementById('eventDetailsModal');
+            modalEl.classList.remove('hidden');
+            modalEl.classList.add('show');
+            modalEl.style.display = 'block';
+            document.body.classList.add('modal-open');
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            document.body.appendChild(backdrop);
+            backdrop.addEventListener('click', () => {
+                modalEl.classList.add('hidden');
+                modalEl.classList.remove('show');
+                modalEl.style.display = 'none';
+                document.body.classList.remove('modal-open');
+                backdrop.remove();
+            });
         })
         .catch(error => {
             console.error('Error fetching event details:', error);
@@ -1412,12 +1423,9 @@ function initDatePickers() {
     endDateInput.value = now.toISOString().slice(0, 16);
 }
 
-// Initialize tooltips
+// Initialize tooltips (no-op - Bootstrap JS not loaded)
 function initTooltips() {
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+    // Tooltips not critical - Bootstrap JS library removed
 }
 
 // Initialize the page when DOM is loaded
@@ -1731,8 +1739,23 @@ function showMeasurementDetails(event) {
     `;
     
     // Show the modal
-    const bsModal = new bootstrap.Modal(modal);
-    bsModal.show();
+    modal.classList.remove('hidden');
+    modal.classList.add('show');
+    modal.style.display = 'block';
+    document.body.classList.add('modal-open');
+    let backdrop = document.querySelector('.modal-backdrop');
+    if (!backdrop) {
+        backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(backdrop);
+    }
+    backdrop.addEventListener('click', () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        backdrop.remove();
+    });
 }
 
 // Helper function to format duration in hours:minutes:seconds

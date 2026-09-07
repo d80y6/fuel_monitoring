@@ -169,7 +169,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         fetch('/admin/api/users/create', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
             body: new URLSearchParams(new FormData(form)).toString()
         })
         .then(response => response.json())
@@ -220,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const userId = deleteBtn.dataset.userId;
             const username = deleteBtn.dataset.username;
             if (confirm(`Are you sure you want to delete user "${username}"?`)) {
-                fetch(`/admin/api/users/delete/${userId}`, { method: 'POST' })
+                fetch(`/admin/api/users/delete/${userId}`, { method: 'POST', headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]).content } })
                     .then(response => response.json())
                     .then(response => {
                         if (response.success) {
@@ -255,7 +258,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         fetch('/admin/api/users/update', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
             body: new URLSearchParams(new FormData(form)).toString()
         })
         .then(response => response.json())

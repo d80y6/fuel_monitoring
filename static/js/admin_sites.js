@@ -134,7 +134,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('add-site-form');
         fetch('/admin/sites/create', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
             body: new URLSearchParams(new FormData(form)).toString()
         })
         .then(response => response.json())
@@ -178,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const siteId = deleteBtn.dataset.siteId;
             const siteName = deleteBtn.dataset.siteName;
             if (confirm(`Are you sure you want to delete site "${siteName}"?`)) {
-                fetch(`/admin/sites/delete/${siteId}`, { method: 'POST' })
+                fetch(`/admin/sites/delete/${siteId}`, { method: 'POST', headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]).content } })
                     .then(response => response.json())
                     .then(response => {
                         if (response.success) {
@@ -200,7 +203,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('edit-site-form');
         fetch('/admin/sites/edit/' + siteId, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
             body: new URLSearchParams(new FormData(form)).toString()
         })
         .then(response => response.json())

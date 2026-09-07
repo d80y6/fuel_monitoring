@@ -383,7 +383,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 fetch(`/admin/tanks/delete/${tankId}`, {
                     method: 'POST',
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
                     }
                 })
                 .then(response => response.json())

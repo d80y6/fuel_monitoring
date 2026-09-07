@@ -72,7 +72,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('add-company-form');
         fetch('/admin/companies/create', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
             body: new URLSearchParams(new FormData(form)).toString()
         })
         .then(response => response.json())
@@ -119,7 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const companyId = deleteBtn.dataset.companyId;
             const companyName = deleteBtn.dataset.companyName;
             if (confirm(`Are you sure you want to delete company "${companyName}"?`)) {
-                fetch(`/admin/companies/delete/${companyId}`, { method: 'POST' })
+                fetch(`/admin/companies/delete/${companyId}`, { method: 'POST', headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]).content } })
                     .then(response => response.json())
                     .then(response => {
                         if (response.success) {
@@ -140,7 +143,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('edit-company-form');
         fetch('/admin/companies/edit', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
             body: new URLSearchParams(new FormData(form)).toString()
         })
         .then(response => response.json())

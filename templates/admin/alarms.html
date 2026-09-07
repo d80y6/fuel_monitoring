@@ -265,7 +265,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         fetch('/admin/api/alarms/clear', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+            },
             body: JSON.stringify({ acknowledged: acknowledged, level: level })
         })
         .then(function(r) { return r.json(); })
