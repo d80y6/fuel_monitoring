@@ -11,9 +11,11 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    PrimaryKeyConstraint,
     String,
     Text,
 )
+from sqlalchemy import Identity
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -99,8 +101,9 @@ class StationTotalizer(TimestampMixin, Base):
     """Point-in-time reading of the hardware secret counter meter."""
 
     __tablename__ = "station_totalizers"
+    __table_args__ = (PrimaryKeyConstraint("id", "created_at"),)
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), nullable=False)
     station_id: Mapped[uuid_type.UUID] = _uuid_col("stations.id")
     dispenser_id: Mapped[uuid_type.UUID] = _uuid_col("dispensers.id")
     totalizer_value: Mapped[int] = mapped_column(BigInteger, nullable=False)

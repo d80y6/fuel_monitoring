@@ -43,6 +43,18 @@ def decode_token(token: str) -> dict[str, Any]:
     return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
 
 
+def get_current_user_from_query(token: str) -> dict[str, Any] | None:
+    """Decode a JWT for WebSocket upgrade handshakes (no DB round-trip).
+
+    Returns the token claims on success or ``None`` on any invalid/garbage
+    token so callers can close the socket with a 4401 policy violation.
+    """
+    try:
+        return decode_token(token)
+    except jwt.PyJWTError:
+        return None
+
+
 def generate_secure_code(length: int = 8) -> str:
     """Cryptographically secure numeric code with uniform digit distribution.
 

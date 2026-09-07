@@ -84,30 +84,17 @@ fuel_monitoring/
 │   │   ├── models/                     # SQLAlchemy 2.0 ORM models
 │   │   │   ├── __init__.py
 │   │   │   ├── base.py                 # Base + TimestampMixin + SoftDelete
-│   │   │   ├── user.py
-│   │   │   ├── company.py
-│   │   │   ├── site.py
-│   │   │   ├── tank.py
-│   │   │   ├── measurement.py          # hypertable
-│   │   │   ├── alarm.py
-│   │   │   ├── station.py
-│   │   │   ├── dispenser.py
-│   │   │   ├── employee.py
-│   │   │   ├── allocation.py
-│   │   │   ├── dispense_code.py
-│   │   │   ├── dispense_transaction.py # hypertable
-│   │   │   ├── station_totalizer.py
-│   │   │   ├── upload_batch.py
-│   │   │   ├── notification_gateway.py
-│   │   │   └── notification_log.py
+│   │   │   ├── user.py                 # User, UploadBatch
+│   │   │   ├── station.py              # Company, Site, Station, Dispenser, Employee
+│   │   │   ├── tank.py                 # Tank, Alarm, Measurement (hypertable)
+│   │   │   ├── dispensing.py           # Allocation, DispenseCode, Transaction, StationTotalizer
+│   │   │   └── notifications.py        # NotificationGateway, NotificationLog
 │   │   │
 │   │   ├── schemas/                    # Pydantic v2 schemas
 │   │   │   ├── __init__.py
-│   │   │   ├── auth.py
 │   │   │   ├── dispensing.py
-│   │   │   ├── excel.py
 │   │   │   ├── notifications.py
-│   │   │   └── common.py
+│   │   │   └── tanks.py                # tanks + telemetry + alarm DTOs
 │   │   │
 │   │   ├── services/
 │   │   │   ├── __init__.py
@@ -131,30 +118,20 @@ fuel_monitoring/
 │   │   │
 │   │   ├── ingestion/                    # ===== Edge Ingestion Engine =====
 │   │   │   ├── __init__.py
-│   │   │   ├── main.py                   # standalone FastAPI :8001
-│   │   │   ├── subscriber.py             # async MQTT subscriber
-│   │   │   ├── processor.py              # EMA + MAD Z-score + volume calc
-│   │   │   ├── batch_writer.py           # batched Upsert to TimescaleDB
-│   │   │   └── backfill.py               # offline backfill endpoint
+│   │   │   ├── main.py                   # standalone FastAPI :8001 + MQTT sub
+│   │   │   ├── processor.py              # EMA + MAD Z-score + volume calc (pure)
+│   │   │   ├── pipeline.py               # reading → calibrate → alarms → persist
+│   │   │   └── batch_writer.py           # hypertable promotion + batch inserts
 │   │   │
 │   │   ├── api/                          # ===== Central API =====
 │   │   │   ├── __init__.py
-│   │   │   ├── main.py                   # FastAPI :8000, routers, WS
-│   │   │   ├── deps.py                   # auth/admin/access deps
-│   │   │   ├── websocket.py              # realtime push manager
-│   │   │   ├── router_v1.py
+│   │   │   ├── main.py                   # FastAPI :8000, routers, CORS
+│   │   │   ├── realtime.py               # in-process WebSocket push manager
 │   │   │   └── v1/
 │   │   │       ├── __init__.py
-│   │   │       ├── auth.py
-│   │   │       ├── users.py
-│   │   │       ├── companies.py
-│   │   │       ├── sites.py
-│   │   │       ├── tanks.py
-│   │   │       ├── stations.py
 │   │   │       ├── dispensing.py         # upload / validate / complete
-│   │   │       ├── notifications.py      # gateway config
-│   │   │       ├── totalizers.py
-│   │   │       └── telemetry.py
+│   │   │       ├── tanks.py              # tank inventory + telemetry + alarms
+│   │   │       └── realtime.py           # /ws/telemetry + /ws/alarms stream
 │   │   │
 │   │   ├── workers/                       # ===== Async workers =====
 │   │   │   ├── __init__.py
@@ -174,7 +151,14 @@ fuel_monitoring/
 │   │       │   ├── test_code_generator.py
 │   │       │   ├── test_dispense_engine.py
 │   │       │   ├── test_excel_ingestion.py
+│   │       │   ├── test_processor.py      # physics + EMA + MAD
+│   │       │   ├── test_alarm_rules.py
+│   │       │   ├── test_pipeline_events.py
+│   │       │   ├── test_realtime.py       # WS broadcast filters
 │   │       │   └── test_totalizer_audit.py
+│   │       └── integration/
+│   │           ├── test_dispense_flow.py
+│   │           └── test_telemetry_pipeline.py  # hypertables + full pipeline
 │   │       └── integration/
 │   │           └── test_dispense_flow.py
 │   │

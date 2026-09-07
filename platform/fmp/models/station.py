@@ -42,6 +42,7 @@ class Site(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
 
     company: Mapped["Company"] = relationship(back_populates="sites")
     stations: Mapped[list["Station"]] = relationship(back_populates="site")
+    tanks: Mapped[list["Tank"]] = relationship(back_populates="site")  # noqa: F821
 
 
 class Station(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):

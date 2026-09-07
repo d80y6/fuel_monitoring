@@ -14,6 +14,11 @@ from dataclasses import dataclass, field
 import pytest
 import pytest_asyncio
 
+# Run every test with a connection-per-use DB pool (see fmp/core/database.py):
+# pytest-asyncio gives each test its own event loop, so a shared pool leaks
+# asyncpg connections across loops.
+os.environ.setdefault("FMP_TESTING", "1")
+
 
 # --------------------------------------------------------------------------
 # Minimal in-memory Redis stand-in (hermetic unit tests)
@@ -23,6 +28,7 @@ class FakeRedis:
     store: dict = field(default_factory=dict)
     sets: dict = field(default_factory=dict)
     zsets: dict = field(default_factory=dict)
+    published: list = field(default_factory=list)
 
     @property
     def client(self):
@@ -66,6 +72,12 @@ class FakeRedis:
         return True
 
     async def publish(self, channel, message):
+        import json
+
+        # real RedisClient encodes dicts to JSON strings internally
+        if not isinstance(message, str):
+            message = json.dumps(message, default=str)
+        self.published.append((channel, message))
         return 1
 
     async def aclose(self):
@@ -90,6 +102,23 @@ class FakeRedis:
 @pytest_asyncio.fixture
 async def fake_redis() -> AsyncIterator[FakeRedis]:
     yield FakeRedis()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def _dispose_engine_between_tests():
+    """Drop any pooled/held asyncpg connections so they never leak across tests.
+
+    pytest-asyncio gives each test its own event loop; a connection opened on a
+    prior loop breaks when reused. Disposing the shared engine after each test
+    forces the next connection to be created on the current loop.
+    """
+    yield
+    try:
+        from fmp.core.database import engine
+
+        await engine.dispose()
+    except Exception:
+        pass
 
 
 # --------------------------------------------------------------------------

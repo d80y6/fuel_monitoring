@@ -6,7 +6,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from fmp.api.v1 import dispensing
+from fmp.api.v1 import dispensing, realtime, tanks
 from fmp.core.config import get_settings
 
 logging.basicConfig(level=logging.INFO)
@@ -28,6 +28,8 @@ app.add_middleware(
 )
 
 app.include_router(dispensing.router)
+app.include_router(tanks.router)
+app.include_router(realtime.router)
 
 
 @app.get("/api/v1/health", tags=["system"])

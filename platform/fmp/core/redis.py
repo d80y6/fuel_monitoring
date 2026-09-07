@@ -19,7 +19,7 @@ settings = get_settings()
 
 
 async def get_redis() -> aioredis.Redis:
-    return aioredis.from_url(settings.redis_url, decode_responses=True)
+    return aioredis.from_url(settings.redis_url, decode_responses=True, protocol=2)
 
 
 class RedisClient:
@@ -27,7 +27,7 @@ class RedisClient:
 
     def __init__(self, client: aioredis.Redis | None = None) -> None:
         self._client = client or aioredis.from_url(
-            settings.redis_url, decode_responses=True
+            settings.redis_url, decode_responses=True, protocol=2
         )
 
     @property
