@@ -230,7 +230,11 @@ def calculate_volume_for_shape(
     if tank_shape == "custom_strapping":
         if not strapping:
             raise ValueError("custom_strapping requires a strapping table")
-        return interpolate_strapping(strapping["points"], level, strapping["method"])
+        points = strapping.get("points")
+        method = strapping.get("method", "linear")
+        if not points:
+            raise ValueError("custom_strapping requires a strapping table with 'points'")
+        return interpolate_strapping(points, level, method)
 
     if tank_shape == "horizontal_elliptical_ends":
         length = length or 0.0

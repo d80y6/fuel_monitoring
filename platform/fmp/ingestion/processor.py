@@ -72,9 +72,9 @@ def calculate_volume(
     ``tank_shape`` dispatches the geometry (default derived from ``orientation``
     for backward compatibility: vertical -> vertical_cylinder, else horizontal).
     """
-    if tank_diameter <= 0:
-        return 0.0
     shape = tank_shape or ("vertical_cylinder" if orientation == "vertical" else "horizontal_cylinder")
+    if tank_diameter <= 0 and shape not in ("custom_strapping", "rectangular"):
+        return 0.0
     from fmp.ingestion.tank_geometry import calculate_volume_for_shape
 
     return round(

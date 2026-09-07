@@ -110,8 +110,33 @@ def test_horizontal_elliptical_ends_exceed_plain_cylinder():
     )
     assert head > plain
     assert head == pytest.approx(
-        plain + (4 / 3) * math.pi * (0.75**2) * 0.4 * 1000, rel=0.05
+        plain + (4 / 3) * math.pi * (0.75**2) * 0.4 * 1000, rel=1e-2
     )
+
+
+def test_elliptical_heads_half_level_is_half_full():
+    dish = 0.4
+    half = calculate_volume_for_shape(
+        0.75, "horizontal_elliptical_ends", diameter=1.5, length=0.0, dish_depth=dish
+    )
+    full = calculate_volume_for_shape(
+        1.5, "horizontal_elliptical_ends", diameter=1.5, length=0.0, dish_depth=dish
+    )
+    assert full > 0.0
+    assert half == pytest.approx(full / 2, rel=1e-3)
+
+
+def test_custom_strapping_missing_points_raises_value_error():
+    with pytest.raises(ValueError):
+        calculate_volume_for_shape(1.5, "custom_strapping", strapping={"method": "linear"})
+
+
+def test_custom_strapping_defaults_to_linear():
+    points = [(0.0, 0.0), (1.0, 100.0), (2.0, 250.0)]
+    v = calculate_volume_for_shape(
+        1.5, "custom_strapping", strapping={"points": points}
+    )
+    assert v == pytest.approx(175.0)
 
 
 def test_elliptical_ends_empty_level_zero():

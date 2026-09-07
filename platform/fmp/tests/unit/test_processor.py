@@ -64,6 +64,26 @@ def test_calculate_volume_handles_rectangular_shape():
     assert vol == pytest.approx(0.5 * 1.0 * 2.0 * 1000, abs=0.1)
 
 
+def test_calculate_volume_diameter_guard_skips_rectangular_shape():
+    vol = calculate_volume(
+        level=0.5, orientation="vertical", tank_diameter=0.0,
+        tank_shape="rectangular", tank_length=1.0, tank_width=1.0, tank_height=1.0,
+    )
+    assert vol == pytest.approx(0.5 * 1.0 * 1.0 * 1000, abs=0.1)
+
+
+def test_calculate_volume_zero_diameter_returns_zero_for_diameter_shapes():
+    assert (
+        calculate_volume(level=1.0, orientation="vertical", tank_diameter=0.0) == 0.0
+    )
+    assert (
+        calculate_volume(
+            level=1.0, orientation="horizontal", tank_diameter=0.0, tank_length=2.0
+        )
+        == 0.0
+    )
+
+
 def test_vertical_tank_level_clamped_to_tank_height():
     # height 2.0 m (raw reading 5.0 m) => uses 2.0 m, length irrelevant for vertical
     vol = calculate_volume(
