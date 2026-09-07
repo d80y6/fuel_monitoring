@@ -90,7 +90,7 @@
                     <h2 class="text-lg font-semibold text-gray-900">Email Settings</h2>
                 </div>
                 <div class="px-6 py-6">
-                    <form id="email-settings-form" method="post" action="{{ url_for('admin.update_system_settings') }}" class="space-y-5">
+                    <form id="email-settings-form" method="post" action="{{ url_for('admin.system_settings') }}" class="space-y-5">
                         <input type="hidden" name="form_type" value="email">
                         {{ email_form.csrf_token }}
 
@@ -168,7 +168,7 @@
                     <h2 class="text-lg font-semibold text-gray-900">Monitoring Settings</h2>
                 </div>
                 <div class="px-6 py-6">
-                    <form id="monitoring-settings-form" method="post" action="{{ url_for('admin.update_system_settings') }}" class="space-y-5">
+                    <form id="monitoring-settings-form" method="post" action="{{ url_for('admin.system_settings') }}" class="space-y-5">
                         <input type="hidden" name="form_type" value="monitoring">
                         {{ monitoring_form.csrf_token }}
 
@@ -247,7 +247,7 @@
                             <button id="create-backup-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium">
                                 <i data-lucide="database" class="h-4 w-4"></i> Create Backup
                             </button>
-                            <a href="{{ url_for('admin.download_latest_backup') }}" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
+                            <a href="{{ url_for('admin.backup_database') }}" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-sm font-medium">
                                 <i data-lucide="download" class="h-4 w-4"></i> Download Latest
                             </a>
                         </div>
@@ -257,7 +257,7 @@
                         <h3 class="text-sm font-semibold text-gray-900">System Logs</h3>
                         <p class="text-sm text-gray-500 mt-1">Download system logs for troubleshooting.</p>
                         <div class="mt-3">
-                            <a href="{{ url_for('admin.download_system_logs') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium">
+                            <a href="{{ url_for('admin.system_logs') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition text-sm font-medium">
                                 <i data-lucide="file-text" class="h-4 w-4"></i> Download Logs
                             </a>
                         </div>

@@ -10,7 +10,7 @@
         <div class="flex flex-col sm:flex-row items-center gap-6">
             <div class="flex-shrink-0">
                 {% if current_user.profile_image %}
-                <img src="{{ url_for('user.profile_image', filename=current_user.profile_image) }}" alt="Profile Image" class="h-24 w-24 rounded-full object-cover border-2 border-gray-200">
+                <img src="{{ url_for('static', filename='img/default-avatar.png') }}" alt="Profile Image" class="h-24 w-24 rounded-full object-cover border-2 border-gray-200">
                 {% else %}
                 <div class="h-24 w-24 rounded-full bg-gray-200 flex items-center justify-center">
                     <i data-lucide="user" class="h-12 w-12 text-gray-400"></i>
@@ -107,7 +107,7 @@
         </div>
 
         <div class="mt-4 text-center">
-            <a href="{{ url_for('user.activity') }}" class="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 transition">
+            <a href="{{ url_for('admin.activity_log') }}" class="inline-flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 transition">
                 <i data-lucide="external-link" class="h-4 w-4"></i>
                 View All Activity
             </a>
@@ -120,7 +120,7 @@
     <div class="flex min-h-full items-center justify-center p-4">
         <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit Profile</h3>
-            <form method="post" action="{{ url_for('user.update_profile') }}">
+            <form method="post" action="{{ url_for('auth.edit_profile') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="space-y-4">
                     <div>
@@ -155,7 +155,7 @@
     <div class="flex min-h-full items-center justify-center p-4">
         <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Change Password</h3>
-            <form method="post" action="{{ url_for('user.change_password') }}">
+            <form method="post" action="{{ url_for('auth.change_password') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="space-y-4">
                     <div>
@@ -185,7 +185,7 @@
     <div class="flex min-h-full items-center justify-center p-4">
         <div class="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Upload Profile Image</h3>
-            <form method="post" action="{{ url_for('user.upload_profile_image') }}" enctype="multipart/form-data">
+            <form method="post" action="{{ url_for('auth.edit_profile') }}" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="space-y-4">
                     <div>

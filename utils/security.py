@@ -23,7 +23,7 @@ def init_security_middleware(app):
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; "
             "img-src 'self' data:; "
             "font-src 'self' https://cdnjs.cloudflare.com; "
-            "connect-src 'self'; "
+            "connect-src 'self' https://cdn.jsdelivr.net https://unpkg.com; "
             "frame-ancestors 'none'; "
             "base-uri 'self'; "
             "form-action 'self'"

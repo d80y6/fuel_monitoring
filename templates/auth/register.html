@@ -1,52 +1,20 @@
 {% extends "base.html" %}
-
-{% block title %}Register - Fuel Tank Monitoring System{% endblock %}
-
+{% block title %}Register{% endblock %}
 {% block content %}
-<div class="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-    <div class="sm:mx-auto sm:w-full sm:max-w-lg">
-        <h2 class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">Register</h2>
-    </div>
-
-    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-lg">
-        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-            <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="first_name" class="block text-sm font-medium text-gray-700">First Name</label>
-                        <input type="text" class="mt-1 block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500" id="first_name" name="first_name" required>
-                    </div>
-                    <div>
-                        <label for="last_name" class="block text-sm font-medium text-gray-700">Last Name</label>
-                        <input type="text" class="mt-1 block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500" id="last_name" name="last_name" required>
-                    </div>
-                </div>
-                <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-                    <input type="text" class="mt-1 block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500" id="username" name="username" required>
-                </div>
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                    <input type="email" class="mt-1 block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500" id="email" name="email" required>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                        <input type="password" class="mt-1 block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500" id="password" name="password" required>
-                    </div>
-                    <div>
-                        <label for="confirm_password" class="block text-sm font-medium text-gray-700">Confirm Password</label>
-                        <input type="password" class="mt-1 block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500" id="confirm_password" name="confirm_password" required>
-                    </div>
-                </div>
-                <div>
-                    <button type="submit" class="flex w-full justify-center rounded-md border border-transparent bg-primary-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">Register</button>
-                </div>
-            </form>
-            <div class="mt-6 text-center text-sm text-gray-600">
-                <p>Already have an account? <a href="{{ url_for('auth.login') }}" class="font-medium text-primary-600 hover:text-primary-500">Login</a></p>
-            </div>
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+    <div class="max-w-md w-full space-y-8">
+        <div class="text-center">
+            <i data-lucide="user-plus" class="h-12 w-12 text-primary-600 mx-auto mb-4"></i>
+            <h2 class="text-2xl font-bold text-gray-900">Registration</h2>
+            <p class="mt-2 text-sm text-gray-600">Account registration is managed by your administrator.</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+            <p class="text-gray-600 mb-6">Please contact your system administrator to create a new account.</p>
+            <a href="{{ url_for('auth.login') }}" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition">
+                <i data-lucide="log-in" class="h-4 w-4"></i> Back to Login
+            </a>
         </div>
     </div>
 </div>
+<script>lucide.createIcons();</script>
 {% endblock %}

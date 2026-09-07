@@ -16,7 +16,7 @@
             <h2 class="text-lg font-medium text-gray-900">Company Information</h2>
         </div>
         <div class="px-6 py-4">
-            <form method="POST" action="{{ url_for('admin.edit_company', company_id=company.id) if company else url_for('admin.add_company') }}">
+            <form method="POST" action="{{ url_for('admin.edit_company', company_id=company.id) if company else url_for('admin.create_company') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -150,7 +150,7 @@
     <div class="bg-white shadow rounded-lg">
         <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
             <h2 class="text-lg font-medium text-gray-900">Sites</h2>
-            <a href="{{ url_for('admin.add_site', company_id=company.id) }}" class="inline-flex items-center gap-1 rounded-md bg-primary-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-primary-700 transition">
+            <a href="{{ url_for('admin.create_site', company_id=company.id) }}" class="inline-flex items-center gap-1 rounded-md bg-primary-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-primary-700 transition">
                 <i data-lucide="plus" class="h-4 w-4"></i> Add Site
             </a>
         </div>
@@ -187,7 +187,7 @@
                                     <a href="{{ url_for('admin.edit_site', site_id=site.id) }}" class="inline-flex items-center rounded p-1 text-gray-400 hover:text-gray-500" title="Edit">
                                         <i data-lucide="pencil" class="h-4 w-4"></i>
                                     </a>
-                                    <a href="{{ url_for('admin.site_tanks', site_id=site.id) }}" class="inline-flex items-center rounded p-1 text-gray-400 hover:text-gray-500" title="View Tanks">
+                                    <a href="{{ url_for('admin.site_detail', site_id=site.id) }}" class="inline-flex items-center rounded p-1 text-gray-400 hover:text-gray-500" title="View Tanks">
                                         <i data-lucide="fuel" class="h-4 w-4"></i>
                                     </a>
                                     <button class="inline-flex items-center rounded p-1 text-red-400 hover:text-red-500 delete-site-btn"

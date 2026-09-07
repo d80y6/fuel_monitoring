@@ -8,7 +8,7 @@
 <div class="space-y-6">
     <p class="text-gray-500 text-sm">{{ 'Update existing' if tank else 'Configure a new' }} tank in the system</p>
 
-    <form method="POST" action="{{ url_for('admin.edit_tank', tank_id=tank.id) if tank else url_for('admin.add_tank') }}">
+    <form method="POST" action="{{ url_for('admin.edit_tank', tank_id=tank.id) if tank else url_for('admin.create_tank') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -167,7 +167,7 @@
                 <i data-lucide="save" class="h-4 w-4"></i>
                 {{ 'Update' if tank else 'Create' }} Tank
             </button>
-            <a href="{{ url_for('admin.tanks') }}" class="border border-gray-300 px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 inline-flex items-center gap-2">
+            <a href="{{ url_for('admin.tanks_index') }}" class="border border-gray-300 px-6 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 inline-flex items-center gap-2">
                 <i data-lucide="x" class="h-4 w-4"></i>
                 Cancel
             </a>

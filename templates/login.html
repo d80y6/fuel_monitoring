@@ -62,7 +62,7 @@
                         {{ form.remember(class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500") }}
                         <span class="text-sm text-gray-600">Remember me</span>
                     </label>
-                    <a href="{{ url_for('auth.forgot_password') }}" class="text-sm text-primary-600 hover:text-primary-700 transition">Forgot password?</a>
+                    <a href="{{ url_for('auth.reset_password_request') }}" class="text-sm text-primary-600 hover:text-primary-700 transition">Forgot password?</a>
                 </div>
 
                 {{ form.submit(class="w-full bg-primary-600 text-white py-2.5 px-4 rounded-lg text-sm font-medium hover:bg-primary-700 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition") }}
@@ -70,8 +70,7 @@
 
             <div class="mt-6 text-center">
                 <p class="text-sm text-gray-600">
-                    Don't have an account?
-                    <a href="{{ url_for('auth.register') }}" class="text-primary-600 hover:text-primary-700 font-medium transition">Register</a>
+                    Contact your administrator to create an account.
                 </p>
             </div>
         </div>
