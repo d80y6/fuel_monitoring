@@ -1,0 +1,51 @@
+{% extends "admin/base.html" %}
+{% block title %}Reports - Admin{% endblock %}
+{% block page_title %}Reports{% endblock %}
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <a href="{{ url_for('admin.usage_report') }}" class="block p-6 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-primary-300 transition">
+        <div class="flex items-center gap-4">
+            <div class="p-3 bg-primary-100 rounded-lg">
+                <i data-lucide="bar-chart-3" class="h-6 w-6 text-primary-600"></i>
+            </div>
+            <div>
+                <h3 class="font-semibold text-gray-900">Usage Report</h3>
+                <p class="text-sm text-gray-500">Fuel consumption analytics</p>
+            </div>
+        </div>
+    </a>
+    <a href="{{ url_for('admin.alarm_report') }}" class="block p-6 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-primary-300 transition">
+        <div class="flex items-center gap-4">
+            <div class="p-3 bg-red-100 rounded-lg">
+                <i data-lucide="alert-triangle" class="h-6 w-6 text-red-600"></i>
+            </div>
+            <div>
+                <h3 class="font-semibold text-gray-900">Alarm Report</h3>
+                <p class="text-sm text-gray-500">Alarm history and trends</p>
+            </div>
+        </div>
+    </a>
+    <a href="{{ url_for('admin.inventory_report') }}" class="block p-6 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-primary-300 transition">
+        <div class="flex items-center gap-4">
+            <div class="p-3 bg-emerald-100 rounded-lg">
+                <i data-lucide="package" class="h-6 w-6 text-emerald-600"></i>
+            </div>
+            <div>
+                <h3 class="font-semibold text-gray-900">Inventory Report</h3>
+                <p class="text-sm text-gray-500">Current stock levels</p>
+            </div>
+        </div>
+    </a>
+    <a href="{{ url_for('admin.export_report') }}" class="block p-6 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-primary-300 transition">
+        <div class="flex items-center gap-4">
+            <div class="p-3 bg-amber-100 rounded-lg">
+                <i data-lucide="download" class="h-6 w-6 text-amber-600"></i>
+            </div>
+            <div>
+                <h3 class="font-semibold text-gray-900">Export Data</h3>
+                <p class="text-sm text-gray-500">Download CSV reports</p>
+            </div>
+        </div>
+    </a>
+</div>
+{% endblock %}

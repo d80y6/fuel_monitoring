@@ -1,0 +1,35 @@
+{% extends "admin/base.html" %}
+{% block title %}Inventory Report - Admin{% endblock %}
+{% block page_title %}Inventory Report{% endblock %}
+{% block content %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div id="inventory-chart-container" class="h-96">
+        <canvas id="inventoryChart"></canvas>
+    </div>
+    <p class="text-sm text-gray-500 mt-4 text-center">Chart data loads from <code>/api/reports/inventory</code></p>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/reports/inventory')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            const ctx = document.getElementById('inventoryChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.data.map(d => d.tank_name),
+                    datasets: [{
+                        label: 'Current Level (%)',
+                        data: data.data.map(d => d.current_level),
+                        backgroundColor: '#10b981'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        });
+});
+</script>
+{% endblock %}
