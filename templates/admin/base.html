@@ -39,6 +39,18 @@
                 <a href="{{ url_for('admin.alarms_index') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-gray-800 transition">
                     <i data-lucide="bell" class="h-4 w-4"></i> Alarms
                 </a>
+                <a href="{{ url_for('admin.reports') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-gray-800 transition">
+                    <i data-lucide="bar-chart-3" class="h-4 w-4"></i> Reports
+                </a>
+                <a href="{{ url_for('admin.activity_log') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-gray-800 transition">
+                    <i data-lucide="scroll-text" class="h-4 w-4"></i> Activity Log
+                </a>
+                <a href="{{ url_for('admin.deleted_records') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-gray-800 transition">
+                    <i data-lucide="trash-2" class="h-4 w-4"></i> Deleted Records
+                </a>
+                <a href="{{ url_for('admin.system_settings') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-gray-800 transition">
+                    <i data-lucide="settings" class="h-4 w-4"></i> System Settings
+                </a>
             </nav>
             <div class="p-4 border-t border-gray-800">
                 <a href="{{ url_for('dashboard') }}" class="flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-gray-800 transition">
