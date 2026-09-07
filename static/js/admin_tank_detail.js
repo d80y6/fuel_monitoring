@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const exportBtn = document.getElementById('export-data');
     if (exportBtn) {
         exportBtn.addEventListener('click', function() {
-            window.location.href = `/download/tank/${tankId}/csv?hours=24`;
+            window.location.href = `/download/tank/${tankId}/csv?days=1`;
         });
     }
     

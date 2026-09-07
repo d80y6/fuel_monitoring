@@ -854,6 +854,42 @@ def api_alarms():
 def daily_usage():
     return jsonify(get_daily_usage_data())
 
+@app.route('/api/history')
+@login_required
+def api_history():
+    """General history API for history.js"""
+    hours = request.args.get('hours', 24, type=int)
+    tank_id = request.args.get('tank_id', None, type=int)
+    threshold = datetime.now() - timedelta(hours=hours)
+    
+    query = Measurement.query.filter(Measurement.timestamp >= threshold)
+    if tank_id:
+        query = query.filter_by(tank_id=tank_id)
+    
+    measurements = query.order_by(Measurement.timestamp.desc()).limit(200).all()
+    return jsonify({
+        'success': True,
+        'measurements': [{
+            'id': m.id, 'tank_id': m.tank_id, 'level': m.level,
+            'volume_liters': m.volume_liters, 'timestamp': m.timestamp.isoformat(),
+        } for m in measurements]
+    })
+
+@app.route('/api/events/<int:event_id>')
+@login_required
+def api_event_detail(event_id):
+    """Event detail API for tank_history.js"""
+    measurement = Measurement.query.get_or_404(event_id)
+    return jsonify({
+        'success': True,
+        'event': {
+            'id': measurement.id, 'tank_id': measurement.tank_id,
+            'level': measurement.level, 'volume_liters': measurement.volume_liters,
+            'timestamp': measurement.timestamp.isoformat(),
+            'tank_name': measurement.tank.name if measurement.tank else None,
+        }
+    })
+
 
 @app.route('/download/tank/<int:tank_id>/csv')
 @login_required

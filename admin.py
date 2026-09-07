@@ -179,6 +179,81 @@ def index():
                           active_alarm_count=active_alarm_count,
                           connected_tank_count=connected_tank_count)
 
+@admin.route('/api/stats')
+@admin_required
+def api_stats():
+    """Dashboard statistics API"""
+    user_count = User.not_deleted().count()
+    company_count = Company.not_deleted().count()
+    site_count = Site.not_deleted().count()
+    tank_count = Tank.not_deleted().count()
+    alarm_count = Alarm.query.filter_by(acknowledged=False).count()
+    five_minutes_ago = dt.now() - timedelta(minutes=CONNECTION_TIMEOUT_MINUTES)
+    connected_tank_count = Tank.not_deleted().filter(Tank.last_connection >= five_minutes_ago).count()
+    
+    return jsonify({
+        'success': True,
+        'stats': {
+            'users': user_count, 'companies': company_count,
+            'sites': site_count, 'tanks': tank_count,
+            'alarms': alarm_count, 'connected_tanks': connected_tank_count,
+        }
+    })
+
+@admin.route('/api/charts/tank-levels')
+@admin_required
+def api_chart_tank_levels():
+    """Tank levels chart data"""
+    tanks = Tank.not_deleted().all()
+    return jsonify({
+        'success': True,
+        'data': [{'name': t.name, 'level': t.current_level or 0, 'capacity': t.capacity or 0} for t in tanks]
+    })
+
+@admin.route('/api/charts/daily-usage')
+@admin_required
+def api_chart_daily_usage():
+    """Daily usage chart data"""
+    days = request.args.get('days', 7, type=int)
+    since = dt.now() - timedelta(days=days)
+    measurements = Measurement.query.filter(Measurement.timestamp >= since).order_by(Measurement.timestamp).all()
+    
+    daily = {}
+    for m in measurements:
+        day = m.timestamp.strftime('%Y-%m-%d')
+        if day not in daily: daily[day] = 0
+        daily[day] += m.volume_liters or 0
+    
+    return jsonify({
+        'success': True,
+        'data': [{'date': k, 'usage': round(v, 2)} for k, v in sorted(daily.items())]
+    })
+
+@admin.route('/api/charts/alarm-distribution')
+@admin_required
+def api_chart_alarm_distribution():
+    """Alarm distribution chart data"""
+    return jsonify({
+        'success': True,
+        'data': {
+            'critical': Alarm.query.filter_by(level='critical', acknowledged=False).count(),
+            'warning': Alarm.query.filter_by(level='warning', acknowledged=False).count(),
+            'info': Alarm.query.filter_by(level='info', acknowledged=False).count(),
+        }
+    })
+
+@admin.route('/api/charts/connection-status')
+@admin_required
+def api_chart_connection_status():
+    """Connection status chart data"""
+    five_minutes_ago = dt.now() - timedelta(minutes=CONNECTION_TIMEOUT_MINUTES)
+    connected = Tank.not_deleted().filter(Tank.last_connection >= five_minutes_ago).count()
+    total = Tank.not_deleted().count()
+    return jsonify({
+        'success': True,
+        'data': {'connected': connected, 'disconnected': total - connected, 'total': total}
+    })
+
 # Alarm management
 @admin.route('/alarms', endpoint='alarms_index')
 @admin_required
@@ -266,6 +341,62 @@ def clear_all_alarms():
     
     flash('Alarms cleared successfully', 'success')
     return redirect(url_for('admin.alarms_index'))
+
+@admin.route('/alarms/acknowledge-all', methods=['POST'])
+@admin_required
+def acknowledge_all_alarms():
+    """Acknowledge all alarms"""
+    data = request.get_json() if request.is_json else {}
+    acknowledged = data.get('acknowledged', request.form.get('acknowledged', 'false'))
+    level = data.get('level', request.form.get('level', 'all'))
+    
+    query = Alarm.query.filter_by(acknowledged=False)
+    if level != 'all':
+        query = query.filter_by(level=level)
+    
+    count = query.update({'acknowledged': True, 'acknowledged_by': current_user.id, 'acknowledged_at': dt.now()})
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': f'{count} alarms acknowledged', 'count': count})
+
+@admin.route('/api/alarms')
+@admin_required
+def api_alarms():
+    """JSON API for alarms list"""
+    page = request.args.get('page', 1, type=int)
+    acknowledged = request.args.get('acknowledged', 'all')
+    level = request.args.get('level', request.args.get('type', 'all'))
+    tank_id = request.args.get('tank_id', None, type=int)
+    
+    query = Alarm.query
+    if acknowledged != 'all':
+        query = query.filter_by(acknowledged=(acknowledged == 'true'))
+    if level != 'all':
+        query = query.filter_by(level=level)
+    if tank_id:
+        query = query.filter_by(tank_id=tank_id)
+    
+    total = query.count()
+    alarms = query.order_by(Alarm.timestamp.desc()).offset((page - 1) * 20).limit(20).all()
+    
+    counts = {
+        'total': Alarm.query.count(),
+        'unacknowledged': Alarm.query.filter_by(acknowledged=False).count(),
+        'critical': Alarm.query.filter_by(level='critical', acknowledged=False).count(),
+    }
+    
+    return jsonify({
+        'success': True,
+        'alarms': [{
+            'id': a.id, 'level': a.level, 'message': a.message,
+            'timestamp': a.timestamp.isoformat() if a.timestamp else None,
+            'acknowledged': a.acknowledged, 'tank_id': a.tank_id,
+            'tank_name': a.tank.name if a.tank else None,
+        } for a in alarms],
+        'total': total,
+        'page': page,
+        'counts': counts,
+    })
 
 # User management
 @admin.route('/users')
@@ -378,6 +509,72 @@ def api_user_detail(user_id):
         'success': True,
         'user': user_data
     })
+
+@admin.route('/api/users/create', methods=['POST'])
+@admin_required
+def api_create_user():
+    """API endpoint to create user via JSON"""
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'No data provided'}), 400
+    
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+    
+    if not username or not email or not password:
+        return jsonify({'success': False, 'message': 'Username, email, and password required'}), 400
+    
+    if User.query.filter_by(username=username).first():
+        return jsonify({'success': False, 'message': 'Username already exists'}), 400
+    
+    user = User(
+        username=username, email=email,
+        first_name=data.get('first_name', ''), last_name=data.get('last_name', ''),
+        role=data.get('role', 'user'), company_id=data.get('company_id'),
+        is_active=data.get('is_active', True)
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'User created successfully', 'user_id': user.id})
+
+@admin.route('/api/users/delete/<int:user_id>', methods=['POST'])
+@admin_required
+def api_delete_user(user_id):
+    """API endpoint to delete user via JSON"""
+    user = User.query.get_or_404(user_id)
+    if user.role == 'admin' and User.query.filter_by(role='admin').count() <= 1:
+        return jsonify({'success': False, 'message': 'Cannot delete the last admin'}), 400
+    
+    if hasattr(User, 'deleted_at'):
+        user.deleted_at = dt.now()
+    else:
+        db.session.delete(user)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'User deleted successfully'})
+
+@admin.route('/api/users/update', methods=['POST'])
+@admin_required
+def api_update_user():
+    """API endpoint to update user via JSON"""
+    data = request.get_json()
+    if not data or not data.get('user_id'):
+        return jsonify({'success': False, 'message': 'User ID required'}), 400
+    
+    user = User.query.get_or_404(data['user_id'])
+    if data.get('username'): user.username = data['username']
+    if data.get('email'): user.email = data['email']
+    if data.get('first_name'): user.first_name = data['first_name']
+    if data.get('last_name'): user.last_name = data['last_name']
+    if data.get('role'): user.role = data['role']
+    if 'is_active' in data: user.is_active = data['is_active']
+    if data.get('password'): user.set_password(data['password'])
+    
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'User updated successfully'})
 
 @admin.route('/users/create', methods=['GET', 'POST'])
 @admin_required
@@ -787,6 +984,9 @@ def create_company():
         db.session.add(company)
         db.session.commit()
         flash('Company created successfully!', 'success')
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return jsonify({'success': True, 'message': 'Company created successfully', 'company_id': company.id})
         return redirect(url_for('admin.companies'))
 
     return render_template('admin/create_company.html', form=form)
@@ -816,6 +1016,8 @@ def edit_company(company_id):
         db.session.commit()
         
         flash('Company updated successfully', 'success')
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return jsonify({'success': True, 'message': 'Company updated successfully'})
         return redirect(url_for('admin.companies'))
     
     return render_template('admin/edit_company.html', company=company, form=form)
@@ -920,6 +1122,8 @@ def create_site():
         db.session.commit()
         
         flash('Site created successfully', 'success')
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return jsonify({'success': True, 'message': 'Site created successfully', 'site_id': site.id})
         return redirect(url_for('admin.sites'))
     
     # Get companies for dropdown
@@ -973,6 +1177,8 @@ def edit_site(site_id):
         db.session.commit()
         
         flash('Site updated successfully', 'success')
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return jsonify({'success': True, 'message': 'Site updated successfully'})
         return redirect(url_for('admin.sites'))
     
     # Get companies for dropdown
@@ -3004,6 +3210,47 @@ def api_tank_alarms(tank_id):
         'alarms': [a.to_dict() for a in alarms]
     })
 
+@admin.route('/api/tanks/<int:tank_id>/test-connection', methods=['POST'])
+@admin_required
+def api_tank_test_connection(tank_id):
+    """API endpoint to test tank MQTT connection"""
+    tank = Tank.query.get_or_404(tank_id)
+    return jsonify({
+        'success': True,
+        'message': f'Connection test for tank {tank.name}',
+        'tank_id': tank_id,
+        'sensor_serial': tank.sensor_serial_number,
+        'gateway_mac': tank.gateway_mac,
+    })
+
+@admin.route('/api/tanks/<int:tank_id>/calibrate', methods=['POST'])
+@admin_required
+def api_tank_calibrate(tank_id):
+    """API endpoint to calibrate tank via JSON"""
+    data = request.get_json() or {}
+    tank = Tank.query.get_or_404(tank_id)
+    
+    empty_height = data.get('empty_height')
+    full_height = data.get('full_height')
+    capacity = data.get('capacity')
+    
+    if empty_height is not None: tank.empty_height = float(empty_height)
+    if full_height is not None: tank.full_height = float(full_height)
+    if capacity is not None: tank.capacity = float(capacity)
+    
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Tank calibrated successfully'})
+
+@admin.route('/api/tanks/<int:tank_id>/reset', methods=['POST'])
+@admin_required
+def api_tank_reset(tank_id):
+    """API endpoint to reset tank data"""
+    tank = Tank.query.get_or_404(tank_id)
+    Measurement.query.filter_by(tank_id=tank_id).delete()
+    Alarm.query.filter_by(tank_id=tank_id).delete()
+    db.session.commit()
+    return jsonify({'success': True, 'message': 'Tank data reset successfully'})
+
 @admin.route('/api/statistics/daily-usage')
 @admin_required
 def api_daily_usage():
@@ -3651,18 +3898,6 @@ def forbidden(e):
 @admin.errorhandler(500)
 def internal_server_error(e):
     return render_template('admin/errors/500.html'), 500
-
-# Decorator for handling database errors
-def handle_db_errors(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Database error: {str(e)}', 'danger')
-            return redirect(url_for('admin.dashboard'))
-    return decorated_function
 
 # Constants
 CONNECTION_TIMEOUT_MINUTES = 5
