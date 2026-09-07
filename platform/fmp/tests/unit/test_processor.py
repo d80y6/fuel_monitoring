@@ -51,9 +51,17 @@ def test_vertical_tank_volume():
     # r=0.75m, level 1.0m => pi*0.75^2*1.0 m3 = 1767.146 L
     vol = calculate_volume(
         level=1.0, orientation="vertical",
-        tank_diameter=1.5, tank_length=2.0,
+        tank_diameter=1.5, tank_length=2.0, tank_height=2.0,
     )
     assert vol == pytest.approx(math.pi * 0.75**2 * 1.0 * 1000, abs=0.1)
+
+
+def test_calculate_volume_handles_rectangular_shape():
+    vol = calculate_volume(
+        level=0.5, tank_shape="rectangular", orientation="vertical",
+        tank_diameter=1.5, tank_length=2.0, tank_height=1.5, tank_width=1.0,
+    )
+    assert vol == pytest.approx(0.5 * 1.0 * 2.0 * 1000, abs=0.1)
 
 
 def test_vertical_tank_level_clamped_to_tank_height():

@@ -8,8 +8,6 @@ adds EMA smoothing and MAD Z-score outlier rejection.
 """
 from __future__ import annotations
 
-import math
-
 STANDARD_GRAVITY = 9.80665
 GRAVITY_GRADIENT = 3.086e-6
 
@@ -57,54 +55,40 @@ def pressure_to_level(
     return round(level * calibration_factor, 3)
 
 
-def _horizontal_tank_level_to_volume(level: float, diameter: float, length: float) -> float:
-    level = max(0.0, min(level, diameter))
-    radius = diameter / 2.0
-
-    if level <= 0.001:
-        return 0.0
-    if level >= diameter - 0.001:
-        return math.pi * radius**2 * length * 1000
-
-    if level <= radius:
-        theta = 2 * math.acos((radius - level) / radius)
-        area = (radius**2 * (theta - math.sin(theta))) / 2
-    else:
-        h_empty = diameter - level
-        theta = 2 * math.acos((radius - h_empty) / radius)
-        empty_area = (radius**2 * (theta - math.sin(theta))) / 2
-        area = math.pi * radius**2 - empty_area
-
-    return area * length * 1000
-
-
 def calculate_volume(
     level: float,
     orientation: str,
     tank_diameter: float,
-    tank_length: float | None,
+    tank_length: float | None = None,
     tank_height: float | None = None,
+    *,
+    tank_shape: str | None = None,
+    tank_width: float | None = None,
+    dish_depth: float | None = None,
+    strapping: dict | None = None,
 ) -> float:
     """Volume in liters from a level reading, clamped to physical dimensions.
 
-    ``orientation`` is ``"vertical"`` or ``"horizontal"``. For vertical tanks the
-    usable height is ``tank_height``; for horizontal tanks ``tank_length`` is the
-    cylinder length and ``tank_diameter`` the shell diameter.
+    ``tank_shape`` dispatches the geometry (default derived from ``orientation``
+    for backward compatibility: vertical -> vertical_cylinder, else horizontal).
     """
     if tank_diameter <= 0:
         return 0.0
+    shape = tank_shape or ("vertical_cylinder" if orientation == "vertical" else "horizontal_cylinder")
+    from fmp.ingestion.tank_geometry import calculate_volume_for_shape
 
-    if orientation == "horizontal":
-        max_level = tank_diameter
-        length = tank_length or 0.0
-        raw_volume = _horizontal_tank_level_to_volume(level, tank_diameter, length)
-    else:
-        max_level = tank_height or tank_diameter
-        level = max(0.0, min(level, max_level))
-        volume_m3 = math.pi * (tank_diameter / 2.0) ** 2 * level
-        raw_volume = volume_m3 * 1000
-
-    return round(raw_volume, 1)
+    return round(
+        calculate_volume_for_shape(
+            level, shape,
+            diameter=tank_diameter,
+            length=tank_length,
+            height=tank_height,
+            width=tank_width,
+            dish_depth=dish_depth,
+            strapping=strapping,
+        ),
+        1,
+    )
 
 
 def fill_percent(volume: float, total_capacity_liters: float) -> float:
