@@ -17,7 +17,8 @@ def test_cubic_spline_interpolates_between_knots_smoothly():
     points = [(0.0, 0.0), (1.0, 100.0), (2.0, 300.0), (3.0, 550.0)]
     mid = interpolate_strapping(points, 1.5, "cubic_spline")
     assert 100.0 < mid < 300.0
-    assert mid == pytest.approx(188.75, abs=20.0)  # smooth, not linear (200)
+    assert mid < 200.0, "cubic spline must not degenerate to linear"
+    assert mid == pytest.approx(188.75, abs=1.0)  # smooth, not linear (200)
 
 
 def test_strapping_clamps_outside_domain():
