@@ -15,11 +15,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import desc, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from fmp.core.database import get_session
+from fmp.api.deps import CurrentUser, PrivilegedUser, SessionDep
 from fmp.models import Alarm, Measurement, Tank
 from fmp.schemas.tanks import (
     AlarmAckOutcome,
@@ -35,7 +34,8 @@ router = APIRouter(prefix="/api/v1/tanks", tags=["tanks"])
 @router.get("", response_model=list[TankRead])
 async def list_tanks(
     site_id: uuid.UUID | None = None,
-    session: AsyncSession = Depends(get_session),
+    session: SessionDep = None,
+    _: CurrentUser = None,
 ):
     stmt = select(Tank).where(Tank.deleted_at.is_(None))
     if site_id:
@@ -45,7 +45,9 @@ async def list_tanks(
 
 
 @router.post("", response_model=TankRead, status_code=201)
-async def create_tank(payload: TankCreate, session: AsyncSession = Depends(get_session)):
+async def create_tank(
+    payload: TankCreate, session: SessionDep = None, _: PrivilegedUser = None
+):
     dup = (
         await session.execute(
             select(Tank).where(Tank.sensor_serial_number == payload.sensor_serial_number)
@@ -61,7 +63,7 @@ async def create_tank(payload: TankCreate, session: AsyncSession = Depends(get_s
 
 
 @router.get("/{tank_id}", response_model=TankRead)
-async def get_tank(tank_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+async def get_tank(tank_id: uuid.UUID, session: SessionDep = None, _: CurrentUser = None):
     tank = (
         await session.execute(select(Tank).where(Tank.id == tank_id))
     ).scalar_one_or_none()
@@ -74,7 +76,8 @@ async def get_tank(tank_id: uuid.UUID, session: AsyncSession = Depends(get_sessi
 async def recent_measurements(
     tank_id: uuid.UUID,
     limit: int = Query(default=100, ge=1, le=1000),
-    session: AsyncSession = Depends(get_session),
+    session: SessionDep = None,
+    _: CurrentUser = None,
 ):
     rows = (
         await session.execute(
@@ -100,7 +103,8 @@ async def range_measurements(
     start: datetime = Query(...),
     end: datetime = Query(...),
     bucket: str = Query(default="5 minutes"),
-    session: AsyncSession = Depends(get_session),
+    session: SessionDep = None,
+    _: CurrentUser = None,
 ):
     """Time-bucketed averages for charting (TimescaleDB time_bucket continuous
     aggregation over 5-minute buckets)."""
@@ -137,7 +141,8 @@ async def tank_alarms(
     tank_id: uuid.UUID,
     open_only: bool = False,
     limit: int = Query(default=50, ge=1, le=500),
-    session: AsyncSession = Depends(get_session),
+    session: SessionDep = None,
+    _: CurrentUser = None,
 ):
     stmt = select(Alarm).where(Alarm.tank_id == tank_id)
     if open_only:
@@ -153,7 +158,8 @@ async def acknowledge_alarm(
     tank_id: uuid.UUID,
     alarm_id: uuid.UUID,
     acknowledged_by: uuid.UUID | None = Query(default=None),
-    session: AsyncSession = Depends(get_session),
+    session: SessionDep = None,
+    _: PrivilegedUser = None,
 ):
     alarm = (
         await session.execute(

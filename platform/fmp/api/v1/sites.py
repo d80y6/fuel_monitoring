@@ -6,7 +6,7 @@ import uuid
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
-from fmp.api.deps import CurrentUser, SessionDep
+from fmp.api.deps import CurrentUser, PrivilegedUser, SessionDep
 from fmp.models import Site, Station
 from fmp.schemas.org import SiteCreate, SiteRead, SiteUpdate, StationRead
 
@@ -24,7 +24,7 @@ async def list_sites(_: CurrentUser, session: SessionDep):
 
 
 @router.post("", response_model=SiteRead, status_code=201)
-async def create_site(payload: SiteCreate, _: CurrentUser, session: SessionDep):
+async def create_site(payload: SiteCreate, _: PrivilegedUser, session: SessionDep):
     site = Site(**payload.model_dump())
     session.add(site)
     await session.commit()
@@ -44,7 +44,7 @@ async def get_site(site_id: uuid.UUID, _: CurrentUser, session: SessionDep):
 
 @router.patch("/{site_id}", response_model=SiteRead)
 async def update_site(
-    site_id: uuid.UUID, payload: SiteUpdate, _: CurrentUser, session: SessionDep
+    site_id: uuid.UUID, payload: SiteUpdate, _: PrivilegedUser, session: SessionDep
 ):
     site = (
         await session.execute(select(Site).where(Site.id == site_id))
@@ -59,7 +59,7 @@ async def update_site(
 
 
 @router.delete("/{site_id}", status_code=204)
-async def delete_site(site_id: uuid.UUID, _: CurrentUser, session: SessionDep):
+async def delete_site(site_id: uuid.UUID, _: PrivilegedUser, session: SessionDep):
     site = (
         await session.execute(select(Site).where(Site.id == site_id))
     ).scalar_one_or_none()

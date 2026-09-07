@@ -52,3 +52,7 @@ def require_roles(*roles: str):
         return user
 
     return _guard
+
+
+#: Mutation-capable staff: admin + company_admin.
+PrivilegedUser = Annotated[User, Depends(require_roles("admin", "company_admin"))]

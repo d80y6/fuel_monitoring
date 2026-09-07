@@ -12,6 +12,7 @@ from fmp.api.v1 import (
 from fmp.api.v1 import (
     companies,
     dispensing,
+    notifications,
     realtime,
     sites,
     stations,
@@ -45,6 +46,7 @@ app.include_router(realtime.router)
 app.include_router(companies.router)
 app.include_router(sites.router)
 app.include_router(stations.router)
+app.include_router(notifications.router)
 app.include_router(totalizers.router)
 
 

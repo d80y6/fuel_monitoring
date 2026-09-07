@@ -6,7 +6,7 @@ import uuid
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
-from fmp.api.deps import CurrentUser, SessionDep
+from fmp.api.deps import CurrentUser, PrivilegedUser, SessionDep
 from fmp.models import Dispenser, Station
 from fmp.schemas.org import (
     DispenserCreate,
@@ -34,7 +34,7 @@ async def list_stations(
 
 
 @router.post("", response_model=StationRead, status_code=201)
-async def create_station(payload: StationCreate, _: CurrentUser, session: SessionDep):
+async def create_station(payload: StationCreate, _: PrivilegedUser, session: SessionDep):
     dup = (
         await session.execute(select(Station).where(Station.serial_number == payload.serial_number))
     ).scalar_one_or_none()
@@ -59,7 +59,7 @@ async def get_station(station_id: uuid.UUID, _: CurrentUser, session: SessionDep
 
 @router.patch("/{station_id}", response_model=StationRead)
 async def update_station(
-    station_id: uuid.UUID, payload: StationUpdate, _: CurrentUser, session: SessionDep
+    station_id: uuid.UUID, payload: StationUpdate, _: PrivilegedUser, session: SessionDep
 ):
     station = (
         await session.execute(select(Station).where(Station.id == station_id))
@@ -74,7 +74,7 @@ async def update_station(
 
 
 @router.delete("/{station_id}", status_code=204)
-async def delete_station(station_id: uuid.UUID, _: CurrentUser, session: SessionDep):
+async def delete_station(station_id: uuid.UUID, _: PrivilegedUser, session: SessionDep):
     station = (
         await session.execute(select(Station).where(Station.id == station_id))
     ).scalar_one_or_none()
@@ -86,7 +86,7 @@ async def delete_station(station_id: uuid.UUID, _: CurrentUser, session: Session
 
 @router.post("/{station_id}/dispensers", response_model=DispenserRead, status_code=201)
 async def create_dispenser(
-    station_id: uuid.UUID, payload: DispenserCreate, _: CurrentUser, session: SessionDep
+    station_id: uuid.UUID, payload: DispenserCreate, _: PrivilegedUser, session: SessionDep
 ):
     dispenser = Dispenser(**{**payload.model_dump(), "station_id": station_id})
     session.add(dispenser)

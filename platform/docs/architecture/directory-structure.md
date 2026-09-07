@@ -132,16 +132,17 @@ fuel_monitoring/
 │   │   │
 │   │   ├── api/                          # ===== Central API =====
 │   │   │   ├── __init__.py
-│   │   │   ├── deps.py                  # session, get_current_user, require_roles
+│   │   │   ├── deps.py                  # session, get_current_user, require_roles + PrivilegedUser
 │   │   │   ├── main.py                   # FastAPI :8000, routers, CORS
 │   │   │   ├── realtime.py               # in-process WebSocket push manager
 │   │   │   └── v1/
 │   │   │       ├── __init__.py
 │   │   │       ├── auth.py              # POST /auth/login, GET /auth/me
-│   │   │       ├── companies.py         # company registry CRUD
-│   │   │       ├── sites.py             # site CRUD + stations
-│   │   │       ├── stations.py          # station CRUD + dispensers
-│   │   │       ├── dispensing.py        # upload / validate / complete
+│   │   │   ├── companies.py         # company registry CRUD (role-guarded)
+│   │   │   ├── sites.py             # site CRUD + stations (role-guarded)
+│   │   │   ├── stations.py          # station CRUD + dispensers (role-guarded)
+│   │   │   ├── notifications.py     # notification-gateway CRUD (role-guarded)
+│   │   │   ├── dispensing.py        # upload / validate / complete
 │   │   │       ├── tanks.py             # tank inventory + telemetry + alarms
 │   │   │       ├── totalizers.py        # secret counter readback series
 │   │   │       └── realtime.py          # /ws/telemetry + /ws/alarms stream
@@ -171,9 +172,12 @@ fuel_monitoring/
 │   │   │   ├── test_auth.py           # authenticate + JWT load
 │   │   │   └── test_totalizer_audit.py
 │   │   └── integration/
+│   │       ├── conftest.py                    # shared db fixture + override reset
 │   │       ├── test_dispense_flow.py
 │   │       ├── test_telemetry_pipeline.py  # hypertables + full pipeline
-│   │       └── test_api_surface.py         # live org CRUD + authz via httpx
+│   │       ├── test_api_surface.py         # live org CRUD + authz via httpx
+│   │       ├── test_notification_gateways.py # gateway CRUD via httpx
+│   │       └── test_role_hardening.py      # auth + role guards on reads/mutations
 │   │
 │   └── alembic/
 │

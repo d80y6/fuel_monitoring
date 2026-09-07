@@ -5,37 +5,13 @@ Requires Postgres + TimescaleDB; skipped when unreachable.
 """
 from __future__ import annotations
 
-import os
 import uuid
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import text
 
 pytestmark = pytest.mark.asyncio
-
-
-@pytest.fixture(scope="module")
-def requires_infra():
-    return True
-
-
-@pytest_asyncio.fixture
-async def db():
-    os.environ.setdefault("POSTGRES_DB", "fuel_test")
-    from fmp.core.database import Base, async_session_factory, engine
-    from fmp.ingestion.batch_writer import ensure_hypertables
-    import fmp.models  # noqa: F401
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS timescaledb"))
-    async with async_session_factory() as session:
-        await ensure_hypertables(session)
-    yield
-    await engine.dispose()
 
 
 async def test_end_to_end_org_authz(db):

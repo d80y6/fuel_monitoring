@@ -6,7 +6,7 @@ import uuid
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
-from fmp.api.deps import CurrentUser, SessionDep
+from fmp.api.deps import CurrentUser, PrivilegedUser, SessionDep
 from fmp.models import Company, Site
 from fmp.schemas.org import CompanyCreate, CompanyRead, CompanyUpdate, SiteRead
 
@@ -24,7 +24,7 @@ async def list_companies(_: CurrentUser, session: SessionDep):
 
 
 @router.post("", response_model=CompanyRead, status_code=201)
-async def create_company(payload: CompanyCreate, _: CurrentUser, session: SessionDep):
+async def create_company(payload: CompanyCreate, _: PrivilegedUser, session: SessionDep):
     dup = (
         await session.execute(select(Company).where(Company.name == payload.name))
     ).scalar_one_or_none()
@@ -49,7 +49,7 @@ async def get_company(company_id: uuid.UUID, _: CurrentUser, session: SessionDep
 
 @router.patch("/{company_id}", response_model=CompanyRead)
 async def update_company(
-    company_id: uuid.UUID, payload: CompanyUpdate, _: CurrentUser, session: SessionDep
+    company_id: uuid.UUID, payload: CompanyUpdate, _: PrivilegedUser, session: SessionDep
 ):
     company = (
         await session.execute(select(Company).where(Company.id == company_id))
@@ -64,7 +64,7 @@ async def update_company(
 
 
 @router.delete("/{company_id}", status_code=204)
-async def delete_company(company_id: uuid.UUID, _: CurrentUser, session: SessionDep):
+async def delete_company(company_id: uuid.UUID, _: PrivilegedUser, session: SessionDep):
     company = (
         await session.execute(select(Company).where(Company.id == company_id))
     ).scalar_one_or_none()
