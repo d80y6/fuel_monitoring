@@ -33,6 +33,8 @@
 </div>
 {% endblock %}
 {% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/chartjs-adapter-date-fns.bundle.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/chart-factory.js') }}"></script>
 <script>
 const TANK_ID = {{ tank.id if tank else 'null' }};

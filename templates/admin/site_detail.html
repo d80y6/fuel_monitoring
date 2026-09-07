@@ -254,6 +254,8 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/chartjs-adapter-date-fns.bundle.min.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const siteId = document.getElementById('site-data').getAttribute('data-site-id');
