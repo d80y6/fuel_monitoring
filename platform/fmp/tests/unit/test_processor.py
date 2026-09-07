@@ -15,7 +15,6 @@ from fmp.ingestion.processor import (
     elevation_compensated_gravity,
     fill_percent,
     pressure_to_level,
-    temperature_compensated_density,
 )
 
 
@@ -95,21 +94,6 @@ def test_fill_percent_bounds():
     assert fill_percent(0.0, 1000.0) == 0.0
     assert fill_percent(1500.0, 1000.0) == 100.0
     assert fill_percent(0.0, 0.0) == 0.0
-
-
-# --------------------------------------------------------------------------
-# temperature compensated density
-# --------------------------------------------------------------------------
-def test_density_compensation_diesel():
-    # diesel (density ~850) -> thermal expansion 0.00080, damping 0.4
-    d = temperature_compensated_density(850.0, 25.0)
-    expected = 850.0 / (1 + 0.00080 * 0.4 * (25 - 15))
-    assert d == pytest.approx(expected, rel=1e-6)
-
-
-def test_density_compensation_returns_base_when_near_ref():
-    d = temperature_compensated_density(850.0, 15.0)
-    assert d == pytest.approx(850.0)
 
 
 # --------------------------------------------------------------------------

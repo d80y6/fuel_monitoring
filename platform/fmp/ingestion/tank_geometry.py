@@ -103,3 +103,27 @@ def interpolate_strapping(
         m2, _ = _natural_cubic_spline(hs, vs)
         return _spline_eval(hs, vs, m2, level)
     raise ValueError(f"unknown interpolation method: {method}")
+
+
+def density_at_temperature(
+    base_density: float, thermal_expansion_coeff: float, temperature_c: float | None
+) -> float:
+    """rho(T) = base_density * (1 - coeff * (T - 15.0)); None -> base_density."""
+    if temperature_c is None:
+        return base_density
+    return base_density * (1.0 - thermal_expansion_coeff * (temperature_c - REFERENCE_TEMP_C))
+
+
+def volume_correction_factor(thermal_expansion_coeff: float, temperature_c: float | None) -> float:
+    """VCF = rho(T)/rho(15C) = 1 - coeff * (T - 15.0)."""
+
+    if temperature_c is None:
+        return 1.0
+    return 1.0 - thermal_expansion_coeff * (temperature_c - REFERENCE_TEMP_C)
+
+
+def net_standard_volume(
+    gross_volume_liters: float, thermal_expansion_coeff: float, temperature_c: float | None
+) -> float:
+    """NSV (liters @15C) = GOV * VCF."""
+    return gross_volume_liters * volume_correction_factor(thermal_expansion_coeff, temperature_c)

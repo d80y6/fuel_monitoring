@@ -120,9 +120,10 @@ class IngestionPipeline:
         from fmp.ingestion.processor import (
             calculate_volume,
             fill_percent,
+            fuel_expansion_coefficient,
             pressure_to_level,
-            temperature_compensated_density,
         )
+        from fmp.ingestion.tank_geometry import density_at_temperature
         from fmp.ingestion.batch_writer import insert_measurements
 
         state = self.state_for(tank.id)
@@ -130,7 +131,11 @@ class IngestionPipeline:
         level = pressure_to_level(
             pressure_bar=pressure,
             atmospheric_bar=tank.atmospheric_pressure or 0.0,
-            density=temperature_compensated_density(tank.fluid_density, temperature),
+            density=density_at_temperature(
+                tank.fluid_density,
+                fuel_expansion_coefficient(tank.fluid_density),
+                temperature,
+            ),
             elevation=tank.elevation,
             calibration_factor=tank.calibration_factor,
         )

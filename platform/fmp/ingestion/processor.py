@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import math
 
-REFRENCE_TEMP_C = 15.0
 STANDARD_GRAVITY = 9.80665
 GRAVITY_GRADIENT = 3.086e-6
 
@@ -35,13 +34,13 @@ def elevation_compensated_gravity(elevation: float | None) -> float:
     return STANDARD_GRAVITY - GRAVITY_GRADIENT * elevation
 
 
-def temperature_compensated_density(base_density: float, temperature_c: float | None) -> float:
-    """Adjust density for temperature using fuel-class thermal expansion."""
-    if temperature_c is None:
-        return base_density
-    _, thermal_expansion, damping_factor = _fuel_class(base_density)
-    effective_temp_diff = (temperature_c - REFRENCE_TEMP_C) * damping_factor
-    return base_density / (1 + thermal_expansion * effective_temp_diff)
+def fuel_expansion_coefficient(base_density: float) -> float:
+    """Thermal expansion coefficient for a legacy fuel-density heuristic.
+
+    Temporary bridge for the pipeline until real FuelType coefficients are
+    wired in a later task; returns the expansion coefficient by fuel class.
+    """
+    return _fuel_class(base_density)[1]
 
 
 def pressure_to_level(
@@ -158,3 +157,12 @@ class MADAnomalyDetector:
 
         z_score = 0.6745 * (sample - median) / mad
         return abs(z_score) >= self.threshold
+
+
+# Re-export the fuel-dynamics helpers (kept for backward-compatible imports).
+from fmp.ingestion.tank_geometry import (  # noqa: F401
+    density_at_temperature,
+    interpolate_strapping,
+    net_standard_volume,
+    volume_correction_factor,
+)
