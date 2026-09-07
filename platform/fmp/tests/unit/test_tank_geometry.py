@@ -114,6 +114,28 @@ def test_horizontal_elliptical_ends_exceed_plain_cylinder():
     )
 
 
+def test_elliptical_ends_empty_level_zero():
+    v = calculate_volume_for_shape(
+        0.0, "horizontal_elliptical_ends", diameter=1.5, length=2.0, dish_depth=0.4
+    )
+    assert v == pytest.approx(0.0, abs=1e-6)
+
+
+def test_elliptical_ends_partial_fill_less_than_full():
+    mid = calculate_volume_for_shape(
+        0.75, "horizontal_elliptical_ends", diameter=1.5, length=2.0, dish_depth=0.4
+    )
+    full = calculate_volume_for_shape(
+        1.5, "horizontal_elliptical_ends", diameter=1.5, length=2.0, dish_depth=0.4
+    )
+    assert 0.0 < mid < full
+
+
+def test_vertical_cylinder_height_fallback_to_diameter():
+    v = calculate_volume_for_shape(1.0, "vertical_cylinder", diameter=1.5, height=None)
+    assert v == pytest.approx(math.pi * 0.75**2 * 1.0 * 1000, abs=1e-6)
+
+
 def test_unknown_shape_rejected():
     with pytest.raises(ValueError):
         calculate_volume_for_shape(1.0, "tesseract", diameter=1.0)

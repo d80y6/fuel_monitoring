@@ -154,40 +154,42 @@ def _elliptical_head_volume(level: float, radius: float, dish_depth: float) -> f
     """Partial volume of ONE horizontal elliptical head (ellipsoid segment).
 
     Ellipsoid of revolution: semi-axes (radius, radius, dish_depth) along x,y,z.
-    Segment volume below a horizontal slice at height ``level`` is integrated
-    over the dish axis with adaptive Simpson quadrature.
+    Whatever lies below the horizontal fill plane at ``level`` is integrated
+    over the dish axis in small steps; the dish axis runs from 0 (shell weld)
+    to ``dish_depth`` (head pole).
     """
-    step = radius / 40.0
+    level = _clamp(level, 0.0, radius * 2.0)
+    if dish_depth <= 0.0:
+        return 0.0
+    step = dish_depth / 40.0
     total = 0.0
     z = 0.0
-    while z < radius - 1e-12:
-        z_next = min(z + step, radius)
-        seg = _head_segment_area(radius, dish_depth, (z + z_next) / 2) * (z_next - z)
+    while z < dish_depth - 1e-12:
+        z_next = min(z + step, dish_depth)
+        seg = _head_segment_area(radius, dish_depth, (z + z_next) / 2, level) * (z_next - z)
         total += seg
         z = z_next
     return total * 1000
 
 
-def _head_segment_area(radius: float, dish_depth: float, z: float) -> float:
-    # cross-section of the ellipsoid at a given dish-axis (z) coordinate,
-    # integrated along the other transverse axis to the fill plane.
-    x_semi = radius
-    y_semi = radius
-    z_semi = dish_depth
-    if z >= z_semi:
+def _head_segment_area(radius: float, dish_depth: float, z: float, level: float) -> float:
+    """Horizontal cross-section of one head at dish-axis coordinate ``z``.
+
+    The section is a circle of radius ``a`` centred on the tank axis at height
+    ``radius``; only the circular segment below the fill plane at ``level``
+    (center-line distance ``d = radius - level``) is counted.
+    """
+    if z >= dish_depth:
         return 0.0
-    a = x_semi * math.sqrt(1.0 - (z / z_semi) ** 2)  # x semi-axis at this z
-    b = y_semi * math.sqrt(1.0 - (z / z_semi) ** 2)  # y semi-axis at this z
-    # cross-section is an ellipse with semi-axes (a,b); integrate in x.
-    steps_x = 96
-    area = 0.0
-    for i in range(steps_x):
-        xa = -a + 2 * a * i / steps_x
-        xb = -a + 2 * a * (i + 1) / steps_x
-        xm = (xa + xb) / 2
-        half_y = b * math.sqrt(1.0 - (xm / a) ** 2) if a > 0 else 0.0
-        area += 2 * half_y * (xb - xa)
-    return area
+    a = radius * math.sqrt(1.0 - (z / dish_depth) ** 2)
+    if a <= 0.0:
+        return 0.0
+    d = radius - level
+    if level <= radius - a:
+        return 0.0
+    if level >= radius + a:
+        return math.pi * a * a
+    return a * a * math.acos(d / a) - d * math.sqrt(a * a - d * d)
 
 
 def calculate_volume_for_shape(
@@ -208,7 +210,10 @@ def calculate_volume_for_shape(
         raise ValueError(f"unknown tank_shape: {tank_shape}")
 
     if tank_shape == "vertical_cylinder":
-        height = height or 0.0
+        # Fall back to the shell diameter when no height is configured; this
+        # preserves the legacy calculate_volume behavior for tanks whose DB
+        # column tank_height is NULL.
+        height = height or diameter or 0.0
         level = _clamp(level, 0.0, height)
         return math.pi * (diameter / 2.0) ** 2 * level * 1000
 
