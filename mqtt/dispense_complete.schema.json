@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fuel.monitoring/schemas/dispense_complete.schema.json",
+  "title": "DispenseCompletion",
+  "description": "Edge node reports a settled dispense including secret totalizer meter readback.",
+  "type": "object",
+  "required": [
+    "code", "station_id", "dispenser_id",
+    "requested_liters", "actual_liters",
+    "secret_totalizer_before", "secret_totalizer_after"
+  ],
+  "properties": {
+    "code": { "type": "string", "pattern": "^[0-9]{6,8}$" },
+    "station_id": { "type": "string", "format": "uuid" },
+    "dispenser_id": { "type": "string", "format": "uuid" },
+    "requested_liters": { "type": "number", "minimum": 0.1, "maximum": 10000 },
+    "actual_liters": { "type": "number", "minimum": 0.1, "maximum": 10000 },
+    "secret_totalizer_before": { "type": "integer", "minimum": 0 },
+    "secret_totalizer_after": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": true
+}

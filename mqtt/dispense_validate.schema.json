@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fuel.monitoring/schemas/dispense_validate.schema.json",
+  "title": "DispenseValidationIntent",
+  "description": "Edge node requests authorization of a code at a station before dispensing.",
+  "type": "object",
+  "required": ["code", "station_id", "requested_liters"],
+  "properties": {
+    "code": {
+      "type": "string",
+      "pattern": "^[0-9]{6,8}$",
+      "description": "Single-use authorization code entered on the dispenser keypad."
+    },
+    "station_id": { "type": "string", "format": "uuid" },
+    "dispenser_id": { "type": "string", "format": "uuid" },
+    "requested_liters": { "type": "number", "minimum": 0.1, "maximum": 10000 }
+  },
+  "additionalProperties": true
+}

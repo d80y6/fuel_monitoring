@@ -1,0 +1,107 @@
+# =============================================================================
+# Cloud Fuel & Dispensing Platform — full stack
+#
+#   docker compose up --build
+#
+# Services: API (:8000), Edge Ingestion (:8001), Celery worker + beat,
+#           TimescaleDB, Redis, EMQX MQTT broker, nginx reverse proxy (:80).
+# =============================================================================
+
+name: fuel-platform
+
+services:
+  db:
+    image: timescale/timescaledb:2.11.0-pg14
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fuel_platform}
+      POSTGRES_USER: ${POSTGRES_USER:-fuel_platform}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fuel_platform}
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fuel_platform} -d ${POSTGRES_DB:-fuel_platform}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  emqx:
+    # Swap to emqx/emqx-enterprise for mTLS, JSON Schema + flow limits (per spec).
+    image: emqx/emqx:5.8
+    restart: unless-stopped
+    ports:
+      - "1883:1883"        # MQTT
+      - "8883:8883"        # MQTTS (mTLS in enterprise)
+      - "8083:8083"        # WebSocket
+      - "18083:18083"      # Dashboard
+    volumes:
+      - ./infra/emqx:/opt/emqx/etc/custom:ro
+
+  api:
+    build: ./platform
+    restart: unless-stopped
+    command: ["uvicorn", "fmp.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  ingest:
+    build: ./platform
+    restart: unless-stopped
+    command: ["uvicorn", "fmp.ingestion.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+      - emqx
+    expose:
+      - "8001"
+
+  worker:
+    build: ./platform
+    restart: unless-stopped
+    command: ["celery", "-A", "fmp.workers.celery_app", "worker", "--loglevel=info", "--concurrency=4"]
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+
+  beat:
+    build: ./platform
+    restart: unless-stopped
+    command: ["celery", "-A", "fmp.workers.celery_app", "beat", "--loglevel=info"]
+    env_file: .env
+    depends_on:
+      - redis
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./infra/nginx/conf.d:/etc/nginx/conf.d:ro
+    depends_on:
+      - api
+      - ingest
+
+volumes:
+  timescale_data:
+  redis_data:

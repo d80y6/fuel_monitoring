@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fuel.monitoring/schemas/readings.schema.json",
+  "title": "TankLevelReading",
+  "description": "Ultrasonic/pressure level telemetry frame published by the ESP32 gateway.",
+  "type": "object",
+  "required": ["tank_id", "ts"],
+  "properties": {
+    "tank_id": { "type": "string", "format": "uuid" },
+    "seq": { "type": "integer", "minimum": 0 },
+    "ts": { "type": "string", "format": "date-time" },
+    "level_m": { "type": "number" },
+    "pressure_bar": { "type": "number" },
+    "temperature_c": { "type": "number" },
+    "volume_l": { "type": "number" },
+    "raw": { "type": "object" }
+  },
+  "additionalProperties": true
+}
