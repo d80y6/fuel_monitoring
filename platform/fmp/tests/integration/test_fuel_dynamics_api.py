@@ -11,34 +11,41 @@ pytestmark = pytest.mark.asyncio
 
 
 @pytest_asyncio.fixture
-async def token_override(db):
-    """Seed an admin user and override get_current_user."""
+async def role_user(db, request):
+    """Seed a user of a given role and override get_current_user to return it."""
     from fmp.api.main import app
     from fmp.api.deps import get_current_user
     from fmp.core.database import async_session_factory
     from fmp.core.security import hash_password
     from fmp.models import User
 
+    role = getattr(request, "param", "admin")
     pw = hash_password("AdminPass123")
     async with async_session_factory() as session:
-        admin = User(
+        user = User(
             username=f"root_{uuid.uuid4().hex[:6]}",
             email=f"root_{uuid.uuid4().hex[:6]}@t.io",
-            password_hash=pw, role="admin", is_active=True,
+            password_hash=pw, role=role, is_active=True,
         )
-        session.add(admin)
+        session.add(user)
         await session.commit()
 
     async def _override():
-        return admin
+        return user
 
     app.dependency_overrides[get_current_user] = _override
-    yield admin
+    yield user
     app.dependency_overrides.pop(get_current_user, None)
 
 
 @pytest_asyncio.fixture
-async def tank_seed(db, token_override):
+async def token_override(role_user):
+    """Back-compat alias: an admin user override."""
+    yield role_user
+
+
+@pytest_asyncio.fixture
+async def tank_seed(db):
     """Seed Company → Site → Tank (with a fuel type)."""
     from fmp.core.database import async_session_factory
     from fmp.models import Company, FuelType, Site, Tank
@@ -89,6 +96,21 @@ async def test_fuel_types_list_and_create_roles(db, token_override, client):
     })
     assert r.status_code == 201, r.text
     assert r.json()["base_density"] == 700.0
+    # same code again -> conflict
+    r = await client.post("/api/v1/fuel-types", json={
+        "code": "test_fuel", "name": "Test", "base_density": 700.0,
+        "thermal_expansion_coeff": 0.0009, "max_vapor_pressure": 3.0, "viscosity_cst": 1.0,
+    })
+    assert r.status_code == 409
+
+
+@pytest.mark.parametrize("role_user", ["viewer"], indirect=True)
+async def test_fuel_types_create_viewer_forbidden(db, role_user, client):
+    r = await client.post("/api/v1/fuel-types", json={
+        "code": "viewer_fuel", "name": "V", "base_density": 700.0,
+        "thermal_expansion_coeff": 0.0009, "max_vapor_pressure": 3.0, "viscosity_cst": 1.0,
+    })
+    assert r.status_code == 403
 
 
 async def test_strapping_upsert_and_read(db, token_override, client, tank_seed):
@@ -105,6 +127,34 @@ async def test_strapping_upsert_and_read(db, token_override, client, tank_seed):
     # tank now points at the table
     tank = await client.get(f"/api/v1/tanks/{tank_seed.id}")
     assert tank.json()["strapping_table_id"] == r.json()["id"]
+
+    # PUT again with different calibration_data -> update branch
+    r2 = await client.put(f"/api/v1/tanks/{tank_seed.id}/strapping", json={
+        "calibration_data": [{"height": 0.0, "volume": 0.0},
+                             {"height": 1.0, "volume": 800.0}],
+        "interpolation_method": "linear",
+    })
+    assert r2.status_code == 200, r2.text
+    assert r2.json()["id"] == r.json()["id"]
+    assert r2.json()["interpolation_method"] == "linear"
+    assert len(r2.json()["calibration_data"]) == 2
+    got2 = await client.get(f"/api/v1/tanks/{tank_seed.id}/strapping")
+    assert got2.status_code == 200
+    assert got2.json()["calibration_data"] == [
+        {"height": 0.0, "volume": 0.0},
+        {"height": 1.0, "volume": 800.0},
+    ]
+    assert got2.json()["interpolation_method"] == "linear"
+
+
+@pytest.mark.parametrize("role_user", ["viewer"], indirect=True)
+async def test_strapping_put_viewer_forbidden(db, role_user, client, tank_seed):
+    r = await client.put(f"/api/v1/tanks/{tank_seed.id}/strapping", json={
+        "calibration_data": [{"height": 0.0, "volume": 0.0},
+                             {"height": 1.0, "volume": 700.0}],
+        "interpolation_method": "linear",
+    })
+    assert r.status_code == 403
 
 
 async def test_strapping_missing_returns_404(db, token_override, client, tank_seed):

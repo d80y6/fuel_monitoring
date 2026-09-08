@@ -1,7 +1,6 @@
 """Per-tank strapping (calibration) table API."""
 from __future__ import annotations
 
-import json
 import uuid
 
 from fastapi import APIRouter, HTTPException
