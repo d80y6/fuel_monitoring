@@ -2,17 +2,19 @@
 
 Endpoints
 ---------
-* POST /api/v1/dispensing/upload           – ingest Excel/CSV quota sheet
-* POST /api/v1/dispensing/validate          – authorize a code at a station
-* POST /api/v1/dispensing/complete          – settle a dispense transaction
-* POST /api/v1/dispensing/upload/{id}/dispatch – (re)dispatch batch codes
+* POST /api/v1/dispensing/upload                    – ingest Excel/CSV quota sheet
+* POST /api/v1/dispensing/validate                  – authorize a code at a station
+* POST /api/v1/dispensing/complete                  – settle a dispense transaction
+* POST /api/v1/dispensing/upload/{id}/dispatch      – (re)dispatch batch codes
+* GET  /api/v1/dispensing/allocations               – list quota allocations
+* GET  /api/v1/dispensing/transactions              – list dispense transactions
 """
 from __future__ import annotations
 
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -117,10 +119,10 @@ async def redispatch_batch_codes(
 async def list_allocations(
     _: CurrentUser,
     session: SessionDep,
-    max_rows: int = 100,
+    max_rows: int = Query(default=100, ge=1, le=500),
 ) -> list[AllocationRead]:
     """Read-only list of quota allocations (newest first) for dashboards."""
-    stmt = select(Allocation).order_by(desc(Allocation.created_at)).limit(min(max_rows, 500))
+    stmt = select(Allocation).order_by(desc(Allocation.created_at)).limit(max_rows)
     rows = (await session.execute(stmt)).scalars().all()
     return [
         AllocationRead(
@@ -141,10 +143,10 @@ async def list_transactions(
     _: CurrentUser,
     session: SessionDep,
     dispenser_id: uuid.UUID | None = None,
-    limit: int = 200,
+    limit: int = Query(default=200, ge=1, le=1000),
 ) -> list[TransactionRead]:
     """Read-only list of dispense transactions (newest first) for dashboards."""
-    stmt = select(DispenseTransaction).order_by(desc(DispenseTransaction.created_at)).limit(min(limit, 1000))
+    stmt = select(DispenseTransaction).order_by(desc(DispenseTransaction.created_at)).limit(limit)
     if dispenser_id:
         stmt = stmt.where(DispenseTransaction.dispenser_id == dispenser_id)
     rows = (await session.execute(stmt)).scalars().all()

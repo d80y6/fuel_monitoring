@@ -130,7 +130,7 @@ async def seed_data(db):
 
 
 async def test_allocation_and_transaction_reads(db, token_override, client, seed_data):
-    r = await client.get("/api/v1/dispensing/allocations?limit=10")
+    r = await client.get("/api/v1/dispensing/allocations?max_rows=10")
     assert r.status_code == 200 and isinstance(r.json(), list)
     assert any(a["id"] == str(seed_data["alloc_id"]) for a in r.json())
     seeded = next(a for a in r.json() if a["id"] == str(seed_data["alloc_id"]))
@@ -145,3 +145,23 @@ async def test_allocation_and_transaction_reads(db, token_override, client, seed
 
     r = await client.get("/api/v1/dispensing/transactions?limit=5")
     assert r.status_code == 200
+
+
+async def test_read_endpoints_empty_list(db, token_override, client):
+    """GET /allocations + /transactions on a fresh DB (no seed) return 200 + []."""
+    r = await client.get("/api/v1/dispensing/allocations?max_rows=10")
+    assert r.status_code == 200
+    assert r.json() == []
+
+    r = await client.get("/api/v1/dispensing/transactions?limit=10")
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+async def test_read_endpoints_reject_negative_params(db, token_override, client):
+    """Negative max_rows/limit must be rejected with 422, not hit the DB (500)."""
+    r = await client.get("/api/v1/dispensing/allocations?max_rows=-5")
+    assert r.status_code == 422
+
+    r = await client.get("/api/v1/dispensing/transactions?limit=-5")
+    assert r.status_code == 422
