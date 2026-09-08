@@ -130,8 +130,8 @@ class IngestionPipeline:
             calculate_volume,
             density_at_temperature,
             fill_percent,
+            net_standard_volume,
             pressure_to_level,
-            volume_correction_factor,
         )
 
         state = self.state_for(tank.id)
@@ -161,8 +161,7 @@ class IngestionPipeline:
             is_outlier = state.anomaly.update(level)
             level = state.pressure_ema.update(level)
 
-            vcf = volume_correction_factor(expansion_coeff, temperature)
-            volume = calculate_volume(
+            gov = calculate_volume(
                 level=level,
                 orientation=tank.tank_orientation,
                 tank_diameter=tank.tank_diameter,
@@ -172,8 +171,9 @@ class IngestionPipeline:
                 tank_width=getattr(tank, "tank_width", None),
                 dish_depth=getattr(tank, "dish_depth", None),
             )
-            gov = volume
-            nsv = gov * vcf
+            # volume == GOV (liters at current temperature); kept as the legacy field name
+            volume = gov
+            nsv = net_standard_volume(gov, expansion_coeff, temperature)
             percent = fill_percent(gov, tank.total_capacity_liters)
             candidates = evaluate_alarm_rules(tank, level, volume, percent)
 
