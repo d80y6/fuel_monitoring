@@ -12,10 +12,12 @@ from fmp.api.v1 import (
 from fmp.api.v1 import (
     companies,
     dispensing,
+    fuel_types,
     notifications,
     realtime,
     sites,
     stations,
+    strapping,
     tanks,
     totalizers,
 )
@@ -48,6 +50,8 @@ app.include_router(sites.router)
 app.include_router(stations.router)
 app.include_router(notifications.router)
 app.include_router(totalizers.router)
+app.include_router(fuel_types.router)
+app.include_router(strapping.router)
 
 
 @app.get("/api/v1/health", tags=["system"])
