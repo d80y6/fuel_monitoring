@@ -10,14 +10,17 @@ TANK_ORIENTATIONS = ("vertical", "horizontal")
 
 TANK_SHAPES = ("vertical_cylinder", "horizontal_cylinder", "rectangular", "spherical", "horizontal_elliptical_ends", "custom_strapping")
 
+_ORIENT_PATTERN = "^(?:" + "|".join(TANK_ORIENTATIONS) + ")$"
+_SHAPE_PATTERN = "^(?:" + "|".join(TANK_SHAPES) + ")$"
+
 
 class TankBase(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     site_id: uuid.UUID
     sensor_serial_number: str = Field(min_length=1, max_length=64)
     device_address: int = 1
-    tank_orientation: str = Field(default="vertical", pattern="^(vertical|horizontal)$")
-    tank_shape: str = Field(default="vertical_cylinder", pattern=r"^(vertical_cylinder|horizontal_cylinder|rectangular|spherical|horizontal_elliptical_ends|custom_strapping)$")
+    tank_orientation: str = Field(default="vertical", pattern=_ORIENT_PATTERN)
+    tank_shape: str = Field(default="vertical_cylinder", pattern=_SHAPE_PATTERN)
     tank_diameter: float = Field(gt=0)
     tank_height: float | None = Field(default=None, gt=0)
     tank_length: float | None = Field(default=None, gt=0)
@@ -37,23 +40,21 @@ class TankBase(BaseModel):
     is_active: bool = True
     gateway_mac: str | None = Field(default=None, max_length=17)
 
+
+class TankCreate(TankBase):
     @model_validator(mode="after")
     def _shape_consistency(self):
-        if self.tank_shape == "vertical_cylinder" and not (self.tank_orientation == "vertical"):
-            raise ValueError("vertical_cylinder requires vertical orientation")
-        if self.tank_shape in ("horizontal_cylinder", "spherical", "horizontal_elliptical_ends") and not (self.tank_orientation == "horizontal"):
-            raise ValueError(f"{self.tank_shape} requires horizontal orientation")
-        if self.tank_shape == "rectangular" and not (self.tank_width is not None and self.tank_length is not None and self.tank_height is not None):
-            raise ValueError("rectangular tank requires tank_width, tank_length and tank_height")
+        if self.tank_shape == "vertical_cylinder" and self.tank_orientation != "vertical":
+            raise ValueError("vertical_cylinder requires vertical tank_orientation")
+        if self.tank_shape in ("horizontal_cylinder", "spherical", "horizontal_elliptical_ends") and self.tank_orientation != "horizontal":
+            raise ValueError(f"{self.tank_shape} requires horizontal tank_orientation")
+        if self.tank_shape == "rectangular" and not (self.tank_width and self.tank_length and self.tank_height):
+            raise ValueError("rectangular requires tank_width, tank_length and tank_height")
         if self.tank_shape == "horizontal_elliptical_ends" and self.dish_depth is None:
             raise ValueError("horizontal_elliptical_ends requires dish_depth")
         if self.tank_shape == "custom_strapping" and self.strapping_table_id is None:
             raise ValueError("custom_strapping requires strapping_table_id")
         return self
-
-
-class TankCreate(TankBase):
-    pass
 
 
 class TankRead(TankBase):
