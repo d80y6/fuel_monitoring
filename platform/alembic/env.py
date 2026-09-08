@@ -23,16 +23,18 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-config.set_main_option("sqlalchemy.url", get_settings().postgres_dsn)
-
 target_metadata = Base.metadata
+
+
+def _dsn() -> str:
+    """Resolve the Postgres DSN lazily so alembic --help / offline work without DB env."""
+    return get_settings().postgres_dsn
 
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode (emit SQL, no DB connection)."""
-    url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url,
+        url=_dsn(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -49,6 +51,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 async def run_async_migrations() -> None:
     """Connect with the app's async URL and run migrations on it."""
+    config.set_main_option("sqlalchemy.url", _dsn())
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

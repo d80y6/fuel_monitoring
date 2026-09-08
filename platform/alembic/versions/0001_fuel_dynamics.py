@@ -186,57 +186,61 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # Downgrade is guarded symmetrically with upgrade's no-op-safety: on a
+    # bare DB where upgrade created only fuel_types, every section that
+    # touches tanks / measurements / strapping_tables is skipped.
     bind = op.get_bind()
 
-    # Legacy tanks.fluid_density is re-added as an un-defaulted, NOT NULL
-    # column exactly as the old model defined it. Legacy density values were
-    # migrated into fuel_type_id on upgrade and are not exactly restorable
-    # (acceptable data loss); we best-effort backfill from the linked fuel's
-    # base_density (0 when no fuel was linked) so the column can be installed
-    # as NOT NULL even when tanks already holds rows — PostgreSQL rejects a
-    # plain "ADD COLUMN ... NOT NULL" on a populated table, hence the
-    # add-nullable -> fill -> tighten sequence (no server default remains).
-    op.add_column("tanks", sa.Column("fluid_density", sa.Float(), nullable=True))
-    bind.execute(
-        sa.text(
-            "UPDATE tanks SET fluid_density = COALESCE("
-            "  (SELECT ft.base_density FROM fuel_types ft"
-            "    WHERE ft.id = tanks.fuel_type_id), 0)"
+    # --- tanks: restore legacy fluid_density --------------------------------
+    if _table_exists(bind, "tanks"):
+        op.add_column("tanks", sa.Column("fluid_density", sa.Float(), nullable=True))
+        bind.execute(
+            sa.text(
+                "UPDATE tanks SET fluid_density = COALESCE("
+                "  (SELECT ft.base_density FROM fuel_types ft"
+                "    WHERE ft.id = tanks.fuel_type_id), 0)"
+            )
         )
-    )
-    op.alter_column(
-        "tanks",
-        "fluid_density",
-        existing_type=sa.Float(),
-        existing_nullable=True,
-        nullable=False,
-    )
+        op.alter_column(
+            "tanks",
+            "fluid_density",
+            existing_type=sa.Float(),
+            existing_nullable=True,
+            nullable=False,
+        )
 
-    for col in ("density_at_temperature", "net_volume", "gov_volume"):
-        op.drop_column("measurements", col)
+    # --- measurements: drop GOV/NSV/density columns -------------------------
+    if _table_exists(bind, "measurements"):
+        for col in ("density_at_temperature", "net_volume", "gov_volume"):
+            if _column_exists(bind, "measurements", col):
+                op.drop_column("measurements", col)
 
-    for col, idx in (
-        ("strapping_table_id", "ix_tanks_strapping_table_id"),
-        ("fuel_type_id", "ix_tanks_fuel_type_id"),
-    ):
-        op.drop_index(idx, table_name="tanks")
-        # Resolve FK names dynamically: create_all auto-names model FKs
-        # (e.g. tanks_fuel_type_id_fkey) while the migration uses explicit
-        # names (fk_tanks_fuel_type_id) — both must downgrade cleanly.
-        for fk in (
-            fk["name"]
-            for fk in sa.inspect(bind).get_foreign_keys("tanks")
-            if col in fk["constrained_columns"]
+    # --- tanks: drop FK + FK-column pairs -----------------------------------
+    if _table_exists(bind, "tanks"):
+        for col, idx in (
+            ("strapping_table_id", "ix_tanks_strapping_table_id"),
+            ("fuel_type_id", "ix_tanks_fuel_type_id"),
         ):
-            op.drop_constraint(fk, "tanks", type_="foreignkey")
-        op.drop_column("tanks", col)
+            if _column_exists(bind, "tanks", col):
+                op.drop_index(idx, table_name="tanks")
+                for fk in (
+                    fk["name"]
+                    for fk in sa.inspect(bind).get_foreign_keys("tanks")
+                    if col in fk["constrained_columns"]
+                ):
+                    op.drop_constraint(fk, "tanks", type_="foreignkey")
+                op.drop_column("tanks", col)
 
-    op.drop_column("tanks", "tank_width")
-    op.drop_column("tanks", "dish_depth")
-    op.drop_column("tanks", "tank_shape")
+        for col in ("tank_width", "dish_depth", "tank_shape"):
+            if _column_exists(bind, "tanks", col):
+                op.drop_column("tanks", col)
 
-    op.drop_index("ix_strapping_tables_tank_id", table_name="strapping_tables")
-    op.drop_table("strapping_tables")
+    # --- strapping_tables + index -------------------------------------------
+    if _table_exists(bind, "strapping_tables"):
+        op.drop_index("ix_strapping_tables_tank_id", table_name="strapping_tables")
+        op.drop_table("strapping_tables")
 
-    op.drop_index("ix_fuel_types_code", table_name="fuel_types")
-    op.drop_table("fuel_types")
+    # --- fuel_types + index -------------------------------------------------
+    if _table_exists(bind, "fuel_types"):
+        op.drop_index("ix_fuel_types_code", table_name="fuel_types")
+        op.drop_table("fuel_types")
