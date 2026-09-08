@@ -14,6 +14,11 @@ from fmp.ingestion.processor import EMA, MADAnomalyDetector
 
 logger = logging.getLogger(__name__)
 
+# Gasoline defaults when a tank has no configured fuel_type.
+DEFAULT_DENSITY_KG_M3 = 750.0
+DEFAULT_EXPANSION_COEFF = 0.00095
+_WARNED_NO_FUEL_TYPE: set[uuid.UUID] = set()
+
 LIVE_CHANNEL = "telemetry:live"
 ALARMS_CHANNEL = "alarms:live"
 
@@ -127,36 +132,41 @@ class IngestionPipeline:
 
         state = self.state_for(tank.id)
 
-        if getattr(tank, "fuel_type", None) is not None:
-            base_density = tank.fuel_type.base_density
-            expansion_coeff = tank.fuel_type.thermal_expansion_coeff
-        else:
-            base_density = 750.0
-            expansion_coeff = 0.00095
-            logger.warning("tank %s has no fuel_type; using gasoline defaults", tank.id)
-        density = density_at_temperature(base_density, expansion_coeff, temperature)
-
-        level = pressure_to_level(
-            pressure_bar=pressure,
-            atmospheric_bar=tank.atmospheric_pressure or 0.0,
-            density=density,
-            elevation=tank.elevation,
-            calibration_factor=tank.calibration_factor,
-        )
-        is_outlier = state.anomaly.update(level)
-        level = state.pressure_ema.update(level)
-
-        volume = calculate_volume(
-            level=level,
-            orientation=tank.tank_orientation,
-            tank_diameter=tank.tank_diameter,
-            tank_length=tank.tank_length,
-            tank_height=tank.tank_height,
-        )
-        percent = fill_percent(volume, tank.total_capacity_liters)
-        candidates = evaluate_alarm_rules(tank, level, volume, percent)
-
         try:
+            if getattr(tank, "fuel_type", None) is not None:
+                base_density = tank.fuel_type.base_density
+                expansion_coeff = tank.fuel_type.thermal_expansion_coeff
+            else:
+                base_density = DEFAULT_DENSITY_KG_M3
+                expansion_coeff = DEFAULT_EXPANSION_COEFF
+                tank_id = tank.id
+                if tank_id not in _WARNED_NO_FUEL_TYPE:
+                    _WARNED_NO_FUEL_TYPE.add(tank_id)
+                    logger.warning("tank %s has no fuel_type; using gasoline defaults", tank_id)
+                else:
+                    logger.debug("tank %s has no fuel_type; using gasoline defaults", tank_id)
+            density = density_at_temperature(base_density, expansion_coeff, temperature)
+
+            level = pressure_to_level(
+                pressure_bar=pressure,
+                atmospheric_bar=tank.atmospheric_pressure or 0.0,
+                density=density,
+                elevation=tank.elevation,
+                calibration_factor=tank.calibration_factor,
+            )
+            is_outlier = state.anomaly.update(level)
+            level = state.pressure_ema.update(level)
+
+            volume = calculate_volume(
+                level=level,
+                orientation=tank.tank_orientation,
+                tank_diameter=tank.tank_diameter,
+                tank_length=tank.tank_length,
+                tank_height=tank.tank_height,
+            )
+            percent = fill_percent(volume, tank.total_capacity_liters)
+            candidates = evaluate_alarm_rules(tank, level, volume, percent)
+
             fired_alarms = []
             for cand in candidates:
                 open_key = _open_alarm_key(tank.id, cand.type)
