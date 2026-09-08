@@ -62,8 +62,9 @@ export const api = {
   },
 
   async tankAlarms(id: string, openOnly: boolean = false, limit: number = 50): Promise<AlarmSummary[]> {
-    const open = openOnly ? `?open_only=true&limit=${limit}` : '';
-    return request<AlarmSummary[]>(`${API_BASE}/tanks/${id}/alarms${open}`);
+    const qs = new URLSearchParams({ limit: String(limit) });
+    if (openOnly) qs.set('open_only', 'true');
+    return request<AlarmSummary[]>(`${API_BASE}/tanks/${id}/alarms?${qs}`);
   },
 
   async ackAlarm(
@@ -89,7 +90,8 @@ export const api = {
   },
 
   async listSites(companyId?: string): Promise<Site[]> {
-    return request<Site[]>(`${API_BASE}/sites${companyId ? `?company_id=${companyId}` : ''}`);
+    const url = companyId ? `${API_BASE}/companies/${companyId}/sites` : `${API_BASE}/sites`;
+    return request<Site[]>(url);
   },
 
   async listStations(siteId?: string): Promise<Station[]> {

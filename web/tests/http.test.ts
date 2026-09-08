@@ -76,4 +76,22 @@ describe('api client', () => {
     expect(url).toContain('end=2026-01-01T01');
     expect(url).toContain('bucket=5');
   });
+
+  it('tankAlarms always sends limit and adds open_only only when requested', async () => {
+    vi.mocked(fetch).mockImplementation(() => Promise.resolve(json([])));
+    await api.tankAlarms('t1');
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe('/api/v1/tanks/t1/alarms?limit=50');
+    await api.tankAlarms('t1', true, 25);
+    expect(vi.mocked(fetch).mock.calls[1][0]).toBe(
+      '/api/v1/tanks/t1/alarms?limit=25&open_only=true',
+    );
+  });
+
+  it('listSites uses the nested company route when companyId is given', async () => {
+    vi.mocked(fetch).mockImplementation(() => Promise.resolve(json([])));
+    await api.listSites();
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe('/api/v1/sites');
+    await api.listSites('c1');
+    expect(vi.mocked(fetch).mock.calls[1][0]).toBe('/api/v1/companies/c1/sites');
+  });
 });

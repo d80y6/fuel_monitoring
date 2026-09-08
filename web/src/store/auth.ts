@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { UserRead } from '../lib/apiTypes';
 import { api } from '../api/client';
-import { setOnUnauthorized, setTokenProvider } from '../api/http';
+import { ApiError, setOnUnauthorized, setTokenProvider } from '../api/http';
 
 export interface AuthState {
   token: string | null;
@@ -27,8 +27,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           const me = await api.me();
           set({ user: me });
-        } catch {
-          get().logout();
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 401) get().logout();
         }
       },
     }),

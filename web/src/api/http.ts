@@ -22,6 +22,9 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
 
   const response = await fetch(path, { ...init, headers });
 
