@@ -62,7 +62,7 @@ export const api = {
   },
 
   async tankAlarms(id: string, openOnly: boolean = false, limit: number = 50): Promise<AlarmSummary[]> {
-    const open = openOnly ? '?open_only=true' : '';
+    const open = openOnly ? `?open_only=true&limit=${limit}` : '';
     return request<AlarmSummary[]>(`${API_BASE}/tanks/${id}/alarms${open}`);
   },
 
