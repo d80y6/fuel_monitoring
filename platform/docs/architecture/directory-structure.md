@@ -69,7 +69,9 @@ fuel_monitoring/
 │   ├── alembic.ini
 │   ├── alembic/
 │   │   ├── env.py
+│   │   ├── script.py.mako
 │   │   └── versions/
+│   │       └── 0001_fuel_dynamics.py
 │   ├── fmp/
 │   │   │
 │   │   ├── core/                       # Shared foundation
@@ -87,6 +89,7 @@ fuel_monitoring/
 │   │   │   ├── user.py                 # User, UploadBatch
 │   │   │   ├── station.py              # Company, Site, Station, Dispenser, Employee
 │   │   │   ├── tank.py                 # Tank, Alarm, Measurement (hypertable)
+│   │   │   ├── fuel.py                 # FuelType, StrappingTable
 │   │   │   ├── dispensing.py           # Allocation, DispenseCode, Transaction, StationTotalizer
 │   │   │   └── notifications.py        # NotificationGateway, NotificationLog
 │   │   │
@@ -95,6 +98,9 @@ fuel_monitoring/
 │   │   │   ├── user.py                 # User DTOs
 │   │   │   ├── org.py                  # Company/Site/Station/Dispenser DTOs
 │   │   │   ├── dispensing.py
+│   │   │   ├── dispensing_read.py      # read-only AllocationRead, TransactionRead DTOs
+│   │   │   ├── fuel.py                 # FuelTypeCreate/Read DTOs
+│   │   │   ├── strapping.py            # StrappingPoint, StrappingTableUpsert/Read DTOs
 │   │   │   ├── notifications.py        # dispatch DTOs + NotificationGateway CRUD
 │   │   │   ├── tanks.py                # tanks + telemetry + alarm DTOs
 │   │   │   └── totalizers.py           # secret counter readback DTOs
@@ -125,9 +131,11 @@ fuel_monitoring/
 │   │   │   ├── main.py                   # standalone FastAPI :8001 + MQTT sub
 │   │   │   ├── processor.py              # EMA + MAD Z-score + volume calc (pure)
 │   │   │   ├── pipeline.py               # reading → calibrate → alarms → persist
+│   │   │   ├── tank_geometry.py          # shape-aware volume calc
 │   │   │   └── batch_writer.py           # hypertable promotion + batch inserts
 │   │   │
 │   │   ├── scripts/
+│   │   │   ├── seed_fuel_types.py      # fuel type upsert for migration + init
 │   │   │   └── init_db.py              # compose db-init: create_all + hypertables
 │   │   │
 │   │   ├── api/                          # ===== Central API =====
@@ -138,11 +146,13 @@ fuel_monitoring/
 │   │   │   └── v1/
 │   │   │       ├── __init__.py
 │   │   │       ├── auth.py              # POST /auth/login, GET /auth/me
-│   │   │   ├── companies.py         # company registry CRUD (role-guarded)
+│   │   │       ├── fuel_types.py        # FuelType CRUD (role-guarded)
+│   │   │       ├── strapping.py         # StrappingTable CRUD (role-guarded)
+│   │   │       ├── companies.py         # company registry CRUD (role-guarded)
 │   │   │   ├── sites.py             # site CRUD + stations (role-guarded)
 │   │   │   ├── stations.py          # station CRUD + dispensers (role-guarded)
 │   │   │   ├── notifications.py     # notification-gateway CRUD (role-guarded)
-│   │   │   ├── dispensing.py        # upload / validate / complete
+│   │   │   ├── dispensing.py        # upload / validate / complete + allocations/transactions
 │   │   │       ├── tanks.py             # tank inventory + telemetry + alarms
 │   │   │       ├── totalizers.py        # secret counter readback series
 │   │   │       └── realtime.py          # /ws/telemetry + /ws/alarms stream
