@@ -109,3 +109,48 @@ async def test_reading_published_to_telemetry_channel():
     payload = json.loads(msgs[0])
     assert payload["tank_id"] == str(tank.id)
     assert "volume" in payload and "fill_percent" in payload
+
+
+class _TankStub:
+    id = uuid.uuid4()
+    atmospheric_pressure = 0.0
+    elevation = None
+    calibration_factor = 1.0
+    tank_orientation = "vertical"
+    tank_shape = "vertical_cylinder"
+    tank_diameter = 1.5
+    tank_height = 2.0
+    tank_length = None
+    tank_width = None
+    dish_depth = None
+    total_capacity_liters = 3000.0
+    low_level_threshold = None
+    critical_level_threshold = None
+    high_level_threshold = None
+    low_volume_threshold = None
+    high_volume_threshold = None
+    fuel_type = type(
+        "FT", (),
+        {"code": "diesel", "base_density": 845.0, "thermal_expansion_coeff": 0.0008},
+    )()
+
+
+@pytest.mark.asyncio
+async def test_processed_reading_carries_gov_nsv_density():
+    from fmp.ingestion.pipeline import IngestionPipeline, LIVE_CHANNEL, publish_live
+
+    pipeline = IngestionPipeline(write_batch=False)
+    redis = FakeRedis()
+    read = await pipeline.process(
+        FakeSession(), redis, _TankStub(),
+        pressure=0.082376, temperature=35.0,
+    )
+    assert read is not None
+    assert read.gov_volume > 0
+    expected_vcf = 1 - 0.0008 * (35 - 15)
+    assert read.net_volume == pytest.approx(read.gov_volume * expected_vcf, rel=1e-6)
+    assert read.density_at_temperature == pytest.approx(845.0 * (1 - 0.0008 * (35 - 15)))
+    # live payload includes new fields (live publishing is caller-driven)
+    await publish_live(redis, read)
+    msgs = [m for ch, m in redis.published if ch == LIVE_CHANNEL]
+    assert any("gov_volume" in json.dumps(m) for _, m in redis.published)

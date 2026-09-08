@@ -49,6 +49,9 @@ class ProcessedReading:
     temperature: float
     level: float
     volume: float
+    gov_volume: float
+    net_volume: float
+    density_at_temperature: float
     fill_percent: float
     is_outlier: bool
     alarms: tuple = ()
@@ -125,10 +128,11 @@ class IngestionPipeline:
         from fmp.ingestion.batch_writer import insert_measurements
         from fmp.ingestion.processor import (
             calculate_volume,
+            density_at_temperature,
             fill_percent,
             pressure_to_level,
+            volume_correction_factor,
         )
-        from fmp.ingestion.tank_geometry import density_at_temperature
 
         state = self.state_for(tank.id)
 
@@ -157,14 +161,20 @@ class IngestionPipeline:
             is_outlier = state.anomaly.update(level)
             level = state.pressure_ema.update(level)
 
+            vcf = volume_correction_factor(expansion_coeff, temperature)
             volume = calculate_volume(
                 level=level,
                 orientation=tank.tank_orientation,
                 tank_diameter=tank.tank_diameter,
                 tank_length=tank.tank_length,
                 tank_height=tank.tank_height,
+                tank_shape=getattr(tank, "tank_shape", None),
+                tank_width=getattr(tank, "tank_width", None),
+                dish_depth=getattr(tank, "dish_depth", None),
             )
-            percent = fill_percent(volume, tank.total_capacity_liters)
+            gov = volume
+            nsv = gov * vcf
+            percent = fill_percent(gov, tank.total_capacity_liters)
             candidates = evaluate_alarm_rules(tank, level, volume, percent)
 
             fired_alarms = []
@@ -195,6 +205,9 @@ class IngestionPipeline:
                     "temperature": temperature,
                     "level": level,
                     "volume": volume,
+                    "gov_volume": gov,
+                    "net_volume": nsv,
+                    "density_at_temperature": density,
                     "fill_percent": percent,
                     "is_outlier": is_outlier,
                     "status": status,
@@ -209,6 +222,9 @@ class IngestionPipeline:
                 temperature=temperature or 0.0,
                 level=level,
                 volume=volume,
+                gov_volume=gov,
+                net_volume=nsv,
+                density_at_temperature=density,
                 fill_percent=percent,
                 is_outlier=is_outlier,
                 alarms=tuple(fired_alarms),
@@ -227,6 +243,9 @@ async def publish_live(redis, reading: ProcessedReading):
         "temperature": reading.temperature,
         "level": reading.level,
         "volume": reading.volume,
+        "gov_volume": reading.gov_volume,
+        "net_volume": reading.net_volume,
+        "density_at_temperature": reading.density_at_temperature,
         "fill_percent": reading.fill_percent,
         "is_outlier": reading.is_outlier,
         "alarms": [{"type": a.type, "level": a.level, "message": a.message} for a in reading.alarms],
