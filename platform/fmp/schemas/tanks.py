@@ -4,9 +4,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 TANK_ORIENTATIONS = ("vertical", "horizontal")
+
+TANK_SHAPES = ("vertical_cylinder", "horizontal_cylinder", "rectangular", "spherical", "horizontal_elliptical_ends", "custom_strapping")
 
 
 class TankBase(BaseModel):
@@ -15,9 +17,14 @@ class TankBase(BaseModel):
     sensor_serial_number: str = Field(min_length=1, max_length=64)
     device_address: int = 1
     tank_orientation: str = Field(default="vertical", pattern="^(vertical|horizontal)$")
+    tank_shape: str = Field(default="vertical_cylinder", pattern=r"^(vertical_cylinder|horizontal_cylinder|rectangular|spherical|horizontal_elliptical_ends|custom_strapping)$")
     tank_diameter: float = Field(gt=0)
     tank_height: float | None = Field(default=None, gt=0)
     tank_length: float | None = Field(default=None, gt=0)
+    dish_depth: float | None = Field(default=None, gt=0)
+    tank_width: float | None = Field(default=None, gt=0)
+    fuel_type_id: uuid.UUID
+    strapping_table_id: uuid.UUID | None = None
     tank_volume: float = Field(gt=0)
     elevation: float | None = None
     calibration_factor: float = 1.0
@@ -29,6 +36,20 @@ class TankBase(BaseModel):
     high_volume_threshold: float | None = None
     is_active: bool = True
     gateway_mac: str | None = Field(default=None, max_length=17)
+
+    @model_validator(mode="after")
+    def _shape_consistency(self):
+        if self.tank_shape == "vertical_cylinder" and not (self.tank_orientation == "vertical"):
+            raise ValueError("vertical_cylinder requires vertical orientation")
+        if self.tank_shape in ("horizontal_cylinder", "spherical", "horizontal_elliptical_ends") and not (self.tank_orientation == "horizontal"):
+            raise ValueError(f"{self.tank_shape} requires horizontal orientation")
+        if self.tank_shape == "rectangular" and not (self.tank_width is not None and self.tank_length is not None and self.tank_height is not None):
+            raise ValueError("rectangular tank requires tank_width, tank_length and tank_height")
+        if self.tank_shape == "horizontal_elliptical_ends" and self.dish_depth is None:
+            raise ValueError("horizontal_elliptical_ends requires dish_depth")
+        if self.tank_shape == "custom_strapping" and self.strapping_table_id is None:
+            raise ValueError("custom_strapping requires strapping_table_id")
+        return self
 
 
 class TankCreate(TankBase):
@@ -54,6 +75,9 @@ class TelemetryPoint(BaseModel):
     volume: float | None = None
     flow_rate: float | None = None
     fill_percent: float | None = None
+    gov_volume: float | None = None
+    net_volume: float | None = None
+    density_at_temperature: float | None = None
     is_outlier: bool = False
 
 

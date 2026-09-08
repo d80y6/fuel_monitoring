@@ -34,7 +34,7 @@ async def users(db):
 @pytest_asyncio.fixture
 async def tank_seed(db):
     from fmp.core.database import async_session_factory
-    from fmp.models import Company, Site, Tank
+    from fmp.models import Company, FuelType, Site, Tank
 
     async with async_session_factory() as session:
         company = Company(name="SeedCo")
@@ -43,15 +43,23 @@ async def tank_seed(db):
         site = Site(name="SeedSite", company_id=company.id)
         session.add(site)
         await session.flush()
+        fuel = FuelType(
+            code="diesel", name="Diesel", base_density=845.0,
+            thermal_expansion_coeff=0.0008, max_vapor_pressure=2.0,
+            viscosity_cst=2.5,
+        )
+        session.add(fuel)
+        await session.flush()
         tank = Tank(
             name="SeedTank", site_id=site.id,
+            fuel_type_id=fuel.id,
             sensor_serial_number=f"SN-SEED-{uuid.uuid4().hex[:6]}",
             tank_orientation="vertical", tank_diameter=2.0, tank_height=3.0,
             tank_volume=9200.0, calibration_factor=1.0,
         )
         session.add(tank)
         await session.commit()
-        return tank.id
+        return (tank.id, fuel.id)
 
 
 def _set_override(user):
@@ -63,6 +71,8 @@ def _set_override(user):
 
 async def test_tanks_require_auth_and_roles(db, users, tank_seed):
     from fmp.api.main import app
+
+    tank_seed_id, fuel_type_id = tank_seed
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # unauthenticated reads are rejected
@@ -95,6 +105,7 @@ async def test_tanks_require_auth_and_roles(db, users, tank_seed):
         site_id = r.json()["id"]
         r = await client.post("/api/v1/tanks", json={
             "name": "Allowed", "site_id": site_id,
+            "fuel_type_id": str(fuel_type_id),
             "sensor_serial_number": f"SN-{uuid.uuid4().hex[:8]}",
             "tank_orientation": "vertical", "tank_diameter": 2.0, "tank_height": 3.0,
             "tank_volume": 9200.0, "calibration_factor": 1.0,
@@ -104,7 +115,7 @@ async def test_tanks_require_auth_and_roles(db, users, tank_seed):
 
         # plain user cannot ack alarms even on a real tank
         _set_override(users["user"])
-        r = await client.post(f"/api/v1/tanks/{tank_seed}/alarms/{uuid.uuid4()}/ack")
+        r = await client.post(f"/api/v1/tanks/{tank_seed_id}/alarms/{uuid.uuid4()}/ack")
         assert r.status_code == 403
 
         # company_admin gets a proper 404 (authorized, alarm missing)

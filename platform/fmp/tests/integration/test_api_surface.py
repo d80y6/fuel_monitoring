@@ -25,7 +25,7 @@ async def test_end_to_end_org_authz(db):
     # seed an admin and override auth for the authenticated portion
     from fmp.core.database import async_session_factory
     from fmp.core.security import hash_password
-    from fmp.models import User
+    from fmp.models import FuelType, User
     from fmp.api.deps import get_current_user
     from fmp.core.security import create_access_token
 
@@ -36,8 +36,15 @@ async def test_end_to_end_org_authz(db):
             role="admin", is_active=True,
         )
         session.add(admin)
+        fuel = FuelType(
+            code="diesel", name="Diesel", base_density=845.0,
+            thermal_expansion_coeff=0.0008, max_vapor_pressure=2.0,
+            viscosity_cst=2.5,
+        )
+        session.add(fuel)
         await session.commit()
     token = create_access_token(admin.id, extra={"role": "admin"})
+    fuel_type_id = fuel.id
 
     async def _override():
         return admin
@@ -73,6 +80,7 @@ async def test_end_to_end_org_authz(db):
 
             r = await client.post("/api/v1/tanks", json={
                 "name": "Tank1", "site_id": site_id,
+                "fuel_type_id": str(fuel_type_id),
                 "sensor_serial_number": (tank_serial := f"SN-{uuid.uuid4().hex[:10]}"),
                 "tank_orientation": "vertical", "tank_diameter": 2.0, "tank_height": 3.0,
                 "tank_volume": 9200.0, "calibration_factor": 1.0,
@@ -85,6 +93,7 @@ async def test_end_to_end_org_authz(db):
             # duplicate tank serial is rejected with 409
             r = await client.post("/api/v1/tanks", json={
                 "name": "TankDup", "site_id": site_id,
+                "fuel_type_id": str(fuel_type_id),
                 "sensor_serial_number": tank_serial,  # reuse the first tank's serial
                 "tank_orientation": "vertical", "tank_diameter": 2.0, "tank_height": 3.0,
                 "tank_volume": 9200.0, "calibration_factor": 1.0,
