@@ -13,17 +13,20 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fmp.api.deps import CurrentUser, SessionDep
 from fmp.core.database import get_session
 from fmp.core.redis import get_redis_client, RedisClient
-from fmp.models import UploadBatch
+from fmp.models import Allocation, DispenseTransaction, UploadBatch
 from fmp.schemas.dispensing import (
     CodeValidateRequest,
     CodeValidateResponse,
     DispenseCompleteRequest,
     DispenseCompleteResponse,
 )
+from fmp.schemas.dispensing_read import AllocationRead, TransactionRead
 from fmp.schemas.notifications import ExcelIngestOutcome
 from fmp.services.dispensing.dispense_engine import complete_dispense, validate_code
 from fmp.services.dispensing.excel_ingestion import ingest_excel
@@ -108,3 +111,51 @@ async def redispatch_batch_codes(
         "batch_id": str(batch.id),
         "status": batch.status,
     }
+
+
+@router.get("/allocations", response_model=list[AllocationRead])
+async def list_allocations(
+    _: CurrentUser,
+    session: SessionDep,
+    max_rows: int = 100,
+) -> list[AllocationRead]:
+    """Read-only list of quota allocations (newest first) for dashboards."""
+    stmt = select(Allocation).order_by(desc(Allocation.created_at)).limit(min(max_rows, 500))
+    rows = (await session.execute(stmt)).scalars().all()
+    return [
+        AllocationRead(
+            id=a.id, employee_id=a.employee_id,
+            employee_name=a.employee.name if a.employee else "",
+            invoice_number=a.invoice_number,
+            allocated_liters=a.allocated_liters,
+            dispensed_liters=a.dispensed_liters,
+            remaining_liters=a.remaining_liters,
+            status=a.status, created_at=a.created_at,
+        )
+        for a in rows
+    ]
+
+
+@router.get("/transactions", response_model=list[TransactionRead])
+async def list_transactions(
+    _: CurrentUser,
+    session: SessionDep,
+    dispenser_id: uuid.UUID | None = None,
+    limit: int = 200,
+) -> list[TransactionRead]:
+    """Read-only list of dispense transactions (newest first) for dashboards."""
+    stmt = select(DispenseTransaction).order_by(desc(DispenseTransaction.created_at)).limit(min(limit, 1000))
+    if dispenser_id:
+        stmt = stmt.where(DispenseTransaction.dispenser_id == dispenser_id)
+    rows = (await session.execute(stmt)).scalars().all()
+    return [
+        TransactionRead(
+            id=t.id, station_id=t.station_id, dispenser_id=t.dispenser_id,
+            employee_id=t.employee_id,
+            requested_liters=t.requested_liters, actual_liters=t.actual_liters,
+            secret_totalizer_before=t.secret_totalizer_before,
+            secret_totalizer_after=t.secret_totalizer_after,
+            status=t.status, created_at=t.created_at,
+        )
+        for t in rows
+    ]
