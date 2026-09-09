@@ -1,6 +1,8 @@
-import type { TankTransaction, AlarmSummary, Station } from './apiTypes';
+import type { TransactionRead, AlarmSummary, Station } from './apiTypes';
 
-export function last24hLiters(transactions: TankTransaction[]): number {
+export function last24hLiters(
+  transactions: Pick<TransactionRead, 'actual_liters' | 'status' | 'created_at'>[],
+): number {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   return transactions
     .filter((t) => {

@@ -23,20 +23,18 @@ export default function AlarmCenter() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['allOpenAlarms'] }),
   });
 
-  const open = (alarms.data ?? []).filter((a) => !a.acknowledged);
-
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-semibold text-slate-800">Alarm Center</h2>
-        {open.length > 0 ? (
+        {(alarms.data ?? []).length > 0 ? (
           <span className="text-sm bg-rose-100 text-rose-700 px-3 py-1 rounded-full">
-            {open.length} open alarm{open.length > 1 ? 's' : ''}
+            {(alarms.data ?? []).length} open alarm{(alarms.data ?? []).length > 1 ? 's' : ''}
           </span>
         ) : null}
       </div>
       {alarms.isLoading ? <p className="text-slate-500">Loading alarms…</p> : null}
-      {open.length === 0 && !alarms.isLoading ? (
+      {(alarms.data ?? []).length === 0 && !alarms.isLoading ? (
         <p className="text-slate-500">No open alarms.</p>
       ) : (
         <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
@@ -53,7 +51,7 @@ export default function AlarmCenter() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {open.map((a) => {
+              {(alarms.data ?? []).map((a) => {
                 const tankName = tanks.data?.find((t) => t.id === a.tank_id)?.name ?? a.tank_id;
                 return (
                   <tr key={a.id}>
@@ -76,7 +74,7 @@ export default function AlarmCenter() {
                     <td className="px-4 py-3">
                       <button
                         onClick={() => ack.mutate(a)}
-                        disabled={a.acknowledged || ack.isPending}
+                        disabled={a.acknowledged || (ack.isPending && ack.variables?.id === a.id)}
                         className="text-xs bg-slate-100 px-2 py-1 rounded disabled:opacity-40"
                       >
                         {a.acknowledged ? 'Acknowledged' : 'Ack'}

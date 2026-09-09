@@ -3,7 +3,6 @@ import { api } from '../../api/client';
 import { useRealtimeAlarms } from '../../hooks/useRealtimeAlarms';
 import { isOpenAlarm, last24hLiters, onlineStations } from '../../lib/kpi';
 import { formatLiters } from '../../lib/dispenseFormat';
-import type { TankTransaction } from '../../lib/apiTypes';
 
 export function KpiCards() {
   const tanks = useQuery({ queryKey: ['tanks'], queryFn: () => api.listTanks() });
@@ -16,7 +15,7 @@ export function KpiCards() {
 
   const openAlarms = alarms.filter(isOpenAlarm).length;
   const online = onlineStations(stations.data ?? []);
-  const liters = formatLiters(last24hLiters((transactions.data ?? []) as unknown as TankTransaction[]));
+  const liters = formatLiters(last24hLiters(transactions.data ?? []));
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
