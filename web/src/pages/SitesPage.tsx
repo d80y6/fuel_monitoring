@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ApiError } from '../api/http';
 import { api } from '../api/client';
 import type { Site } from '../lib/apiTypes';
 import { Modal } from '../components/ui/Modal';
@@ -28,17 +29,18 @@ export default function SitesPage() {
   const [modal, setModal] = useState<'create' | 'edit' | null>(null);
   const [editing, setEditing] = useState<Site | null>(null);
   const [deleting, setDeleting] = useState<Site | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({ name: '', company_id: '', address: '', location: '' });
 
   const openCreate = () => {
-    setEditing(null);
+    setEditing(null); setError(null);
     setForm({ name: '', company_id: companyId || (companies[0]?.id ?? ''), address: '', location: '' });
     setModal('create');
   };
 
   const openEdit = (site: Site) => {
-    setEditing(site);
+    setEditing(site); setError(null);
     setForm({ name: site.name, company_id: site.company_id, address: site.address ?? '', location: site.location ?? '' });
     setModal('edit');
   };
@@ -53,7 +55,9 @@ export default function SitesPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sites'] });
       setModal(null);
+      setError(null);
     },
+    onError: (err) => setError(err instanceof ApiError ? err.detail : 'Save failed'),
   });
 
   const deleteMutation = useMutation({
@@ -61,7 +65,9 @@ export default function SitesPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sites'] });
       setDeleting(null);
+      setError(null);
     },
+    onError: (err) => setError(err instanceof ApiError ? err.detail : 'Delete failed'),
   });
 
   return (
@@ -75,7 +81,7 @@ export default function SitesPage() {
             {filteredCompany ? `${filteredCompany.name} Sites` : 'Sites'}
           </h1>
         </div>
-        <button onClick={openCreate} className="bg-sky-600 text-white rounded px-4 py-2 text-sm font-medium hover:bg-sky-700">
+        <button onClick={openCreate} className="bg-brand text-white rounded px-4 py-2 text-sm font-medium">
           New Site
         </button>
       </div>
@@ -99,7 +105,7 @@ export default function SitesPage() {
             {sites.map((site) => (
               <tr key={site.id} className="border-b border-slate-100 hover:bg-slate-50">
                 <td className="py-2 px-3">
-                  <Link to={`/stations/${site.id}`} className="text-sky-600 hover:underline">{site.name}</Link>
+                  <Link to={`/stations/${site.id}`} className="text-brand-dark hover:underline">{site.name}</Link>
                 </td>
                 <td className="py-2 px-3 text-slate-600">{site.address ?? '—'}</td>
                 <td className="py-2 px-3 text-slate-600">{site.location ?? '—'}</td>
@@ -107,7 +113,7 @@ export default function SitesPage() {
                   <Badge variant={site.is_active ? 'success' : 'danger'}>{site.is_active ? 'Active' : 'Inactive'}</Badge>
                 </td>
                 <td className="py-2 px-3 space-x-2">
-                  <button onClick={() => openEdit(site)} className="text-sky-600 hover:underline text-sm">Edit</button>
+                  <button onClick={() => openEdit(site)} className="text-sm text-slate-600 hover:text-brand-dark">Edit</button>
                   <button onClick={() => setDeleting(site)} className="text-rose-600 hover:underline text-sm">Delete</button>
                 </td>
               </tr>
@@ -116,6 +122,8 @@ export default function SitesPage() {
         </table>
       )}
 
+      {!modal && error ? <p className="text-sm text-red-600">{error}</p> : null}
+
       {modal && (
         <Modal title={editing ? 'Edit Site' : 'New Site'} onClose={() => setModal(null)}>
           <div className="space-y-3">
@@ -123,7 +131,7 @@ export default function SitesPage() {
               <Input id="site-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
             </Field>
             <Field label="Company" htmlFor="site-company">
-              <Select id="site-company" value={form.company_id} onChange={(e) => setForm({ ...form, company_id: e.target.value })}>
+              <Select id="site-company" value={form.company_id} onChange={(e) => setForm({ ...form, company_id: e.target.value })} disabled={!!editing}>
                 {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </Select>
             </Field>
@@ -134,12 +142,13 @@ export default function SitesPage() {
               <Input id="site-location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
             </Field>
           </div>
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <div className="flex justify-end gap-2 pt-4">
             <button onClick={() => setModal(null)} className="px-3 py-2 text-sm text-slate-600">Cancel</button>
             <button
               onClick={() => saveMutation.mutate()}
               disabled={!form.name || !form.company_id}
-              className="bg-sky-600 text-white rounded px-3 py-2 text-sm font-medium disabled:opacity-50"
+              className="bg-brand text-white rounded px-3 py-2 text-sm font-medium disabled:opacity-50"
             >
               {editing ? 'Save' : 'Create'}
             </button>

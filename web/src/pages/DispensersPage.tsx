@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ApiError } from '../api/http';
 import { api } from '../api/client';
 import { Badge } from '../components/ui/badge';
 import { Modal } from '../components/ui/Modal';
@@ -19,10 +20,12 @@ export default function DispensersPage() {
   const toggleActive = useMutation({
     mutationFn: (d: { id: string; is_active: boolean }) =>
       api.updateDispenser(stationId!, d.id, { is_active: !d.is_active }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['dispensers', stationId] }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['dispensers', stationId] }); setError(null); },
+    onError: (err) => setError(err instanceof ApiError ? err.detail : 'Toggle failed'),
   });
 
   const [showCreate, setShowCreate] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', serial_number: '', modbus_address: '', dispenser_model: '' });
 
   const createDispenser = useMutation({
@@ -36,20 +39,24 @@ export default function DispensersPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dispensers', stationId] });
       setShowCreate(false);
+      setError(null);
       setForm({ name: '', serial_number: '', modbus_address: '', dispenser_model: '' });
     },
+    onError: (err) => setError(err instanceof ApiError ? err.detail : 'Save failed'),
   });
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-slate-800">Dispensers</h1>
-        <button onClick={() => setShowCreate(true)} className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">
+        <button onClick={() => { setError(null); setShowCreate(true); }} className="px-3 py-1.5 bg-brand text-white text-sm rounded">
           New dispenser
         </button>
       </div>
 
       {dispensers.isLoading && <p className="text-slate-500 text-sm">Loading…</p>}
+
+      {!showCreate && error ? <p className="text-sm text-red-600">{error}</p> : null}
 
       {dispensers.data && (
         <table className="w-full text-sm">
@@ -104,6 +111,7 @@ export default function DispensersPage() {
           <Field label="Model" htmlFor="disp-model">
             <Input id="disp-model" value={form.dispenser_model} onChange={(e) => setForm((f) => ({ ...f, dispenser_model: e.target.value }))} />
           </Field>
+          {error ? <p className="text-sm text-red-600">{error}</p> : null}
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setShowCreate(false)} className="px-3 py-1.5 text-sm border border-slate-300 rounded hover:bg-slate-50">
               Cancel
@@ -111,7 +119,7 @@ export default function DispensersPage() {
             <button
               onClick={() => createDispenser.mutate()}
               disabled={!form.name || !form.serial_number || !form.modbus_address || createDispenser.isPending}
-              className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              className="px-3 py-1.5 text-sm bg-brand text-white rounded disabled:opacity-50"
             >
               Create
             </button>
