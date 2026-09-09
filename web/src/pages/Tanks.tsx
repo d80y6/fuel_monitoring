@@ -32,6 +32,7 @@ export default function Tanks() {
   const fuels = useQuery({ queryKey: ['fuel-types'], queryFn: () => api.listFuelTypes() });
   const sites = useQuery({ queryKey: ['sites'], queryFn: () => api.listSites() });
   const [creating, setCreating] = useState(false);
+  const [siteFilter, setSiteFilter] = useState('');
 
   return (
     <div>
@@ -40,6 +41,15 @@ export default function Tanks() {
         <button onClick={() => setCreating(true)} className="bg-brand text-white rounded px-3 py-2 text-sm font-medium">
           New tank
         </button>
+      </div>
+      <div className="flex gap-4 mb-4 items-center">
+        <div>
+          <label htmlFor="tank-site-filter" className="block text-sm font-medium text-slate-700 mb-1">Site</label>
+          <select id="tank-site-filter" className="border border-slate-300 rounded px-3 py-2 text-sm" value={siteFilter} onChange={(e) => setSiteFilter(e.target.value)}>
+            <option value="">All sites</option>
+            {(sites.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
       </div>
       <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table className="w-full text-sm">
@@ -53,7 +63,7 @@ export default function Tanks() {
             </tr>
           </thead>
           <tbody>
-            {(tanks.data ?? []).map((t) => <TankRowT key={t.id} tank={t} fuels={fuels.data ?? []} />)}
+            {(tanks.data ?? []).filter((t) => !siteFilter || t.site_id === siteFilter).map((t) => <TankRowT key={t.id} tank={t} fuels={fuels.data ?? []} />)}
           </tbody>
         </table>
       </div>
