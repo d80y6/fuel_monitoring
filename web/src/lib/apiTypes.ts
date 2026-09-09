@@ -300,6 +300,12 @@ export interface ExcelIngestOutcome {
 }
 
 // --- Code operations ---
+export interface CodeValidateRequest {
+  code: string;
+  station_id: string;
+  requested_liters?: number | null;
+}
+
 export interface CodeValidateResponse {
   valid: boolean;
   employee_name?: string;

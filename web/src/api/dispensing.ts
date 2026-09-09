@@ -1,5 +1,6 @@
 import type {
   AllocationRead,
+  CodeValidateRequest,
   CodeValidateResponse,
   DispenseCompleteResponse,
   DispenseRequest,
@@ -27,16 +28,17 @@ export const dispensingApi = {
   },
 
   async uploadQuotaSheet(formData: FormData): Promise<ExcelIngestOutcome> {
-    return request<ExcelIngestOutcome>(`${API_BASE}/dispensing/quota-sheet`, {
+    return request<ExcelIngestOutcome>(`${API_BASE}/dispensing/upload`, {
       method: 'POST',
       body: formData,
     });
   },
 
-  async validateCode(code: string, stationId: string): Promise<CodeValidateResponse> {
-    return request<CodeValidateResponse>(
-      `${API_BASE}/dispensing/validate?code=${encodeURIComponent(code)}&station_id=${stationId}`,
-    );
+  async validateCode(payload: CodeValidateRequest): Promise<CodeValidateResponse> {
+    return request<CodeValidateResponse>(`${API_BASE}/dispensing/validate`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   },
 
   async completeDispense(payload: DispenseRequest): Promise<DispenseCompleteResponse> {
