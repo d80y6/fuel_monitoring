@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import type { TelemetryPoint } from '../../lib/apiTypes';
 import type { LiveReading } from '../../store/telemetry';
@@ -12,7 +13,10 @@ interface TelemetryChartProps {
 }
 
 export function TelemetryChart({ points, live, tankTitle, lowVolume, highVolume }: TelemetryChartProps) {
-  const option = buildChartOption(points, live, tankTitle, lowVolume, highVolume);
+  const option = useMemo(
+    () => buildChartOption(points, live, tankTitle, lowVolume, highVolume),
+    [points, live, tankTitle, lowVolume, highVolume]
+  );
   return (
     <ReactECharts
       option={option}

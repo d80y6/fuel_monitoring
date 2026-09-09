@@ -128,7 +128,7 @@ function CreateTankDialog({
         sensor_serial_number: form.sensor_serial_number,
         tank_shape: shape,
         tank_orientation: (shape === 'vertical_cylinder' ? 'vertical' : 'horizontal') as 'vertical' | 'horizontal',
-        tank_diameter: Number(form.tank_diameter),
+        tank_diameter: form.tank_diameter ? Number(form.tank_diameter) : undefined,
         tank_volume: Number(form.tank_volume),
         fuel_type_id: form.fuel_type_id,
       };
@@ -155,30 +155,38 @@ function CreateTankDialog({
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50">
-      <form onSubmit={submit} className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 space-y-3 max-h-[90vh] overflow-auto">
-        <h3 className="text-lg font-semibold text-slate-800">Register tank</h3>
-        <label className="block text-sm font-medium text-slate-700">Name</label>
-        <input className="w-full border border-slate-300 rounded px-3 py-2" value={form.name} onChange={set('name')} required />
-        <label className="block text-sm font-medium text-slate-700">Sensor serial</label>
-        <input className="w-full border border-slate-300 rounded px-3 py-2" value={form.sensor_serial_number} onChange={set('sensor_serial_number')} required />
-        <label className="block text-sm font-medium text-slate-700">Site</label>
-        <select className="w-full border border-slate-300 rounded px-3 py-2" value={form.site_id} onChange={set('site_id')}>
+      <form
+        onSubmit={submit}
+        onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-tank-title"
+        className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 space-y-3 max-h-[90vh] overflow-auto"
+      >
+        <h3 id="create-tank-title" className="text-lg font-semibold text-slate-800">Register tank</h3>
+        <label htmlFor="tank-name" className="block text-sm font-medium text-slate-700">Name</label>
+        <input id="tank-name" autoFocus className="w-full border border-slate-300 rounded px-3 py-2" value={form.name} onChange={set('name')} required />
+        <label htmlFor="tank-sensor" className="block text-sm font-medium text-slate-700">Sensor serial</label>
+        <input id="tank-sensor" className="w-full border border-slate-300 rounded px-3 py-2" value={form.sensor_serial_number} onChange={set('sensor_serial_number')} required />
+        <label htmlFor="tank-site" className="block text-sm font-medium text-slate-700">Site</label>
+        <select id="tank-site" className="w-full border border-slate-300 rounded px-3 py-2" value={form.site_id} onChange={set('site_id')}>
           {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-        <label className="block text-sm font-medium text-slate-700">Tank shape</label>
-        <select className="w-full border border-slate-300 rounded px-3 py-2" value={form.tank_shape} onChange={set('tank_shape')}>
+        <label htmlFor="tank-shape" className="block text-sm font-medium text-slate-700">Tank shape</label>
+        <select id="tank-shape" className="w-full border border-slate-300 rounded px-3 py-2" value={form.tank_shape} onChange={set('tank_shape')}>
           {SHAPES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
-        <label className="block text-sm font-medium text-slate-700">Fuel type</label>
-        <select className="w-full border border-slate-300 rounded px-3 py-2" value={form.fuel_type_id} onChange={set('fuel_type_id')}>
+        <label htmlFor="tank-fuel" className="block text-sm font-medium text-slate-700">Fuel type</label>
+        <select id="tank-fuel" className="w-full border border-slate-300 rounded px-3 py-2" value={form.fuel_type_id} onChange={set('fuel_type_id')}>
           {fuels.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
-        <label className="block text-sm font-medium text-slate-700">Diameter (m)</label>
-        <input type="number" step="any" className="w-full border border-slate-300 rounded px-3 py-2" value={form.tank_diameter} onChange={set('tank_diameter')} required />
+        <label htmlFor="tank-diameter" className="block text-sm font-medium text-slate-700">Diameter (m)</label>
+        <input id="tank-diameter" type="number" step="any" className="w-full border border-slate-300 rounded px-3 py-2" value={form.tank_diameter} onChange={set('tank_diameter')} />
         {DIM_GROUPS.filter((g) => g.show(form.tank_shape as Shape)).map((g) => (
           <div key={g.field}>
-            <label className="block text-sm font-medium text-slate-700">{g.label}</label>
+            <label htmlFor={g.field} className="block text-sm font-medium text-slate-700">{g.label}</label>
             <input
+              id={g.field}
               type="number"
               step="any"
               placeholder={g.placeholder}
@@ -189,8 +197,8 @@ function CreateTankDialog({
             />
           </div>
         ))}
-        <label className="block text-sm font-medium text-slate-700">Capacity (L)</label>
-        <input type="number" step="any" className="w-full border border-slate-300 rounded px-3 py-2" value={form.tank_volume} onChange={set('tank_volume')} required />
+        <label htmlFor="tank-volume" className="block text-sm font-medium text-slate-700">Capacity (L)</label>
+        <input id="tank-volume" type="number" step="any" className="w-full border border-slate-300 rounded px-3 py-2" value={form.tank_volume} onChange={set('tank_volume')} required />
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-3 py-2 text-sm text-slate-600">Cancel</button>

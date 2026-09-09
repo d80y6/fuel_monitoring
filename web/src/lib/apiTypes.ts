@@ -76,7 +76,7 @@ export interface TankCreatePayload {
   device_address?: number;
   tank_orientation: 'vertical' | 'horizontal';
   tank_shape: TankShape;
-  tank_diameter: number;
+  tank_diameter?: number;
   tank_height?: number;
   tank_length?: number;
   tank_width?: number;
