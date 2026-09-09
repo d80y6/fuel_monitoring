@@ -27,6 +27,8 @@ export const adminApi = {
     name: string;
     type: string;
     config_json: Record<string, unknown>;
+    is_active?: boolean;
+    priority?: number;
   }): Promise<NotificationGatewayRead> {
     return request<NotificationGatewayRead>(`${API_BASE}/gateways`, {
       method: 'POST',
