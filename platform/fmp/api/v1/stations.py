@@ -11,6 +11,7 @@ from fmp.models import Dispenser, Station
 from fmp.schemas.org import (
     DispenserCreate,
     DispenserRead,
+    DispenserUpdate,
     StationCreate,
     StationRead,
     StationUpdate,
@@ -103,3 +104,32 @@ async def station_dispensers(station_id: uuid.UUID, _: CurrentUser, session: Ses
         )
     ).scalars().all()
     return rows
+
+
+@router.patch("/{station_id}/dispensers/{dispenser_id}", response_model=DispenserRead)
+async def update_dispenser(
+    station_id: uuid.UUID,
+    dispenser_id: uuid.UUID,
+    payload: DispenserUpdate,
+    _: PrivilegedUser,
+    session: SessionDep,
+):
+    station = (
+        await session.execute(select(Station).where(Station.id == station_id))
+    ).scalar_one_or_none()
+    if station is None or station.deleted_at is not None:
+        raise HTTPException(404, "station not found")
+
+    dispenser = (
+        await session.execute(
+            select(Dispenser).where(Dispenser.id == dispenser_id)
+        )
+    ).scalar_one_or_none()
+    if dispenser is None or str(dispenser.station_id) != str(station_id):
+        raise HTTPException(404, "dispenser not found in this station")
+
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(dispenser, field, value)
+    await session.commit()
+    await session.refresh(dispenser)
+    return dispenser

@@ -102,6 +102,13 @@ class DispenserCreate(BaseModel):
     dispenser_model: str | None = None
 
 
+class DispenserUpdate(BaseModel):
+    is_active: bool | None = None
+    name: str | None = None
+    dispenser_model: str | None = None
+    modbus_address: int | None = None
+
+
 class DispenserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
