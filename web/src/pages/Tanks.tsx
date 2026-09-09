@@ -1,3 +1,204 @@
+import { FormEvent, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { ApiError } from '../api/http';
+import { api } from '../api/client';
+import type { FuelType, TankRead, TankShape } from '../lib/apiTypes';
+import { fuelColor } from '../lib/tankGeometry';
+import { fuelCodeById } from '../lib/fuelMap';
+import { useTelemetry } from '../hooks/useTelemetry';
+
+const SHAPES: TankShape[] = [
+  'vertical_cylinder',
+  'horizontal_cylinder',
+  'rectangular',
+  'spherical',
+  'horizontal_elliptical_ends',
+  'custom_strapping',
+];
+
+type Shape = (typeof SHAPES)[number];
+type Group = { label: string; field: string; placeholder: string; show: (s: Shape) => boolean };
+
+const DIM_GROUPS: Group[] = [
+  { label: 'Height (m)', field: 'tank_height', placeholder: '2.0', show: (s) => s === 'vertical_cylinder' || s === 'rectangular' },
+  { label: 'Length (m)', field: 'tank_length', placeholder: '3.0', show: (s) => s === 'horizontal_cylinder' || s === 'rectangular' || s === 'horizontal_elliptical_ends' },
+  { label: 'Width (m)', field: 'tank_width', placeholder: '1.5', show: (s) => s === 'rectangular' },
+  { label: 'Dish depth (m)', field: 'dish_depth', placeholder: '0.4', show: (s) => s === 'horizontal_elliptical_ends' },
+];
+
 export default function Tanks() {
-  return <h2 className="text-2xl font-semibold text-slate-800">Tanks</h2>;
+  const tanks = useQuery({ queryKey: ['tanks'], queryFn: () => api.listTanks() });
+  const fuels = useQuery({ queryKey: ['fuel-types'], queryFn: () => api.listFuelTypes() });
+  const sites = useQuery({ queryKey: ['sites'], queryFn: () => api.listSites() });
+  const [creating, setCreating] = useState(false);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-semibold text-slate-800">Tanks</h2>
+        <button onClick={() => setCreating(true)} className="bg-brand text-white rounded px-3 py-2 text-sm font-medium">
+          New tank
+        </button>
+      </div>
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 text-slate-500">
+            <tr>
+              <th className="text-left px-4 py-2">Name</th>
+              <th className="text-left px-4 py-2">Fuel</th>
+              <th className="text-left px-4 py-2">Shape</th>
+              <th className="text-right px-4 py-2">Volume (L)</th>
+              <th className="text-right px-4 py-2">Fill</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(tanks.data ?? []).map((t) => <TankRowT key={t.id} tank={t} fuels={fuels.data ?? []} />)}
+          </tbody>
+        </table>
+      </div>
+      {creating ? (
+        <CreateTankDialog
+          fuels={fuels.data ?? []}
+          sites={sites.data ?? []}
+          onClose={() => setCreating(false)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function TankRowT({ tank, fuels }: { tank: TankRead; fuels: FuelType[] }) {
+  const { live } = useTelemetry(tank.id);
+  const code = fuelCodeById(fuels, tank.fuel_type_id);
+  return (
+    <tr className="border-t border-slate-100">
+      <td className="px-4 py-2">
+        <Link to={`/tanks/${tank.id}`} className="font-medium text-brand-dark hover:underline">
+          {tank.name}
+        </Link>
+      </td>
+      <td className="px-4 py-2">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: fuelColor(code) }} />
+          {code || '—'}
+        </span>
+      </td>
+      <td className="px-4 py-2 text-slate-600">{tank.tank_shape ?? 'vertical_cylinder'}</td>
+      <td className="px-4 py-2 text-right">{Math.round(tank.tank_volume).toLocaleString()}</td>
+      <td className="px-4 py-2 text-right">{Math.round((live?.fill_percent ?? 0) * 100) / 100}%</td>
+    </tr>
+  );
+}
+
+function CreateTankDialog({
+  fuels,
+  sites,
+  onClose,
+}: {
+  fuels: FuelType[];
+  sites: Array<{ id: string; name: string }>;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({
+    name: '',
+    site_id: sites[0]?.id ?? '',
+    sensor_serial_number: '',
+    tank_shape: 'vertical_cylinder' as Shape,
+    tank_orientation: 'vertical',
+    tank_diameter: '',
+    tank_height: '',
+    tank_length: '',
+    tank_width: '',
+    dish_depth: '',
+    tank_volume: '',
+    fuel_type_id: fuels[0]?.id ?? '',
+  });
+  const [error, setError] = useState<string | null>(null);
+  const set = (k: keyof typeof form) => (e: { target: { value: string } }) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const create = useMutation({
+    mutationFn: () => {
+      const shape = form.tank_shape;
+      const base = {
+        name: form.name,
+        site_id: form.site_id,
+        sensor_serial_number: form.sensor_serial_number,
+        tank_shape: shape,
+        tank_orientation: (shape === 'vertical_cylinder' ? 'vertical' : 'horizontal') as 'vertical' | 'horizontal',
+        tank_diameter: Number(form.tank_diameter),
+        tank_volume: Number(form.tank_volume),
+        fuel_type_id: form.fuel_type_id,
+      };
+      const payload = {
+        ...base,
+        tank_height: form.tank_height ? Number(form.tank_height) : undefined,
+        tank_length: form.tank_length ? Number(form.tank_length) : undefined,
+        tank_width: form.tank_width ? Number(form.tank_width) : undefined,
+        dish_depth: form.dish_depth ? Number(form.dish_depth) : undefined,
+      };
+      return api.createTank(payload);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['tanks'] });
+      onClose();
+    },
+    onError: (err) => setError(err instanceof ApiError ? err.detail : 'Create failed'),
+  });
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    create.mutate();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-slate-900/40 flex items-center justify-center z-50">
+      <form onSubmit={submit} className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 space-y-3 max-h-[90vh] overflow-auto">
+        <h3 className="text-lg font-semibold text-slate-800">Register tank</h3>
+        <label className="block text-sm font-medium text-slate-700">Name</label>
+        <input className="w-full border border-slate-300 rounded px-3 py-2" value={form.name} onChange={set('name')} required />
+        <label className="block text-sm font-medium text-slate-700">Sensor serial</label>
+        <input className="w-full border border-slate-300 rounded px-3 py-2" value={form.sensor_serial_number} onChange={set('sensor_serial_number')} required />
+        <label className="block text-sm font-medium text-slate-700">Site</label>
+        <select className="w-full border border-slate-300 rounded px-3 py-2" value={form.site_id} onChange={set('site_id')}>
+          {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <label className="block text-sm font-medium text-slate-700">Tank shape</label>
+        <select className="w-full border border-slate-300 rounded px-3 py-2" value={form.tank_shape} onChange={set('tank_shape')}>
+          {SHAPES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <label className="block text-sm font-medium text-slate-700">Fuel type</label>
+        <select className="w-full border border-slate-300 rounded px-3 py-2" value={form.fuel_type_id} onChange={set('fuel_type_id')}>
+          {fuels.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+        </select>
+        <label className="block text-sm font-medium text-slate-700">Diameter (m)</label>
+        <input type="number" step="any" className="w-full border border-slate-300 rounded px-3 py-2" value={form.tank_diameter} onChange={set('tank_diameter')} required />
+        {DIM_GROUPS.filter((g) => g.show(form.tank_shape as Shape)).map((g) => (
+          <div key={g.field}>
+            <label className="block text-sm font-medium text-slate-700">{g.label}</label>
+            <input
+              type="number"
+              step="any"
+              placeholder={g.placeholder}
+              className="w-full border border-slate-300 rounded px-3 py-2"
+              value={form[g.field as keyof typeof form] as string}
+              onChange={set(g.field as keyof typeof form)}
+              required
+            />
+          </div>
+        ))}
+        <label className="block text-sm font-medium text-slate-700">Capacity (L)</label>
+        <input type="number" step="any" className="w-full border border-slate-300 rounded px-3 py-2" value={form.tank_volume} onChange={set('tank_volume')} required />
+        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="px-3 py-2 text-sm text-slate-600">Cancel</button>
+          <button type="submit" disabled={create.isPending} className="bg-brand text-white rounded px-3 py-2 text-sm font-medium disabled:opacity-50">
+            Create
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 }
