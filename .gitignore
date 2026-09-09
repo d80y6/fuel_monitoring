@@ -5,3 +5,6 @@
 
 # Superpowers worktrees
 .worktrees/
+
+node_modules/
+web/dist/

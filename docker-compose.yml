@@ -4,7 +4,8 @@
 #   docker compose up --build
 #
 # Services: API (:8000), Edge Ingestion (:8001), Celery worker + beat,
-#           TimescaleDB, Redis, EMQX MQTT broker, nginx reverse proxy (:80).
+#           TimescaleDB, Redis, EMQX MQTT broker, nginx reverse proxy (:80),
+#           web frontend (:8080 internal).
 # =============================================================================
 
 name: fuel-platform
@@ -115,6 +116,14 @@ services:
     depends_on:
       - api
       - ingest
+
+  web:
+    build: ./web
+    restart: unless-stopped
+    expose:
+      - "8080"
+    depends_on:
+      - api
 
 volumes:
   timescale_data:
