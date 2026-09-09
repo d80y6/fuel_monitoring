@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import { useRealtimeAlarms } from '../hooks/useRealtimeAlarms';
 import { useTelemetry } from '../hooks/useTelemetry';
 import { TankTile } from '../components/tanks/TankTile';
+import { KpiCards } from '../components/dashboard/KpiCards';
 import type { FuelType, TankRead } from '../lib/apiTypes';
 
 export default function Dashboard() {
@@ -22,6 +23,7 @@ export default function Dashboard() {
           </span>
         ) : null}
       </div>
+      <KpiCards />
       {tanks.isLoading ? <p className="text-slate-500">Loading tanks…</p> : null}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
         {rows.map((t) => <TankRow key={t.id} tank={t} fuels={fuels.data ?? []} />)}
