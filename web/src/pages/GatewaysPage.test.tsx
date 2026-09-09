@@ -58,14 +58,23 @@ describe('GatewaysPage', () => {
     await userEvent.click(await screen.findByRole('button', { name: /^edit$/i }));
     await userEvent.clear(screen.getByLabelText(/^config$/i));
     fireEvent.change(screen.getByLabelText(/^config$/i), { target: { value: '{"host":"x"}' } });
+    await userEvent.click(screen.getByRole('checkbox', { name: /active/i }));
     await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
     await waitFor(() =>
       expect(api.updateGateway).toHaveBeenCalledWith(
         'g1',
-        expect.objectContaining({ is_active: true, priority: 10, config_json: { host: 'x' } }),
+        expect.objectContaining({ is_active: false, priority: 10, config_json: { host: 'x' } }),
       ),
     );
     expect(api.updateGateway).not.toHaveBeenCalledWith('g1', expect.objectContaining({ name: 'SMTP relay' }));
+  });
+
+  it('disables name and type when editing', async () => {
+    renderPage();
+    await userEvent.click(await screen.findByRole('button', { name: /^edit$/i }));
+    expect(screen.getByLabelText(/^name$/i)).toBeDisabled();
+    expect(screen.getByLabelText(/^type$/i)).toBeDisabled();
+    expect(screen.getAllByText('Not editable after creation.')).toHaveLength(2);
   });
 
   it('deletes a gateway after confirmation', async () => {

@@ -17,6 +17,8 @@ export default function FuelTypesPage() {
           New fuel type
         </button>
       </div>
+      {fuelTypes.isLoading ? <p className="text-sm text-slate-500">Loading…</p> : null}
+      {fuelTypes.isError ? <p className="text-sm text-rose-600">Failed to load fuel types.</p> : null}
       <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-500">

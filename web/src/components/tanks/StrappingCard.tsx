@@ -41,7 +41,7 @@ export default function StrappingCard({ tankId }: { tankId: string }) {
           {s.calibration_data.map((pt) => (
             <tr key={pt.height} className="border-t border-slate-100">
               <td className="text-left">{pt.height}</td>
-              <td className="text-right">{pt.volume.toLocaleString()}</td>
+              <td className="text-right">{pt.volume.toLocaleString('en-US')}</td>
             </tr>
           ))}
         </tbody>

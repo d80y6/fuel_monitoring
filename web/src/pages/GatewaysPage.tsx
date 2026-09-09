@@ -22,6 +22,8 @@ export default function GatewaysPage() {
           New gateway
         </button>
       </div>
+      {gateways.isLoading ? <p className="text-sm text-slate-500">Loading…</p> : null}
+      {gateways.isError ? <p className="text-sm text-rose-600">Failed to load gateways.</p> : null}
       <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-slate-500">
@@ -92,7 +94,7 @@ function GatewayDialog({ initial, onClose }: { initial?: NotificationGatewayRead
           })
         : api.createGateway({
             name: form.name,
-            type: form.type,
+            type: form.type as 'smpp' | 'whatsapp',
             config_json,
             is_active: form.is_active,
             priority: Number(form.priority),
@@ -102,7 +104,12 @@ function GatewayDialog({ initial, onClose }: { initial?: NotificationGatewayRead
       void queryClient.invalidateQueries({ queryKey: ['gateways'] });
       onClose();
     },
-    onError: (err) => setError(err instanceof ApiError ? err.detail : 'Save failed'),
+    onError: (err) =>
+      setError(
+        err instanceof ApiError ? err.detail
+        : err instanceof Error && err.message === 'Invalid JSON' ? 'Config must be valid JSON'
+        : 'Save failed',
+      ),
   });
 
   const submit = (e: FormEvent) => {
@@ -114,13 +121,15 @@ function GatewayDialog({ initial, onClose }: { initial?: NotificationGatewayRead
     <Modal title={initial ? 'Edit gateway' : 'New gateway'} onClose={onClose} wide>
       <form onSubmit={submit} className="space-y-3">
         <Field label="Name" htmlFor="gateway-name">
-          <Input id="gateway-name" autoFocus value={form.name} onChange={set('name')} required placeholder="SMTP relay" />
+          <Input id="gateway-name" autoFocus value={form.name} onChange={set('name')} required placeholder="SMTP relay" disabled={!!initial} />
+          {initial ? <span className="text-xs text-slate-400">Not editable after creation.</span> : null}
         </Field>
         <Field label="Type" htmlFor="gateway-type">
-          <Select id="gateway-type" value={form.type} onChange={set('type')}>
+          <Select id="gateway-type" value={form.type} onChange={set('type')} disabled={!!initial}>
             <option value="smpp">SMPP</option>
             <option value="whatsapp">WhatsApp</option>
           </Select>
+          {initial ? <span className="text-xs text-slate-400">Not editable after creation.</span> : null}
         </Field>
         <Field label="Priority" htmlFor="gateway-priority">
           <Input
@@ -135,6 +144,14 @@ function GatewayDialog({ initial, onClose }: { initial?: NotificationGatewayRead
         <Field label="Config" htmlFor="gateway-config">
           <Textarea id="gateway-config" value={form.config_json} onChange={set('config_json')} rows={6} spellCheck={false} />
         </Field>
+        <label className="flex items-center gap-2 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={form.is_active}
+            onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))}
+          />
+          Active
+        </label>
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-3 py-2 text-sm text-slate-600">

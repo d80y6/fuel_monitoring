@@ -25,7 +25,7 @@ export const adminApi = {
 
   async createGateway(payload: {
     name: string;
-    type: string;
+    type: 'smpp' | 'whatsapp'
     config_json: Record<string, unknown>;
     is_active?: boolean;
     priority?: number;
@@ -39,7 +39,6 @@ export const adminApi = {
   async updateGateway(
     id: string,
     payload: Partial<{
-      name: string;
       config_json: Record<string, unknown>;
       is_active: boolean;
       priority: number;
