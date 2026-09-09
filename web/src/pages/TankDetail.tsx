@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useTelemetry } from '../hooks/useTelemetry';
 import { TankCanvas } from '../components/tanks/TankCanvas';
+import StrappingCard from '../components/tanks/StrappingCard';
 import { TelemetryChart } from '../components/charts/TelemetryChart';
 
 const WINDOWS: Record<string, number> = { '1h': 1, '6h': 6, '24h': 24, '7d': 168 };
@@ -116,6 +117,11 @@ export default function TankDetail() {
           </ul>
         )}
       </div>
+      {tank.tank_shape === 'custom_strapping' ? (
+        <div className="mt-6 bg-white rounded-lg border border-slate-200 p-4">
+          <StrappingCard tankId={tank.id} />
+        </div>
+      ) : null}
     </div>
   );
 }
