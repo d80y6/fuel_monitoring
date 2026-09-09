@@ -20,7 +20,7 @@ export const adminApi = {
   },
 
   async listGateways(): Promise<NotificationGatewayRead[]> {
-    return request<NotificationGatewayRead[]>(`${API_BASE}/gateways`);
+    return request<NotificationGatewayRead[]>(`${API_BASE}/notification-gateways`);
   },
 
   async createGateway(payload: {
@@ -30,7 +30,7 @@ export const adminApi = {
     is_active?: boolean;
     priority?: number;
   }): Promise<NotificationGatewayRead> {
-    return request<NotificationGatewayRead>(`${API_BASE}/gateways`, {
+    return request<NotificationGatewayRead>(`${API_BASE}/notification-gateways`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -44,14 +44,14 @@ export const adminApi = {
       priority: number;
     }>,
   ): Promise<NotificationGatewayRead> {
-    return request<NotificationGatewayRead>(`${API_BASE}/gateways/${id}`, {
+    return request<NotificationGatewayRead>(`${API_BASE}/notification-gateways/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
     });
   },
 
   async deleteGateway(id: string): Promise<void> {
-    return request<void>(`${API_BASE}/gateways/${id}`, {
+    return request<void>(`${API_BASE}/notification-gateways/${id}`, {
       method: 'DELETE',
     });
   },
