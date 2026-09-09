@@ -13,7 +13,7 @@ export function TankTile({ tank, live, fuels = [] }: TankTileProps) {
   return (
     <Link
       to={`/tanks/${tank.id}`}
-      className="bg-white rounded-lg border border-slate-200 p-3 hover:shadow-md transition-shadow"
+      className="bg-white rounded-lg border border-slate-200 p-3 hover:shadow-md transition-shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
     >
       <div className="flex items-center justify-between mb-2">
         <p className="font-medium text-slate-800 truncate">{tank.name}</p>
