@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useTelemetryStore } from '../store/telemetry';
@@ -10,6 +11,10 @@ export function useTelemetry(tankId: string) {
     queryFn: () => api.recentReadings(tankId, 200),
     refetchInterval: 30_000,
   });
-  const recent: LiveReading[] = (q.data ?? []).map((p) => ({ ...p, tank_id: tankId }));
-  return { live, recent, loading: q.isLoading };
+  const recent: LiveReading[] = useMemo(
+    () => (q.data ?? []).map((p) => ({ ...p, tank_id: tankId })),
+    [q.data, tankId]
+  );
+  const latest = live ?? recent[recent.length - 1];
+  return { live, recent, latest, loading: q.isLoading };
 }

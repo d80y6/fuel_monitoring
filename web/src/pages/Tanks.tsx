@@ -69,7 +69,7 @@ export default function Tanks() {
 }
 
 function TankRowT({ tank, fuels }: { tank: TankRead; fuels: FuelType[] }) {
-  const { live } = useTelemetry(tank.id);
+  const { live, latest } = useTelemetry(tank.id);
   const code = fuelCodeById(fuels, tank.fuel_type_id);
   return (
     <tr className="border-t border-slate-100">
@@ -86,7 +86,7 @@ function TankRowT({ tank, fuels }: { tank: TankRead; fuels: FuelType[] }) {
       </td>
       <td className="px-4 py-2 text-slate-600">{tank.tank_shape ?? 'vertical_cylinder'}</td>
       <td className="px-4 py-2 text-right">{Math.round(tank.tank_volume).toLocaleString()}</td>
-      <td className="px-4 py-2 text-right">{Math.round((live?.fill_percent ?? 0) * 100) / 100}%</td>
+      <td className="px-4 py-2 text-right">{Math.round((live ?? latest)?.fill_percent ?? 0) / 1}%</td>
     </tr>
   );
 }

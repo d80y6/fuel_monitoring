@@ -11,7 +11,6 @@ celery_app = Celery(
     broker=settings.redis_url,
     backend=settings.redis_url,
     include=[
-        "fmp.workers.tasks.dispensing",
         "fmp.workers.tasks.notifications",
     ],
 )

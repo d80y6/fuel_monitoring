@@ -16,7 +16,8 @@ import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query
-from sqlalchemy import desc, func, select
+from sqlalchemy import cast, desc, func, literal, select
+from sqlalchemy.dialects.postgresql import INTERVAL
 
 from fmp.api.deps import CurrentUser, PrivilegedUser, SessionDep
 from fmp.models import Alarm, Measurement, Tank
@@ -91,6 +92,8 @@ async def recent_measurements(
         TelemetryPoint(
             timestamp=p.timestamp, pressure=p.pressure, temperature=p.temperature,
             level=p.level, volume=p.volume, flow_rate=p.flow_rate,
+            gov_volume=p.gov_volume, net_volume=p.net_volume,
+            density_at_temperature=p.density_at_temperature,
             fill_percent=p.fill_percent, is_outlier=p.is_outlier,
         )
         for p in reversed(rows)
@@ -108,7 +111,7 @@ async def range_measurements(
 ):
     """Time-bucketed averages for charting (TimescaleDB time_bucket continuous
     aggregation over 5-minute buckets)."""
-    bucket_col = func.time_bucket(bucket, Measurement.timestamp).label("bucket")
+    bucket_col = func.time_bucket(cast(literal(bucket), INTERVAL), Measurement.timestamp).label("bucket")
     stmt = (
         select(
             bucket_col,
@@ -116,6 +119,9 @@ async def range_measurements(
             func.avg(Measurement.temperature).label("temperature"),
             func.avg(Measurement.level).label("level"),
             func.avg(Measurement.volume).label("volume"),
+            func.avg(Measurement.gov_volume).label("gov_volume"),
+            func.avg(Measurement.net_volume).label("net_volume"),
+            func.avg(Measurement.density_at_temperature).label("density_at_temperature"),
             func.max(Measurement.fill_percent).label("fill_percent"),
         )
         .where(
@@ -130,7 +136,9 @@ async def range_measurements(
     return [
         TelemetryPoint(
             timestamp=r.bucket, pressure=r.pressure, temperature=r.temperature,
-            level=r.level, volume=r.volume, fill_percent=r.fill_percent,
+            level=r.level, volume=r.volume, gov_volume=r.gov_volume,
+            net_volume=r.net_volume, density_at_temperature=r.density_at_temperature,
+            fill_percent=r.fill_percent,
         )
         for r in rows
     ]

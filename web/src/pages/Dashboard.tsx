@@ -31,6 +31,6 @@ export default function Dashboard() {
 }
 
 function TankRow({ tank, fuels }: { tank: TankRead; fuels: FuelType[] }) {
-  const { live } = useTelemetry(tank.id);
-  return <TankTile tank={tank} live={live} fuels={fuels} />;
+  const { live, latest } = useTelemetry(tank.id);
+  return <TankTile tank={tank} live={live ?? latest} fuels={fuels} />;
 }

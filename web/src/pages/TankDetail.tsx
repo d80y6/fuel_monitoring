@@ -16,7 +16,7 @@ export default function TankDetail() {
   const tankQ = useQuery({ queryKey: ['tank', tankId], queryFn: () => api.getTank(tankId) });
   const fuelsQ = useQuery({ queryKey: ['fuel-types'], queryFn: () => api.listFuelTypes() });
   const alarmsQ = useQuery({ queryKey: ['alarms', tankId], queryFn: () => api.tankAlarms(tankId, true, 50) });
-  const { live, recent } = useTelemetry(tankId);
+  const { live, latest } = useTelemetry(tankId);
 
   const range = useQuery({
     queryKey: ['range', tankId, window],
@@ -35,14 +35,14 @@ export default function TankDetail() {
 
   const readouts = useMemo(
     () => [
-      { label: 'GOV', value: live?.gov_volume ?? live?.volume ?? recent[recent.length - 1]?.volume, unit: 'L' },
-      { label: 'NSV', value: live?.net_volume ?? recent[recent.length - 1]?.net_volume, unit: 'L' },
-      { label: 'Density', value: live?.density_at_temperature ?? recent[recent.length - 1]?.density_at_temperature, unit: 'kg/m³' },
-      { label: 'Temperature', value: live?.temperature ?? recent[recent.length - 1]?.temperature, unit: '°C' },
-      { label: 'Level', value: live?.level ?? recent[recent.length - 1]?.level, unit: 'm' },
-      { label: 'Fill', value: live?.fill_percent ?? recent[recent.length - 1]?.fill_percent, unit: '%' },
+      { label: 'GOV', value: latest?.gov_volume ?? latest?.volume, unit: 'L' },
+      { label: 'NSV', value: latest?.net_volume, unit: 'L' },
+      { label: 'Density', value: latest?.density_at_temperature, unit: 'kg/m³' },
+      { label: 'Temperature', value: latest?.temperature, unit: '°C' },
+      { label: 'Level', value: latest?.level, unit: 'm' },
+      { label: 'Fill', value: latest?.fill_percent, unit: '%' },
     ],
-    [live, recent]
+    [latest]
   );
 
   const tank = tankQ.data;
@@ -54,7 +54,7 @@ export default function TankDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 bg-white rounded-lg border border-slate-200 p-4">
           <div className="max-w-xs mx-auto">
-            <TankCanvas tank={tank} live={live} fuels={fuelsQ.data ?? []} />
+            <TankCanvas tank={tank} live={latest} fuels={fuelsQ.data ?? []} />
           </div>
           <div className="grid grid-cols-2 gap-2 mt-4">
             {readouts.map((r) => (
@@ -85,7 +85,7 @@ export default function TankDetail() {
           </div>
           <TelemetryChart
             points={range.data ?? []}
-            live={live}
+            live={live ?? latest}
             tankTitle={tank.name}
             lowVolume={tank.low_volume_threshold}
             highVolume={tank.high_volume_threshold}

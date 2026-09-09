@@ -28,7 +28,7 @@ async def ws_telemetry(
     the allowed scope is the broadcast channel (or a comma-separated per-tank
     list via ``channels``).
     """
-    user = await get_current_user_from_query(token)
+    user = get_current_user_from_query(token)
     if user is None:
         await ws.close(code=4401)
         return
@@ -62,7 +62,7 @@ async def ws_alarms(
     token: str = Query(...),
     redis: RedisClient = Depends(get_redis_client),
 ):
-    user = await get_current_user_from_query(token)
+    user = get_current_user_from_query(token)
     if user is None:
         await ws.close(code=4401)
         return
