@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { api } from '../api/client';
 import { useLiveDispensing, isActiveAllocation } from '../hooks/useLiveDispensing';
 import { DispenseLiveView } from '../components/dispensing/DispenseLiveView';
 
 export default function Dispensing() {
+  const [stationId, setStationId] = useState('');
   const stations = useQuery({ queryKey: ['stations'], queryFn: () => api.listStations() });
   const transactions = useQuery({
     queryKey: ['transactions'],
@@ -13,17 +15,24 @@ export default function Dispensing() {
   const allocations = useLiveDispensing();
 
   const active = (allocations.data ?? []).filter(isActiveAllocation);
-  const station = stations.data?.[0];
+  const first = stations.data?.[0];
+  const effectiveStationId = stationId || first?.id || '';
   const dispensers = useQuery({
-    queryKey: ['dispensers', station?.id],
-    queryFn: () => (station ? api.listDispensers(station.id) : Promise.resolve([])),
-    enabled: Boolean(station),
+    queryKey: ['dispensers', effectiveStationId],
+    queryFn: () => (effectiveStationId ? api.listDispensers(effectiveStationId) : Promise.resolve([])),
+    enabled: Boolean(effectiveStationId),
   });
 
   return (
     <div>
       <h2 className="text-2xl font-semibold text-slate-800 mb-6">Dispensing</h2>
-      <select className="mb-4 border border-slate-300 rounded px-3 py-2 text-sm" defaultValue={station?.id}>
+      <label htmlFor="station-select" className="block text-sm font-medium text-slate-700 mb-1">Station</label>
+      <select
+        id="station-select"
+        className="mb-4 border border-slate-300 rounded px-3 py-2 text-sm"
+        value={stationId}
+        onChange={(e) => setStationId(e.target.value)}
+      >
         {(stations.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
       </select>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

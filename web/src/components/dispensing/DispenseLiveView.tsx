@@ -39,11 +39,11 @@ export function DispenseLiveView({
       <table className="w-full text-sm">
         <thead>
           <tr className="text-left text-slate-500">
-            <th className="py-1 pr-2">When</th>
-            <th className="py-1 pr-2">Dispenser</th>
-            <th className="py-1 pr-2">Status</th>
-            <th className="py-1 pr-2">Requested (L)</th>
-            <th className="py-1">Delivered (L)</th>
+            <th scope="col" className="py-1 pr-2">When</th>
+            <th scope="col" className="py-1 pr-2">Dispenser</th>
+            <th scope="col" className="py-1 pr-2">Status</th>
+            <th scope="col" className="py-1 pr-2">Requested (L)</th>
+            <th scope="col" className="py-1">Delivered (L)</th>
           </tr>
         </thead>
         <tbody>

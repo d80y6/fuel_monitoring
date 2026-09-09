@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 
+/**
+ * Live "in progress" authorizations: allocations with status PENDING or
+ * IN_PROGRESS. Polled every 8s; fresh completions appear as new rows from
+ * the same feed.
+ */
 export function useLiveDispensing() {
   return useQuery({
     queryKey: ['allocations'],

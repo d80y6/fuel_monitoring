@@ -1,11 +1,12 @@
 import type { AllocationRead, TransactionRead } from './apiTypes';
 
 export function formatLiters(v: number | null | undefined): string {
-  return v == null ? '—' : `${v.toFixed(1)} L`;
+  if (v == null || !Number.isFinite(v)) return '—';
+  return `${v.toFixed(1)} L`;
 }
 
 export function formatRemaining(v: number | null | undefined): string {
-  if (v == null) return '—';
+  if (v == null || !Number.isFinite(v)) return '—';
   return Math.abs(v) < 0.01 ? 'done' : `${v.toFixed(1)} L left`;
 }
 
