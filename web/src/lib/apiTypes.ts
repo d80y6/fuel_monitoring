@@ -210,13 +210,18 @@ export type ListTanksResponse = TankRead[];
 // --- Org management ---
 export interface CompanyCreate {
   name: string;
-  code: string;
+  address?: string | null;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
 }
 
 export interface CompanyUpdate {
   name?: string;
-  code?: string;
-  is_active?: boolean;
+  address?: string | null;
+  contact_name?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
 }
 
 export interface SiteCreate {
