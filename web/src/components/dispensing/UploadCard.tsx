@@ -1,5 +1,5 @@
 import { FormEvent, useRef, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '../../api/http';
 import { api } from '../../api/client';
 import type { ExcelIngestOutcome } from '../../lib/apiTypes';
@@ -7,6 +7,7 @@ import { useAuthStore } from '../../store/auth';
 import { Field, Select } from '../ui/fields';
 
 export default function UploadCard() {
+  const qc = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const companies = useQuery({ queryKey: ['companies'], queryFn: () => api.listCompanies() });
   const fileRef = useRef<HTMLInputElement>(null);
@@ -26,6 +27,7 @@ export default function UploadCard() {
     onSuccess: (data) => {
       setResult(data);
       setError(null);
+      qc.invalidateQueries({ queryKey: ['allocations'] });
       if (fileRef.current) fileRef.current.value = '';
       setFile(null);
     },
@@ -89,7 +91,7 @@ function UploadSummary({ outcome }: { outcome: ExcelIngestOutcome }) {
   return (
     <div className="text-sm space-y-1">
       <p>{`Uploaded ${result.successful_rows} rows. Failures: ${result.failed_rows}.`}</p>
-      {(result.errors ?? [])
+      {result.errors
         .filter((err) => err.error)
         .map((err) => (
           <p key={err.row} className="text-rose-600">{`Row ${err.row}: ${err.error}`}</p>

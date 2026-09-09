@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '../../api/http';
 import { api } from '../../api/client';
 import type { CodeValidateResponse, DispenseCompleteResponse } from '../../lib/apiTypes';
@@ -15,6 +15,7 @@ const RESULT_BADGE: Record<string, 'success' | 'warning' | 'info' | 'danger' | '
 };
 
 export function CodeOpsCard() {
+  const qc = useQueryClient();
   const stations = useQuery({ queryKey: ['stations'], queryFn: () => api.listStations() });
 
   const [stationId, setStationId] = useState('');
@@ -40,7 +41,7 @@ export function CodeOpsCard() {
       api.validateCode({
         code,
         station_id: effectiveStation,
-        requested_liters: requestedLiters ? Number(requestedLiters) : null,
+        requested_liters: requestedLiters ? parseFloat(requestedLiters) : null,
       }),
     onSuccess: (data) => {
       setValidation(data);
@@ -51,17 +52,20 @@ export function CodeOpsCard() {
   });
 
   const completeMutation = useMutation({
-    mutationFn: () =>
-      api.completeDispense({
+    mutationFn: () => {
+      if (!(Number(requestedLiters) > 0)) return Promise.reject(new Error('Invalid liters'));
+      return api.completeDispense({
         code,
         station_id: effectiveStation,
         dispenser_id: dispenserId,
-        requested_liters: Number(requestedLiters),
+        requested_liters: parseFloat(requestedLiters),
         actual_liters: Number(actualLiters),
         secret_totalizer_before: Number(totalizerBefore),
         secret_totalizer_after: Number(totalizerAfter),
-      }),
+      });
+    },
     onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['allocations'] });
       setResult(data);
       setValidation(null);
       setCode('');
@@ -114,7 +118,7 @@ export function CodeOpsCard() {
           <div className="flex justify-end">
             <button
               type="submit"
-              disabled={validateMutation.isPending || !code || !effectiveStation}
+              disabled={validateMutation.isPending || !code || !effectiveStation || !requestedLiters}
               className="bg-brand text-white rounded px-3 py-2 text-sm font-medium disabled:opacity-50"
             >
               {validateMutation.isPending ? 'Validating…' : 'Validate'}
@@ -197,5 +201,3 @@ export function CodeOpsCard() {
     </div>
   );
 }
-
-export default CodeOpsCard;

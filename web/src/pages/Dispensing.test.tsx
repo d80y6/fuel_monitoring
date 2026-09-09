@@ -48,7 +48,7 @@ function renderPage(userOverride: { role: string } = { role: 'manager' }) {
   });
 
   vi.mocked(api.listStations).mockResolvedValue([
-    { id: 's1', name: 'Station A', company_id: 'c1', is_active: true, created_at: '2026-01-01T00:00:00Z' },
+    { id: 's1', name: 'Station A', site_id: 'c1', serial_number: 'SN-001', raspberry_pi_id: null, firmware_version: null, connection_status: 'online', last_heartbeat: null },
   ] as never);
   vi.mocked(api.listTransactions).mockResolvedValue([]);
   vi.mocked(api.listDispensers).mockResolvedValue([]);

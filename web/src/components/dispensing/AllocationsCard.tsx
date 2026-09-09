@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { ApiError } from '../../api/http';
 import { api } from '../../api/client';
-import type { Allocation } from '../../lib/apiTypes';
+import type { AllocationRead } from '../../lib/apiTypes';
 import { formatLiters, statusColor } from '../../lib/dispenseFormat';
 import { progressPercent } from '../../lib/allocProgress';
 
@@ -45,7 +45,7 @@ export default function AllocationsCard() {
           </tr>
         </thead>
         <tbody>
-          {rows.map((a: Allocation) => {
+          {rows.map((a: AllocationRead) => {
             const pct = progressPercent(a);
             return (
               <tr key={a.id}>

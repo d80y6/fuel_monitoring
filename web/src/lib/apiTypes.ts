@@ -270,18 +270,6 @@ export interface DispenserUpdate {
 }
 
 // --- Quota/Allocation ---
-export interface Allocation {
-  id: string;
-  employee_id: string;
-  employee_name: string;
-  invoice_number: string | null;
-  allocated_liters: number;
-  dispensed_liters: number;
-  remaining_liters: number;
-  status: string;
-  created_at: string;
-}
-
 export interface QuotaAllocation {
   employee_id: string;
   employee_name?: string;
