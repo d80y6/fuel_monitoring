@@ -1,4 +1,4 @@
-import type { TankTransaction, AlarmSummary, StationRead } from './apiTypes';
+import type { TankTransaction, AlarmSummary, Station } from './apiTypes';
 
 export function last24hLiters(transactions: TankTransaction[]): number {
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
@@ -10,7 +10,7 @@ export function last24hLiters(transactions: TankTransaction[]): number {
     .reduce((sum, t) => sum + (t.actual_liters || 0), 0);
 }
 
-export function onlineStations(stations: StationRead[]): number {
+export function onlineStations(stations: Station[]): number {
   return stations.filter((s) => s.connection_status === 'online').length;
 }
 

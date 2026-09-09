@@ -250,7 +250,7 @@ export interface Allocation {
   id: string;
   employee_id: string;
   employee_name: string;
-  invoice_number: string;
+  invoice_number: string | null;
   allocated_liters: number;
   dispensed_liters: number;
   remaining_liters: number;
@@ -322,20 +322,4 @@ export interface FuelTypeCreate {
   viscosity_cst: number;
 }
 
-// --- Supporting types for lib helpers ---
-export interface StationRead {
-  id: string;
-  name: string;
-  site_id: string;
-  serial_number: string;
-  connection_status: string;
-  last_heartbeat: string | null;
-}
-
-export interface TankTransaction {
-  id: string;
-  tank_id: string;
-  actual_liters: number;
-  status: string;
-  created_at: string;
-}
+export type TankTransaction = Pick<TransactionRead, 'id' | 'actual_liters' | 'status' | 'created_at'> & { tank_id: string };
