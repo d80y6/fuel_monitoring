@@ -1,18 +1,18 @@
 import type { TransactionRead, TotalizerPoint } from './apiTypes';
-
-export function toEpochMs(t: string): number {
-  const parsed = Date.parse(t);
-  return Number.isNaN(parsed) ? Number(t) : parsed;
-}
+import { toEpochMs } from './chartOptions';
+export { toEpochMs };
 
 export interface CumulativeSample {
   ts: number;
   cumulativeLiters: number;
 }
 
+const TERMINAL_STATUSES = ['COMPLETED', 'PARTIAL', 'OVER_DISPENSE', 'DISCREPANCY'];
+
 export function driveCumulativeFromTransactions(rows: TransactionRead[]): CumulativeSample[] {
   let acc = 0;
   return rows
+    .filter((r) => TERMINAL_STATUSES.includes(r.status.toUpperCase()))
     .slice()
     .sort((a, b) => toEpochMs(a.created_at) - toEpochMs(b.created_at))
     .map((r) => {
