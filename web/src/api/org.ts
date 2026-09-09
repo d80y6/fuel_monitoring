@@ -7,8 +7,10 @@ import type {
   DispenserUpdate,
   Site,
   SiteCreate,
+  SiteUpdate,
   Station,
   StationCreate,
+  StationUpdate,
 } from '../lib/apiTypes';
 import { request } from './http';
 
@@ -51,7 +53,7 @@ export const orgApi = {
     });
   },
 
-  async updateSite(id: string, payload: Partial<SiteCreate>): Promise<Site> {
+  async updateSite(id: string, payload: SiteUpdate): Promise<Site> {
     return request<Site>(`${API_BASE}/sites/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
@@ -75,7 +77,7 @@ export const orgApi = {
     });
   },
 
-  async updateStation(id: string, payload: Partial<StationCreate>): Promise<Station> {
+  async updateStation(id: string, payload: StationUpdate): Promise<Station> {
     return request<Station>(`${API_BASE}/stations/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
@@ -92,15 +94,15 @@ export const orgApi = {
     return request<Dispenser[]>(`${API_BASE}/stations/${stationId}/dispensers`);
   },
 
-  async createDispenser(payload: DispenserCreate): Promise<Dispenser> {
-    return request<Dispenser>(`${API_BASE}/dispensers`, {
+  async createDispenser(stationId: string, payload: DispenserCreate): Promise<Dispenser> {
+    return request<Dispenser>(`${API_BASE}/stations/${stationId}/dispensers`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
   },
 
-  async updateDispenser(id: string, payload: DispenserUpdate): Promise<Dispenser> {
-    return request<Dispenser>(`${API_BASE}/dispensers/${id}`, {
+  async updateDispenser(stationId: string, dispenserId: string, payload: DispenserUpdate): Promise<Dispenser> {
+    return request<Dispenser>(`${API_BASE}/stations/${stationId}/dispensers/${dispenserId}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),
     });

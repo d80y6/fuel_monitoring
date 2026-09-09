@@ -227,18 +227,37 @@ export interface CompanyUpdate {
 export interface SiteCreate {
   company_id: string;
   name: string;
-  code: string;
+  address?: string | null;
+  location?: string | null;
+  is_active?: boolean;
+}
+
+export interface SiteUpdate {
+  name?: string;
+  address?: string | null;
+  location?: string | null;
+  is_active?: boolean;
 }
 
 export interface StationCreate {
   site_id: string;
   name: string;
   serial_number: string;
+  raspberry_pi_id?: string | null;
+  firmware_version?: string | null;
+}
+
+export interface StationUpdate {
+  name?: string;
+  raspberry_pi_id?: string | null;
+  firmware_version?: string | null;
+  connection_status?: string;
 }
 
 export interface DispenserCreate {
-  station_id: string;
+  station_id?: string;
   name: string;
+  serial_number: string;
   modbus_address: number;
   dispenser_model?: string;
 }

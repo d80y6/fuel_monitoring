@@ -18,25 +18,25 @@ export default function DispensersPage() {
 
   const toggleActive = useMutation({
     mutationFn: (d: { id: string; is_active: boolean }) =>
-      api.updateDispenser(d.id, { is_active: !d.is_active }),
+      api.updateDispenser(stationId!, d.id, { is_active: !d.is_active }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['dispensers', stationId] }),
   });
 
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ name: '', modbus_address: '', dispenser_model: '' });
+  const [form, setForm] = useState({ name: '', serial_number: '', modbus_address: '', dispenser_model: '' });
 
   const createDispenser = useMutation({
     mutationFn: () =>
-      api.createDispenser({
-        station_id: stationId!,
+      api.createDispenser(stationId!, {
         name: form.name,
+        serial_number: form.serial_number,
         modbus_address: Number(form.modbus_address),
         dispenser_model: form.dispenser_model,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dispensers', stationId] });
       setShowCreate(false);
-      setForm({ name: '', modbus_address: '', dispenser_model: '' });
+      setForm({ name: '', serial_number: '', modbus_address: '', dispenser_model: '' });
     },
   });
 
@@ -95,6 +95,9 @@ export default function DispensersPage() {
           <Field label="Name" htmlFor="disp-name">
             <Input id="disp-name" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
           </Field>
+          <Field label="Serial number" htmlFor="disp-serial">
+            <Input id="disp-serial" value={form.serial_number} onChange={(e) => setForm((f) => ({ ...f, serial_number: e.target.value }))} />
+          </Field>
           <Field label="Modbus address" htmlFor="disp-modbus">
             <Input id="disp-modbus" type="number" value={form.modbus_address} onChange={(e) => setForm((f) => ({ ...f, modbus_address: e.target.value }))} />
           </Field>
@@ -107,7 +110,7 @@ export default function DispensersPage() {
             </button>
             <button
               onClick={() => createDispenser.mutate()}
-              disabled={!form.name || !form.modbus_address || createDispenser.isPending}
+              disabled={!form.name || !form.serial_number || !form.modbus_address || createDispenser.isPending}
               className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
             >
               Create

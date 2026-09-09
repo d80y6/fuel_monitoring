@@ -28,12 +28,12 @@ export default function StationsPage() {
   const [firmwareVersion, setFirmwareVersion] = useState('');
 
   const createMut = useMutation({
-    mutationFn: () => api.createStation({ site_id: siteId!, name, serial_number: serialNumber }),
+    mutationFn: () => api.createStation({ site_id: siteId!, name, serial_number: serialNumber, raspberry_pi_id: raspberryPiId || null, firmware_version: firmwareVersion || null }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['stations', siteId] }); resetForm(); },
   });
 
   const updateMut = useMutation({
-    mutationFn: () => api.updateStation(editing!.id, { name, serial_number: serialNumber }),
+    mutationFn: () => api.updateStation(editing!.id, { name, raspberry_pi_id: raspberryPiId || null, firmware_version: firmwareVersion || null }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['stations', siteId] }); resetForm(); },
   });
 

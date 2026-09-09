@@ -23,33 +23,32 @@ export default function SitesPage() {
     queryFn: () => api.listCompanies(),
   });
 
-  const companyMap = Object.fromEntries(companies.map((c) => [c.id, c.name]));
   const filteredCompany = companyId ? companies.find((c) => c.id === companyId) : null;
 
   const [modal, setModal] = useState<'create' | 'edit' | null>(null);
   const [editing, setEditing] = useState<Site | null>(null);
   const [deleting, setDeleting] = useState<Site | null>(null);
 
-  const [form, setForm] = useState({ name: '', company_id: '', code: '', address: '', location: '' });
+  const [form, setForm] = useState({ name: '', company_id: '', address: '', location: '' });
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: '', company_id: companyId || (companies[0]?.id ?? ''), code: '', address: '', location: '' });
+    setForm({ name: '', company_id: companyId || (companies[0]?.id ?? ''), address: '', location: '' });
     setModal('create');
   };
 
   const openEdit = (site: Site) => {
     setEditing(site);
-    setForm({ name: site.name, company_id: site.company_id, code: '', address: site.address ?? '', location: site.location ?? '' });
+    setForm({ name: site.name, company_id: site.company_id, address: site.address ?? '', location: site.location ?? '' });
     setModal('edit');
   };
 
   const saveMutation = useMutation({
     mutationFn: () => {
       if (editing) {
-        return api.updateSite(editing.id, { name: form.name, company_id: form.company_id, code: form.code || undefined, address: form.address || undefined, location: form.location || undefined });
+        return api.updateSite(editing.id, { name: form.name, address: form.address || undefined, location: form.location || undefined });
       }
-      return api.createSite({ name: form.name, company_id: form.company_id, code: form.code, address: form.address || undefined, location: form.location || undefined } as never);
+      return api.createSite({ name: form.name, company_id: form.company_id, address: form.address || undefined, location: form.location || undefined });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['sites'] });
@@ -100,7 +99,7 @@ export default function SitesPage() {
             {sites.map((site) => (
               <tr key={site.id} className="border-b border-slate-100 hover:bg-slate-50">
                 <td className="py-2 px-3">
-                  <Link to={`/stations?site=${site.id}`} className="text-sky-600 hover:underline">{site.name}</Link>
+                  <Link to={`/stations/${site.id}`} className="text-sky-600 hover:underline">{site.name}</Link>
                 </td>
                 <td className="py-2 px-3 text-slate-600">{site.address ?? '—'}</td>
                 <td className="py-2 px-3 text-slate-600">{site.location ?? '—'}</td>
@@ -127,9 +126,6 @@ export default function SitesPage() {
               <Select id="site-company" value={form.company_id} onChange={(e) => setForm({ ...form, company_id: e.target.value })}>
                 {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </Select>
-            </Field>
-            <Field label="Code" htmlFor="site-code">
-              <Input id="site-code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
             </Field>
             <Field label="Address" htmlFor="site-address">
               <Input id="site-address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />

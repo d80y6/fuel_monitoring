@@ -37,7 +37,7 @@ describe('DispensersPage', () => {
     renderPage();
     expect(await screen.findByText('Pump 1')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /deactivate/i }));
-    await waitFor(() => expect(api.updateDispenser).toHaveBeenCalledWith('d1', { is_active: false }));
+    await waitFor(() => expect(api.updateDispenser).toHaveBeenCalledWith('st1', 'd1', { is_active: false }));
   });
 
   it('opens create dialog and submits', async () => {
@@ -49,10 +49,9 @@ describe('DispensersPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /new dispenser/i }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText(/name/i), 'Pump 2');
+    await userEvent.type(screen.getByLabelText(/serial number/i), 'DN2');
     await userEvent.type(screen.getByLabelText(/modbus/i), '2');
     await userEvent.click(screen.getByRole('button', { name: /create/i }));
-    await waitFor(() => expect(api.createDispenser).toHaveBeenCalledWith({
-      station_id: 'st1', name: 'Pump 2', modbus_address: 2, dispenser_model: '',
-    }));
+    await waitFor(() => expect(api.createDispenser).toHaveBeenCalledWith('st1', expect.objectContaining({ name: 'Pump 2', serial_number: 'DN2', modbus_address: 2 })));
   });
 });
