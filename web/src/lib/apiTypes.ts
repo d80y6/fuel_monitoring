@@ -290,13 +290,38 @@ export interface QuotaAllocation {
   allocated_liters: number;
 }
 
+export interface ExcelRowOutput {
+  row: number;
+  employee_id: string;
+  employee_name: string;
+  phone: string;
+  invoice_number: string | null;
+  allocated_liters: number | null;
+  error: string | null;
+}
+
+export interface ExcelIngestResult {
+  batch_id: string;
+  total_rows: number;
+  successful_rows: number;
+  failed_rows: number;
+  errors: ExcelRowOutput[];
+}
+
+export interface PendingDispatch {
+  allocation_id: string;
+  employee_id: string;
+  employee_name: string;
+  phone: string;
+  code: string;
+  liters: number;
+  invoice_number: string | null;
+  channel: 'sms' | 'whatsapp' | null;
+}
+
 export interface ExcelIngestOutcome {
-  result: {
-    total_rows: number;
-    successful_rows: number;
-    failed_rows: number;
-    errors: { row: number; error: string }[];
-  };
+  result: ExcelIngestResult;
+  pending_dispatch: PendingDispatch[];
 }
 
 // --- Code operations ---
