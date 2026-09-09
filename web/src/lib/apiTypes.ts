@@ -5,6 +5,7 @@ export interface UserRead {
   first_name: string | null;
   last_name: string | null;
   role: string;
+  is_superuser: boolean;
   is_active: boolean;
   phone: string | null;
   last_login: string | null;
@@ -205,3 +206,136 @@ export interface Site {
 }
 
 export type ListTanksResponse = TankRead[];
+
+// --- Org management ---
+export interface CompanyCreate {
+  name: string;
+  code: string;
+}
+
+export interface CompanyUpdate {
+  name?: string;
+  code?: string;
+  is_active?: boolean;
+}
+
+export interface SiteCreate {
+  company_id: string;
+  name: string;
+  code: string;
+}
+
+export interface StationCreate {
+  site_id: string;
+  name: string;
+  serial_number: string;
+}
+
+export interface DispenserCreate {
+  station_id: string;
+  name: string;
+  modbus_address: number;
+  dispenser_model?: string;
+}
+
+export interface DispenserUpdate {
+  is_active?: boolean;
+  name?: string;
+  dispenser_model?: string;
+  modbus_address?: number;
+}
+
+// --- Quota/Allocation ---
+export interface Allocation {
+  id: string;
+  employee_id: string;
+  employee_name: string;
+  invoice_number: string;
+  allocated_liters: number;
+  dispensed_liters: number;
+  remaining_liters: number;
+  status: string;
+  created_at: string;
+}
+
+export interface QuotaAllocation {
+  employee_id: string;
+  employee_name?: string;
+  phone?: string;
+  invoice_number?: string;
+  allocated_liters: number;
+}
+
+export interface ExcelIngestOutcome {
+  result: {
+    total_rows: number;
+    successful_rows: number;
+    failed_rows: number;
+    errors: { row: number; error: string }[];
+  };
+}
+
+// --- Code operations ---
+export interface CodeValidateResponse {
+  valid: boolean;
+  employee_name?: string;
+  remaining_liters?: number;
+  code_id?: string;
+  reason?: string;
+}
+
+export interface DispenseRequest {
+  code: string;
+  station_id: string;
+  dispenser_id: string;
+  requested_liters: number;
+  actual_liters: number;
+  secret_totalizer_before: number;
+  secret_totalizer_after: number;
+}
+
+export interface DispenseCompleteResponse {
+  id: string;
+  status: string;
+  requested_liters: number;
+  actual_liters: number;
+}
+
+// --- Notifications ---
+export interface NotificationGatewayRead {
+  id: string;
+  name: string;
+  type: string;
+  config_json: Record<string, unknown>;
+  is_active: boolean;
+  priority: number;
+  created_at: string;
+}
+
+// --- Fuel types ---
+export interface FuelTypeCreate {
+  code: string;
+  name: string;
+  base_density: number;
+  thermal_expansion_coeff: number;
+  max_vapor_pressure: number;
+  viscosity_cst: number;
+}
+
+// --- Supporting types for lib helpers ---
+export interface StationRead {
+  id: string;
+  name: string;
+  site_id: string;
+  serial_number: string;
+  connection_status: string;
+  last_heartbeat: string | null;
+}
+
+export interface TankTransaction {
+  id: string;
+  tank_id: string;
+  actual_liters: number;
+  status: string;
+  created_at: string;
+}
