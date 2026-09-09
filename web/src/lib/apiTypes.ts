@@ -349,11 +349,24 @@ export interface DispenseRequest {
   secret_totalizer_after: number;
 }
 
+export interface PartialDispenseOutcome {
+  partial: boolean;
+  original_code_id: string;
+  dispensed_liters: number;
+  remaining_liters: number;
+  new_code: string | null;
+  new_code_id: string | null;
+  new_allocation_id: string | null;
+}
+
 export interface DispenseCompleteResponse {
-  id: string;
+  success: boolean;
+  transaction_id: number;
   status: string;
-  requested_liters: number;
   actual_liters: number;
+  requested_liters: number;
+  partial: PartialDispenseOutcome | null;
+  discrepancy_flag: string | null;
 }
 
 // --- Notifications ---
