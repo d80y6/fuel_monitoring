@@ -165,7 +165,8 @@ async def _handle_reading(redis: RedisClient, payload: dict[str, Any], *, gatewa
     from fmp.models import Tank
 
     sensor_serial = payload.get("sensor_serial") or payload.get("sensor_serial_number")
-    tank_id = await resolve_tank_id(redis, gateway_mac=gateway_mac, sensor_serial=sensor_serial)
+    raw_redis = redis.client
+    tank_id = await resolve_tank_id(raw_redis, gateway_mac=gateway_mac, sensor_serial=sensor_serial)
 
     async with async_session_factory() as session:
         tank = None
@@ -173,9 +174,9 @@ async def _handle_reading(redis: RedisClient, payload: dict[str, Any], *, gatewa
             tank = await session.get(Tank, tank_id)
         if tank is None and tank_id is None:
             neg_hit = False
-            if sensor_serial and await redis.get(neg_cache_key(sensor_serial)) is not None:
+            if sensor_serial and await raw_redis.get(neg_cache_key(sensor_serial)) is not None:
                 neg_hit = True
-            if not neg_hit and gateway_mac and await redis.get(neg_cache_key(gateway_mac)) is not None:
+            if not neg_hit and gateway_mac and await raw_redis.get(neg_cache_key(gateway_mac)) is not None:
                 neg_hit = True
             if neg_hit:
                 return  # known-unknown device — skip DB for this frame
@@ -197,14 +198,14 @@ async def _handle_reading(redis: RedisClient, payload: dict[str, Any], *, gatewa
             ).scalar_one_or_none()
         if tank is None:
             if sensor_serial:
-                await set_negative_cache(redis, lookup=sensor_serial)
+                await set_negative_cache(raw_redis, lookup=sensor_serial)
             if gateway_mac:
-                await set_negative_cache(redis, lookup=gateway_mac)
+                await set_negative_cache(raw_redis, lookup=gateway_mac)
             logger.warning("no tank matched for reading (gateway=%s serial=%s)",
                            gateway_mac, sensor_serial)
             return
         if tank_id is None:
-            await set_tank_cache(redis, tank_id=str(tank.id),
+            await set_tank_cache(raw_redis, tank_id=str(tank.id),
                                  gateway_mac=gateway_mac, sensor_serial=sensor_serial)
 
         frame = payload.get("measurement", payload)
