@@ -18,6 +18,7 @@ from fmp.models.base import (
 
 if TYPE_CHECKING:
     from fmp.models.fuel import FuelType
+    from fmp.models.gateway import IoTGateway
 
 TANK_ORIENTATIONS = ("vertical", "horizontal")
 
@@ -30,6 +31,9 @@ class Tank(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     name: Mapped[str] = mapped_column(String(100), index=True)
     site_id: Mapped[uuid_type.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("sites.id"), index=True
+    )
+    gateway_id: Mapped[uuid_type.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("iot_gateways.id"), index=True
     )
     gateway_mac: Mapped[str | None] = mapped_column(String(17), index=True)
     sensor_serial_number: Mapped[str] = mapped_column(String(64), unique=True, index=True)
@@ -66,6 +70,7 @@ class Tank(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     last_connection: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     site: Mapped["Site"] = relationship(back_populates="tanks")  # noqa: F821
+    gateway: Mapped["IoTGateway"] = relationship(back_populates="tanks")  # noqa: F821
     alarms: Mapped[list["Alarm"]] = relationship(
         back_populates="tank", cascade="all, delete-orphan"
     )
