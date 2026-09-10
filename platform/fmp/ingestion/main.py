@@ -15,7 +15,11 @@ import asyncio
 import contextlib
 import json
 import logging
+import time
+from datetime import datetime, timezone
 from typing import Any
+
+from sqlalchemy import select
 
 from fastapi import FastAPI
 from paho.mqtt.client import Client as MqttClient, CallbackAPIVersion
@@ -50,16 +54,20 @@ async def lifespan(_app: FastAPI):
     _loop = asyncio.get_running_loop()
     _client = MqttClient(CallbackAPIVersion.VERSION2)
     _client.on_message = _on_message
-    _client.connect(settings.MQTT_BROKER, settings.MQTT_PORT, settings.MQTT_KEEPALIVE)
+    _client.on_connect = _on_connect
+    _client.connect_async(settings.MQTT_BROKER, settings.MQTT_PORT, settings.MQTT_KEEPALIVE)
+    _client.loop_start()
+    await _wait_connected(_client)
     _client.subscribe(
         [
             ("ingestion/readings", settings.MQTT_QOS),
             ("ingestion/status", settings.MQTT_QOS),
             ("ingestion/dispense/validate", settings.MQTT_QOS),
             ("ingestion/dispense/complete", settings.MQTT_QOS),
+            ("fuel/+/readings", settings.MQTT_QOS),
+            ("fuel/+/status", settings.MQTT_QOS),
         ]
     )
-    _client.loop_start()
     logger.info(
         "MQTT subscription active on %s:%s", settings.MQTT_BROKER, settings.MQTT_PORT
     )
@@ -75,6 +83,36 @@ app = FastAPI(
     docs_url="/api/docs",
     openapi_url="/api/openapi.json",
 )
+
+
+def parse_fuel_topic(topic: str) -> tuple[str, str, None] | None:
+    """Parse fuel/<gateway_mac>/<kind> → (gateway_mac, kind, None)."""
+    parts = topic.split("/")
+    if len(parts) == 3 and parts[0] == "fuel" and parts[2] in ("readings", "status"):
+        return parts[1], parts[2], None
+    return None
+
+
+async def _wait_connected(client, timeout: float = 30.0) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if client.is_connected():
+            return
+        await asyncio.sleep(0.2)
+    raise ConnectionError("MQTT broker never became available")
+
+
+def _on_connect(client, userdata, flags, reason_code, properties):
+    client.subscribe(
+        [
+            ("ingestion/readings", settings.MQTT_QOS),
+            ("ingestion/status", settings.MQTT_QOS),
+            ("ingestion/dispense/validate", settings.MQTT_QOS),
+            ("ingestion/dispense/complete", settings.MQTT_QOS),
+            ("fuel/+/readings", settings.MQTT_QOS),
+            ("fuel/+/status", settings.MQTT_QOS),
+        ]
+    )
 
 
 def _on_message(client, userdata, msg) -> None:  # paho runs this on its own thread
@@ -100,6 +138,16 @@ async def _route(topic: str, payload: dict[str, Any]) -> None:
             async with async_session_factory() as session:
                 result = await validate_code(session, redis, req)
             logger.info("validated ok=%s reason=%s", result.valid, result.reason)
+        elif topic.startswith("fuel/"):
+            parsed = parse_fuel_topic(topic)
+            if parsed is None:
+                logger.warning("dropped malformed fuel topic %s", topic)
+                return
+            gateway_mac, kind, _ = parsed
+            if kind == "status":
+                await _handle_status(redis, payload, gateway_mac)
+            else:
+                await _handle_reading(redis, payload, gateway_mac=gateway_mac)
         elif topic.startswith("ingestion/readings"):
             await _handle_reading(redis, payload)
     except Exception:  # noqa: BLE001 — a bad frame must not kill the loop
@@ -111,35 +159,54 @@ async def _route(topic: str, payload: dict[str, Any]) -> None:
 pipeline = IngestionPipeline(write_batch=True)
 
 
-async def _handle_reading(redis: RedisClient, payload: dict[str, Any]) -> None:
+async def _handle_reading(redis: RedisClient, payload: dict[str, Any], *, gateway_mac: str | None = None) -> None:
     """Persist a tank sensor frame and fan it out to the realtime channel."""
-    from datetime import datetime
-
-    from sqlalchemy import select
-
+    from fmp.ingestion.cache import resolve_tank_id, set_tank_cache, set_negative_cache, neg_cache_key
     from fmp.models import Tank
 
-    tank_key = payload.get("tank_id") or payload.get("sensor_serial")
+    sensor_serial = payload.get("sensor_serial") or payload.get("sensor_serial_number")
+    raw_redis = redis.client
+    tank_id = await resolve_tank_id(raw_redis, gateway_mac=gateway_mac, sensor_serial=sensor_serial)
+
     async with async_session_factory() as session:
         tank = None
-        if tank_key:
+        if tank_id is not None:
+            tank = await session.get(Tank, tank_id)
+        if tank is None and tank_id is None:
+            neg_hit = False
+            if sensor_serial and await raw_redis.get(neg_cache_key(sensor_serial)) is not None:
+                neg_hit = True
+            if not neg_hit and gateway_mac and await raw_redis.get(neg_cache_key(gateway_mac)) is not None:
+                neg_hit = True
+            if neg_hit:
+                return  # known-unknown device — skip DB for this frame
+        tank_key = payload.get("tank_id")
+        if tank is None and tank_id is None and tank_key:
+            tank_id = tank_key  # legacy payload may carry tank_id directly
+            tank = await session.get(Tank, tank_id)
+        if tank is None and not tank_id and sensor_serial:
             tank = (
                 await session.execute(
-                    select(Tank).where(Tank.sensor_serial_number == tank_key)
+                    select(Tank).where(Tank.sensor_serial_number == sensor_serial)
+                )
+            ).scalar_one_or_none()
+        if tank is None and gateway_mac:
+            tank = (
+                await session.execute(
+                    select(Tank).where(Tank.gateway_mac == gateway_mac)
                 )
             ).scalar_one_or_none()
         if tank is None:
-            # correlation fallback: bare sensor serial must still resolve
-            serial = payload.get("sensor_serial_number") or payload.get("gateway_mac")
-            if serial:
-                tank = (
-                    await session.execute(
-                        select(Tank).where(Tank.sensor_serial_number == serial)
-                    )
-                ).scalar_one_or_none()
-        if tank is None:
-            logger.warning("no tank matched for reading; dropping frame")
+            if sensor_serial:
+                await set_negative_cache(raw_redis, lookup=sensor_serial)
+            if gateway_mac:
+                await set_negative_cache(raw_redis, lookup=gateway_mac)
+            logger.warning("no tank matched for reading (gateway=%s serial=%s)",
+                           gateway_mac, sensor_serial)
             return
+        if tank_id is None:
+            await set_tank_cache(raw_redis, tank_id=str(tank.id),
+                                 gateway_mac=gateway_mac, sensor_serial=sensor_serial)
 
         frame = payload.get("measurement", payload)
         captured_at = frame.get("timestamp")
@@ -165,7 +232,29 @@ async def _handle_reading(redis: RedisClient, payload: dict[str, Any]) -> None:
             await publish_live(redis, reading)
 
 
-pipeline = IngestionPipeline(write_batch=True)
+async def _handle_status(redis: RedisClient, payload: dict[str, Any], gateway_mac: str) -> None:
+    """Update tank connection_status + station last_heartbeat on a gateway heartbeat."""
+    from fmp.models import Station, Tank
+
+    async with async_session_factory() as session:
+        tank = (
+            await session.execute(select(Tank).where(Tank.gateway_mac == gateway_mac))
+        ).scalar_one_or_none()
+        if tank is None:
+            logger.warning("no tank for gateway %s status frame", gateway_mac)
+            return
+        tank.connection_status = "online"
+        tank.last_connection = datetime.now(timezone.utc)
+        if tank.site_id:
+            station = (
+                await session.execute(
+                    select(Station).where(Station.site_id == tank.site_id).limit(1)
+                )
+            ).scalar_one_or_none()
+            if station is not None:
+                station.last_heartbeat = datetime.now(timezone.utc)
+        await session.commit()
+        logger.info("heartbeat: gateway %s online (tank %s)", gateway_mac, tank.id)
 
 
 @app.post("/api/v1/ingest/readings", tags=["ingest"])

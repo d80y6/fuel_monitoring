@@ -40,12 +40,19 @@ async def ensure_hypertables(session) -> list[str]:
 
 
 async def insert_measurements(session, rows: list[dict]) -> int:
-    """Bulk-insert measurement rows; returns the number of rows written."""
+    """Bulk-insert measurement rows; returns the number of rows requested.
+
+    Duplicate (tank_id, timestamp) rows are silently skipped (ON CONFLICT DO
+    NOTHING) so QoS-1 redelivered MQTT frames never raise on replay.
+    """
     from sqlalchemy.dialects.postgresql import insert
 
     from fmp.models import Measurement
 
     if not rows:
         return 0
-    await session.execute(insert(Measurement), rows)
+    stmt = insert(Measurement).on_conflict_do_nothing(
+        index_elements=["tank_id", "timestamp"]
+    )
+    await session.execute(stmt, rows)
     return len(rows)

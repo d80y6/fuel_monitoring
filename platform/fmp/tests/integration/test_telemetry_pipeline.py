@@ -136,3 +136,73 @@ async def test_hypertables_and_pipeline(requires_infra):
         alarms = (await session.execute(select(Alarm))).scalars().all()
         assert any(a.type == "high_level" for a in alarms)
         assert any(a.type == "critical_level" for a in alarms)
+
+        # --- idempotent re-inserts (ON CONFLICT DO NOTHING) ----------------
+        dup = [
+            {"timestamp": now, "tank_id": tank.id, "pressure": 0.5,
+             "temperature": 20.0, "level": 1.0, "volume": 3141.0,
+             "fill_percent": 34.1, "is_outlier": False, "status": 0},
+        ]
+        assert await insert_measurements(session, dup) == 1  # no exception
+        await session.commit()
+        count_after = (await session.execute(select(func.count()).select_from(Measurement))).scalar()
+        assert count_after == 2 + 8 + 5 + 20  # unchanged
+
+
+async def test_heartbeat_updates_station(requires_infra):
+    """fuel/{mac}/status frame flips tank online and stamps owning station."""
+    from fmp.core.database import Base, async_session_factory, engine
+    from fmp.ingestion.main import _handle_status
+    from fmp.models import Company, Site, Station, Tank
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+
+    async with async_session_factory() as session:
+        company = Company(name=f"HB-{uuid.uuid4().hex[:6]}")
+        session.add(company)
+        await session.flush()
+        site = Site(name="Heartbeat Site", company_id=company.id)
+        session.add(site)
+        await session.flush()
+        station = Station(
+            name="Heartbeat Station", site_id=site.id,
+            serial_number=f"STN-{uuid.uuid4().hex[:8]}",
+        )
+        session.add(station)
+        tank = Tank(
+            name="HB Tank", site_id=site.id,
+            gateway_mac="AA:BB:CC:DD:EE:02",
+            sensor_serial_number=f"SN-{uuid.uuid4().hex[:10]}",
+            tank_orientation="vertical", tank_diameter=2.0, tank_height=3.0,
+            tank_volume=9200.0, elevation=0.0,
+            calibration_factor=1.0,
+            fuel_type=None,
+            critical_level_threshold=0.5, low_level_threshold=1.0,
+            high_level_threshold=2.8, low_volume_threshold=2000.0,
+            connection_status="offline",
+        )
+        session.add(tank)
+        await session.commit()
+        tank_id = tank.id
+
+    await _handle_status(FakeRedis(), {"status": "online"}, "AA:BB:CC:DD:EE:02")
+
+    async with async_session_factory() as session:
+        from fmp.models import Tank as TankModel
+        from sqlalchemy import select
+
+        tank = await session.get(TankModel, tank_id)
+        assert tank.connection_status == "online"
+        assert tank.last_connection is not None
+        station = (
+            await session.execute(select(Station).where(Station.id == tank.site_id))
+        ).scalar_one_or_none()
+        assert station is None  # site_id is a Site, not a Station
+
+        station = (
+            await session.execute(select(Station).where(Station.site_id == tank.site_id))
+        ).scalar_one_or_none()
+        assert station is not None
+        assert station.last_heartbeat is not None

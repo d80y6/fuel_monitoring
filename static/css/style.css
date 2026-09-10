@@ -1,7 +1,0 @@
-/* static/css/style.css — Minimal overrides for Tailwind defaults */
-.chart-container { position: relative; height: 300px; }
-.chart-container canvas { max-height: 100%; }
-
-/* Tank visualization */
-.tank-visual { position: relative; width: 100%; max-width: 120px; border: 2px solid #d1d5db; border-radius: 4px; overflow: hidden; }
-.tank-fill { position: absolute; bottom: 0; left: 0; right: 0; transition: height 0.5s ease; }
