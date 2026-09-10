@@ -36,7 +36,10 @@ async def test_serial_hit_returns_tank_id():
 
 @pytest.mark.asyncio
 async def test_negative_cache_returns_none():
-    redis = FakeRedis(store={"tank:neg:SN-1": '"__NULL__"'})
+    redis = FakeRedis(store={
+        "tank:by:serial:SN-1": '"11111111-1111-1111-1111-111111111111"',
+        "tank:neg:SN-1": '"__NULL__"',
+    })
     assert await resolve_tank_id(redis, sensor_serial="SN-1") is None
 
 

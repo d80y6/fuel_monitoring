@@ -34,17 +34,19 @@ async def resolve_tank_id(redis, *, gateway_mac: str | None = None,
     Precedence: gateway_mac first, then sensor_serial.
     """
     if gateway_mac:
-        raw = await redis.get(gateway_cache_key(gateway_mac))
         lookup = gateway_mac
+        key = gateway_cache_key(lookup)
     elif sensor_serial:
-        raw = await redis.get(serial_cache_key(sensor_serial))
         lookup = sensor_serial
+        key = serial_cache_key(lookup)
     else:
         return None
 
+    if await redis.get(neg_cache_key(lookup)) is not None:
+        return None  # negative entry: resume after TANK_NEG_TTL
+
+    raw = await redis.get(key)
     if raw is None:
-        return None
-    if raw == f'"{_NULL}"':
         return None
     try:
         return json.loads(raw)
