@@ -200,7 +200,8 @@ async def _handle_reading(redis: RedisClient, payload: dict[str, Any], *, gatewa
                 await set_negative_cache(redis, lookup=sensor_serial)
             if gateway_mac:
                 await set_negative_cache(redis, lookup=gateway_mac)
-            logger.warning("no tank matched for reading on %s", getattr(payload, "topic", "?"))
+            logger.warning("no tank matched for reading (gateway=%s serial=%s)",
+                           gateway_mac, sensor_serial)
             return
         if tank_id is None:
             await set_tank_cache(redis, tank_id=str(tank.id),
