@@ -136,3 +136,14 @@ async def test_hypertables_and_pipeline(requires_infra):
         alarms = (await session.execute(select(Alarm))).scalars().all()
         assert any(a.type == "high_level" for a in alarms)
         assert any(a.type == "critical_level" for a in alarms)
+
+        # --- idempotent re-inserts (ON CONFLICT DO NOTHING) ----------------
+        dup = [
+            {"timestamp": now, "tank_id": tank.id, "pressure": 0.5,
+             "temperature": 20.0, "level": 1.0, "volume": 3141.0,
+             "fill_percent": 34.1, "is_outlier": False, "status": 0},
+        ]
+        assert await insert_measurements(session, dup) == 1  # no exception
+        await session.commit()
+        count_after = (await session.execute(select(func.count()).select_from(Measurement))).scalar()
+        assert count_after == 2 + 8 + 5 + 20  # unchanged
