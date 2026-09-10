@@ -246,7 +246,11 @@ async def _handle_status(redis: RedisClient, payload: dict[str, Any], gateway_ma
         tank.connection_status = "online"
         tank.last_connection = datetime.now(timezone.utc)
         if tank.site_id:
-            station = (await session.execute(select(Station).where(Station.id == tank.site_id))).scalar_one_or_none()
+            station = (
+                await session.execute(
+                    select(Station).where(Station.site_id == tank.site_id).limit(1)
+                )
+            ).scalar_one_or_none()
             if station is not None:
                 station.last_heartbeat = datetime.now(timezone.utc)
         await session.commit()
