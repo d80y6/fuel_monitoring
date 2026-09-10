@@ -8,11 +8,13 @@ the gateway on the ack topic.
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime, timedelta, timezone
 
 from fmp.core.config import get_settings
 
 settings = get_settings()
+logger = logging.getLogger("ingestion.relay")
 
 QUEUE_OUTBOUND = settings.COMMAND_QUEUE_OUTBOUND
 QUEUE_INFLIGHT = settings.COMMAND_QUEUE_INFLIGHT
@@ -77,3 +79,70 @@ async def take_command(redis, timeout: int = 1) -> dict | None:
 async def release_command(redis) -> None:
     """Pop the currently-holding inflight frame after successful publish."""
     await redis.lpop(QUEUE_INFLIGHT)
+
+
+async def publish_command(_client, redis, command_id: str, gateway_mac: str,
+                          command_type: str, payload: dict, attempts: int) -> bool:
+    """Publish one command frame to MQTT. Returns True on accepted publish."""
+    from paho.mqtt.client import MQTT_ERR_SUCCESS
+
+    frame = {
+        "command_id": command_id,
+        "type": command_type,
+        "payload": payload,
+        "issued_at": datetime.now(timezone.utc).isoformat(),
+        "attempts": attempts,
+    }
+    rc, _mid = _client.publish(
+        command_topic_for(gateway_mac), json.dumps(frame, default=str),
+        qos=settings.MQTT_QOS,
+    )
+    return rc == MQTT_ERR_SUCCESS
+
+
+async def command_relay_loop(_client) -> None:
+    """Continuously move outbound frames to MQTT while they exist."""
+    from fmp.core.redis import RedisClient
+
+    redis_cache = RedisClient()
+    redis = redis_cache.client
+    try:
+        await drain_inflight(redis)
+        while True:
+            frame = await take_command(redis, timeout=1)
+            if frame is None:
+                continue
+            ok = await publish_command(
+                _client, redis,
+                command_id=frame["command_id"],
+                gateway_mac=frame["gateway_mac"],
+                command_type=frame["type"],
+                payload=frame.get("payload", {}),
+                attempts=int(frame.get("attempts", 0)) + 1,
+            )
+            if not ok:
+                logger.warning("MQTT publish rejected for %s", frame["command_id"])
+                continue  # frame stays in inflight; sweeper will requeue
+            await release_command(redis)
+            await _mark_sent(frame["command_id"])
+    finally:
+        await redis_cache.client.aclose()
+
+
+async def _mark_sent(command_id: str) -> None:
+    from sqlalchemy import select
+
+    from fmp.core.database import async_session_factory
+    from fmp.models import GatewayCommand
+
+    async with async_session_factory() as session:
+        row = (
+            await session.execute(select(GatewayCommand).where(GatewayCommand.command_id == command_id))
+        ).scalar_one_or_none()
+        if row is None:
+            return
+        row.status = "sent"
+        row.sent_at = datetime.now(timezone.utc)
+        row.attempts += 1
+        row.next_retry_at = next_retry_datetime(row.attempts)
+        await session.commit()
