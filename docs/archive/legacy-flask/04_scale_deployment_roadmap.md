@@ -1,3 +1,5 @@
+> **ARCHIVE — LEGACY FLASK BUILD (2026-09-06).** This document describes the now-deleted Flask-era codebase (Flask/Jinja templates). It is historical reference only and does **NOT** describe the current system, which is a FastAPI + React platform. Do not treat structure, tests, or claims in this file as current.
+
 # Scale & Deployment Roadmap
 
 ## Fuel Monitoring Platform — Scaling to 1000+ Gateways
