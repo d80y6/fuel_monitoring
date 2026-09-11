@@ -36,6 +36,7 @@ const groups: NavGroup[] = [
     items: [
       { to: '/admin/fuel-types', label: 'Fuel Types', manageOnly: true },
       { to: '/admin/gateways', label: 'Gateways', manageOnly: true },
+      { to: '/admin/iot-gateways', label: 'IoT Gateways', manageOnly: true },
     ],
   },
 ];
