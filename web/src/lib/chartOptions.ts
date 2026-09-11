@@ -1,5 +1,8 @@
+import type { EChartsOption } from 'echarts';
 import type { TelemetryPoint } from './apiTypes';
 import type { LiveReading } from '../store/telemetry';
+import { chartColors } from './chartColors';
+import type { Scheme } from './theme';
 
 export function toEpochMs(t: string): number {
   if (t.includes('T')) return Date.parse(t);
@@ -42,24 +45,17 @@ export function mergeLivePoints(range: TelemetryPoint[], live: TelemetryPoint): 
   return [...list, live];
 }
 
-export interface ChartOption {
-  title: { text: string };
-  tooltip: { trigger: string };
-  legend: { data: string[] };
-  grid: { left: number; right: number; top: number; bottom: number };
-  dataZoom: unknown[];
-  xAxis: { type: string; data: string[] };
-  yAxis: Array<{ type: string; name: string; min: number; max?: number }>;
-  series: Array<Record<string, unknown>>;
-}
+export type ChartOption = EChartsOption;
 
 export function buildChartOption(
   range: TelemetryPoint[],
   live: LiveReading | undefined,
   tankTitle: string,
   lowVolume?: number | null,
-  highVolume?: number | null
+  highVolume?: number | null,
+  scheme: Scheme = 'light'
 ): ChartOption {
+  const c = chartColors[scheme];
   const merged = live ? mergeLivePoints(range, live) : range;
   const filled = gapFill(merged, 15);
   const xs = filled.map((p) => (p === null ? '' : new Date(p.timestamp).toLocaleTimeString()));
@@ -73,13 +69,11 @@ export function buildChartOption(
 
   const markArea =
     lowVolume != null || highVolume != null
-      ? [
-          {
-            name: 'thresholds',
-            itemStyle: { color: 'rgba(248,113,113,0.12)' },
-            data: [[{ yAxis: lowVolume ?? 0 }, { yAxis: highVolume ?? volMax }]],
-          },
-        ]
+      ? {
+          name: 'thresholds',
+          itemStyle: { color: c.threshArea },
+          data: [[{ yAxis: lowVolume ?? 0 }, { yAxis: highVolume ?? volMax }]],
+        }
       : undefined;
 
   const series: Array<Record<string, unknown>> = [
@@ -119,15 +113,20 @@ export function buildChartOption(
   if (markArea) series[0] = { ...series[0], markArea };
 
   return {
-    title: { text: tankTitle },
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['GOV', 'NSV', 'Temperature', 'Density'] },
+    title: { text: tankTitle, textStyle: { color: c.text } },
+    tooltip: { trigger: 'axis', backgroundColor: c.tooltipBg, borderColor: c.tooltipBorder, textStyle: { color: c.text } },
+    legend: { data: ['GOV', 'NSV', 'Temperature', 'Density'], textStyle: { color: c.legend } },
     grid: { left: 56, right: 56, top: 40, bottom: 56 },
     dataZoom: [{ type: 'inside' }, { type: 'slider', height: 18, bottom: 12 }],
-    xAxis: { type: 'category', data: xs },
+    xAxis: {
+      type: 'category',
+      data: xs,
+      axisLine: { lineStyle: { color: c.axisLine } },
+      axisLabel: { color: c.muted },
+    },
     yAxis: [
-      { type: 'value', name: 'Volume (L)', min: 0, max: volMax },
-      { type: 'value', name: 'Temp / Density', min: 0, max: tempMax },
+      { type: 'value', name: 'Volume (L)', min: 0, max: volMax, axisLabel: { color: c.muted }, splitLine: { lineStyle: { color: c.splitLine } } },
+      { type: 'value', name: 'Temp / Density', min: 0, max: tempMax, axisLabel: { color: c.muted }, splitLine: { lineStyle: { color: c.splitLine } } },
     ],
     series,
   };
