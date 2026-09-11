@@ -18,7 +18,7 @@ import DispensersPage from './pages/DispensersPage';
 import FuelTypesPage from './pages/FuelTypesPage';
 import GatewaysPage from './pages/GatewaysPage';
 import IoTGatewaysPage from './pages/IoTGatewaysPage';
-function IoTGatewayDetailPagePlaceholder() { return <div>detail</div>; }
+import IoTGatewayDetailPage from './pages/IoTGatewayDetailPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const authed = isAuthed(useAuthStore((s) => s.token));
@@ -59,7 +59,7 @@ export const router = createBrowserRouter([
           { path: 'admin/fuel-types', element: <FuelTypesPage /> },
           { path: 'admin/gateways', element: <GatewaysPage /> },
           { path: 'admin/iot-gateways', element: <IoTGatewaysPage /> },
-          { path: 'admin/iot-gateways/:id', element: <IoTGatewayDetailPagePlaceholder /> },
+          { path: 'admin/iot-gateways/:id', element: <IoTGatewayDetailPage /> },
         ],
       },
     ],
