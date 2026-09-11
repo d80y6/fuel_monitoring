@@ -38,6 +38,9 @@ describe('theme token contract', () => {
       expect(root, `${v} missing in :root`).toContain(`${v}:`);
       expect(dark, `${v} missing in .dark`).toContain(`${v}:`);
     }
+    expect(root).not.toBe(dark);
+    expect(root).toContain('--color-surface: #ffffff');
+    expect(dark).toContain('--color-surface: #0f172a');
   });
 
   it('sets darkMode and maps every short token to its var in tailwind config', () => {
