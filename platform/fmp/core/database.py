@@ -43,6 +43,20 @@ async_session_factory = async_sessionmaker(
     expire_on_commit=False,
 )
 
+# Dedicated NULL-POOL engine for short-lived-loop contexts (Celery prefork).
+# Celery tasks call asyncio.run() per task: a fresh loop per invocation, closed
+# afterwards. Pooled asyncpg connections created on loop A are later checked
+# out on loop B → "Event loop is closed" / "attached to a different loop"
+# RuntimeErrors. NullPool creates AND closes the connection inside the SAME
+# asyncio.run() loop, so there is no cross-loop reuse — deterministic.
+_NULL_POOL_ENGINE_KWARGS = {"echo": settings.DB_ECHO, "poolclass": NullPool}
+celery_engine = create_async_engine(settings.postgres_dsn, **_NULL_POOL_ENGINE_KWARGS)
+celery_session_factory = async_sessionmaker(
+    celery_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """FastAPI dependency yielding a scoped AsyncSession."""

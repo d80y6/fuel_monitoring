@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from fmp.core.config import get_settings
-from fmp.core.database import async_session_factory
+from fmp.core.database import celery_session_factory
 from fmp.core.redis import RedisClient
 from fmp.ingestion.relay import enqueue_command, next_retry_datetime
 from fmp.models import GatewayCommand
@@ -22,7 +22,7 @@ async def _scan_and_sweep() -> dict[str, int]:
     pending_cutoff = now - timedelta(seconds=settings.COMMAND_PENDING_TTL_SECONDS)
     retried = failed_sent = failed_pending = 0
 
-    async with async_session_factory() as session:
+    async with celery_session_factory() as session:
         # sent but past next_retry_at and under max attempts → requeue
         q = (
             select(GatewayCommand)

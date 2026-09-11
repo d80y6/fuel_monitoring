@@ -27,7 +27,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fmp.core.config import get_settings
-from fmp.core.database import async_session_factory
+from fmp.core.database import celery_session_factory
 from fmp.models.notifications import NotificationGateway, NotificationLog
 from fmp.schemas.notifications import DispatchResult, PendingDispatch
 
@@ -309,7 +309,10 @@ class NotificationDispatcher:
 
 
 async def _dispatch_one(item: PendingDispatch) -> DispatchResult:
-    async with async_session_factory() as session:
+    # Celery runs this under asyncio.run() → fresh loop per call. Use the
+    # NullPool celery factory so the connection is created and closed inside
+    # the SAME loop (also safe from the API process: NullPool binds nothing).
+    async with celery_session_factory() as session:
         dispatcher = NotificationDispatcher(session)
         return await dispatcher.dispatch(item)
 
