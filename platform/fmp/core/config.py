@@ -87,6 +87,12 @@ class Settings(BaseSettings):
     COMMAND_MAX_ATTEMPTS: int = 3
     COMMAND_PENDING_TTL_SECONDS: int = 120
 
+    # --- Admin seed --------------------------------------------------------
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_EMAIL: str = "admin@fuelplatform.local"
+    ADMIN_PASSWORD: str = ""
+    ADMIN_FORCE_PASSWORD: bool = False
+
     # --- CORS --------------------------------------------------------------
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
@@ -114,3 +120,7 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+#: Cached singleton; mirrors what every module gets via ``get_settings()``.
+settings = get_settings()

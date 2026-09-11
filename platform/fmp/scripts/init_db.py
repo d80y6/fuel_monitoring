@@ -15,8 +15,10 @@ from sqlalchemy import text
 
 async def init_db() -> None:
     import fmp.models  # noqa: F401  (register all model tables)
+    from fmp.core.config import settings
     from fmp.core.database import Base, async_session_factory, engine
     from fmp.ingestion.batch_writer import ensure_hypertables
+    from fmp.scripts.seed_admin import seed_admin
     from fmp.scripts.seed_fuel_types import seed_fuel_types
 
     async with engine.begin() as conn:
@@ -24,6 +26,9 @@ async def init_db() -> None:
         await conn.run_sync(Base.metadata.create_all)
 
     await seed_fuel_types(engine)
+
+    if settings.ADMIN_PASSWORD:
+        await seed_admin(engine)
 
     async with async_session_factory() as session:
         await ensure_hypertables(session)
