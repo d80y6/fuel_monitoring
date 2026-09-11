@@ -120,6 +120,7 @@ async def test_sweeper_requeues_then_fails(requires_infra, db):
             select(GatewayCommand).where(GatewayCommand.command_id == cmd_id)
         )).scalar_one()
         cmd.attempts = 3
+        cmd.next_retry_at = datetime.now(timezone.utc) - timedelta(minutes=5)
         await session.commit()
 
     await _scan_and_sweep()

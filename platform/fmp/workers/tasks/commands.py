@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from fmp.core.config import get_settings
 from fmp.core.database import async_session_factory
 from fmp.core.redis import RedisClient
-from fmp.ingestion.relay import enqueue_command
+from fmp.ingestion.relay import enqueue_command, next_retry_datetime
 from fmp.models import GatewayCommand
 from fmp.workers.celery_app import celery_app
 
@@ -46,6 +46,8 @@ async def _scan_and_sweep() -> dict[str, int]:
                 )
             finally:
                 await redis.client.aclose()
+            row.attempts += 1
+            row.next_retry_at = next_retry_datetime(row.attempts)
             retried += 1
         if retried:
             await session.commit()
