@@ -13,6 +13,7 @@ from fmp.api.v1 import (
     companies,
     dispensing,
     fuel_types,
+    iot_gateways,
     notifications,
     realtime,
     sites,
@@ -51,6 +52,7 @@ app.include_router(stations.router)
 app.include_router(notifications.router)
 app.include_router(totalizers.router)
 app.include_router(fuel_types.router)
+app.include_router(iot_gateways.router)
 app.include_router(strapping.router)
 
 

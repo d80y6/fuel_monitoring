@@ -28,6 +28,7 @@ from fmp.core.config import get_settings
 from fmp.core.database import async_session_factory
 from fmp.core.redis import RedisClient
 from fmp.ingestion.pipeline import IngestionPipeline, publish_live
+from fmp.ingestion.relay import parse_command_ack_topic
 from fmp.schemas.dispensing import CodeValidateRequest, DispenseCompleteRequest
 from fmp.services.dispensing.dispense_engine import complete_dispense, validate_code
 
@@ -66,12 +67,17 @@ async def lifespan(_app: FastAPI):
             ("ingestion/dispense/complete", settings.MQTT_QOS),
             ("fuel/+/readings", settings.MQTT_QOS),
             ("fuel/+/status", settings.MQTT_QOS),
+            ("fuel/+/command/ack", settings.MQTT_QOS),
         ]
     )
     logger.info(
         "MQTT subscription active on %s:%s", settings.MQTT_BROKER, settings.MQTT_PORT
     )
+    from fmp.ingestion.relay import command_relay_loop
+
+    relay_task = asyncio.create_task(command_relay_loop(_client))
     yield
+    relay_task.cancel()
     _client.loop_stop()
     _client.disconnect()
 
@@ -111,6 +117,7 @@ def _on_connect(client, userdata, flags, reason_code, properties):
             ("ingestion/dispense/complete", settings.MQTT_QOS),
             ("fuel/+/readings", settings.MQTT_QOS),
             ("fuel/+/status", settings.MQTT_QOS),
+            ("fuel/+/command/ack", settings.MQTT_QOS),
         ]
     )
 
@@ -138,6 +145,12 @@ async def _route(topic: str, payload: dict[str, Any]) -> None:
             async with async_session_factory() as session:
                 result = await validate_code(session, redis, req)
             logger.info("validated ok=%s reason=%s", result.valid, result.reason)
+        elif topic.startswith("fuel/") and topic.endswith("/command/ack"):
+            mac = parse_command_ack_topic(topic)
+            if mac is None:
+                logger.warning("dropped malformed ack topic %s", topic)
+            else:
+                await _handle_command_ack(redis, payload, mac)
         elif topic.startswith("fuel/"):
             parsed = parse_fuel_topic(topic)
             if parsed is None:
@@ -233,28 +246,79 @@ async def _handle_reading(redis: RedisClient, payload: dict[str, Any], *, gatewa
 
 
 async def _handle_status(redis: RedisClient, payload: dict[str, Any], gateway_mac: str) -> None:
-    """Update tank connection_status + station last_heartbeat on a gateway heartbeat."""
-    from fmp.models import Station, Tank
+    """Update tank + owning station and (re)register the gateway on a heartbeat."""
+    from fmp.models import IoTGateway, Station, Tank
 
+    now = datetime.now(timezone.utc)
+    firmware = payload.get("firmware_version")
     async with async_session_factory() as session:
+        gateway = (
+            await session.execute(select(IoTGateway).where(IoTGateway.gateway_mac == gateway_mac))
+        ).scalar_one_or_none()
+        if gateway is None:
+            gateway = IoTGateway(
+                gateway_mac=gateway_mac,
+                name=gateway_mac,
+                firmware_version=firmware,
+                connection_status="online",
+                last_seen=now,
+                is_active=False,
+            )
+            session.add(gateway)
+            logger.info("gateway auto-registered: %s", gateway_mac)
+        else:
+            gateway.connection_status = "online"
+            gateway.last_seen = now
+            if firmware:
+                gateway.firmware_version = firmware
+
         tank = (
             await session.execute(select(Tank).where(Tank.gateway_mac == gateway_mac))
         ).scalar_one_or_none()
-        if tank is None:
-            logger.warning("no tank for gateway %s status frame", gateway_mac)
-            return
-        tank.connection_status = "online"
-        tank.last_connection = datetime.now(timezone.utc)
-        if tank.site_id:
-            station = (
-                await session.execute(
-                    select(Station).where(Station.site_id == tank.site_id).limit(1)
-                )
-            ).scalar_one_or_none()
-            if station is not None:
-                station.last_heartbeat = datetime.now(timezone.utc)
+        if tank is not None:
+            tank.connection_status = "online"
+            tank.last_connection = now
+            if tank.site_id:
+                station = (
+                    await session.execute(
+                        select(Station).where(Station.site_id == tank.site_id).limit(1)
+                    )
+                ).scalar_one_or_none()
+                if station is not None:
+                    station.last_heartbeat = now
         await session.commit()
-        logger.info("heartbeat: gateway %s online (tank %s)", gateway_mac, tank.id)
+        logger.info("heartbeat: gateway %s online (tank %s)", gateway_mac, tank.id if tank else None)
+
+
+async def _handle_command_ack(redis: RedisClient, payload: dict[str, Any], gateway_mac: str) -> None:
+    """Apply a gateway ack frame to the correlated command row."""
+    from fmp.models import GatewayCommand, IoTGateway
+
+    command_id = payload.get("command_id")
+    status = payload.get("status")  # "executed" | "rejected"
+    if not command_id or status not in ("executed", "rejected"):
+        logger.warning("dropped malformed ack frame from %s", gateway_mac)
+        return
+    async with async_session_factory() as session:
+        row = (
+            await session.execute(select(GatewayCommand).where(GatewayCommand.command_id == command_id))
+        ).scalar_one_or_none()
+        if row is None:
+            logger.info("ignoring ack for unknown command_id %s", command_id)
+            return
+        row.status = "acked" if status == "executed" else "rejected"
+        row.ack_status = status
+        row.ack_detail = payload.get("detail")
+        row.ack_received_at = datetime.now(timezone.utc)
+        row.next_retry_at = None
+        gateway = (
+            await session.execute(select(IoTGateway).where(IoTGateway.id == row.gateway_id))
+        ).scalar_one_or_none()
+        if gateway is not None:
+            gateway.connection_status = "online"
+            gateway.last_seen = datetime.now(timezone.utc)
+        await session.commit()
+        logger.info("command %s %s (gateway %s)", command_id, status, gateway_mac)
 
 
 @app.post("/api/v1/ingest/readings", tags=["ingest"])

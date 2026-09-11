@@ -76,6 +76,14 @@ class Settings(BaseSettings):
     NOTIFY_MAX_RETRIES: int = 3
     NOTIFY_RETRY_BACKOFF: int = 5          # seconds; exponential per attempt
 
+    # --- Gateway commands --------------------------------------------------
+    COMMAND_QUEUE_OUTBOUND: str = "iot:commands:outbound"
+    COMMAND_QUEUE_INFLIGHT: str = "iot:commands:inflight"
+    COMMAND_BACKOFF_BASE_SECONDS: int = 60
+    COMMAND_BACKOFF_MAX_SECONDS: int = 900
+    COMMAND_MAX_ATTEMPTS: int = 3
+    COMMAND_PENDING_TTL_SECONDS: int = 120
+
     # --- CORS --------------------------------------------------------------
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 

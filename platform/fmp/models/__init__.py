@@ -10,6 +10,7 @@ from fmp.models.notifications import NotificationGateway, NotificationLog
 from fmp.models.user import UploadBatch, User
 from fmp.models.fuel import FuelType, StrappingTable
 from fmp.models.tank import Alarm, Measurement, Tank
+from fmp.models.gateway import COMMAND_TYPES, GatewayCommand, IoTGateway
 
 __all__ = [
     "Base",
@@ -34,4 +35,7 @@ __all__ = [
     "Tank",
     "Measurement",
     "Alarm",
+    "COMMAND_TYPES",
+    "GatewayCommand",
+    "IoTGateway",
 ]

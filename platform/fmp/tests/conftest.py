@@ -28,6 +28,7 @@ class FakeRedis:
     store: dict = field(default_factory=dict)
     sets: dict = field(default_factory=dict)
     zsets: dict = field(default_factory=dict)
+    lists: dict = field(default_factory=dict)
     published: list = field(default_factory=list)
 
     @property
@@ -55,6 +56,33 @@ class FakeRedis:
         for k in keys:
             n += int(self.store.pop(k, None) is not None)
         return n
+
+    async def lpush(self, key: str, *values) -> int:
+        bucket = self.lists.setdefault(key, [])
+        bucket[:0] = list(values)
+        return len(values)
+
+    async def rpush(self, key: str, *values) -> int:
+        self.lists.setdefault(key, []).extend(values)
+        return len(values)
+
+    async def lpop(self, key: str):
+        bucket = self.lists.get(key)
+        return bucket.pop(0) if bucket else None
+
+    async def llen(self, key: str) -> int:
+        return len(self.lists.get(key, []))
+
+    async def rpoplpush(self, source: str, destination: str):
+        bucket = self.lists.get(source)
+        if not bucket:
+            return None
+        item = bucket.pop()
+        self.lists.setdefault(destination, []).insert(0, item)
+        return item
+
+    async def brpoplpush(self, source: str, destination: str, timeout: int = 0):
+        return await self.rpoplpush(source, destination)
 
     async def zadd(self, key: str, mapping: dict):
         self.zsets.setdefault(key, {})
