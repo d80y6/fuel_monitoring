@@ -12,6 +12,7 @@ celery_app = Celery(
     backend=settings.redis_url,
     include=[
         "fmp.workers.tasks.notifications",
+        "fmp.workers.tasks.commands",
     ],
 )
 
@@ -27,3 +28,10 @@ celery_app.conf.update(
     broker_connection_retry_on_startup=True,
     result_expires=3600,
 )
+
+celery_app.conf.beat_schedule = {
+    "sweep-gateway-commands": {
+        "task": "commands.sweep_commands",
+        "schedule": 30.0,
+    },
+}

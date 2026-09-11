@@ -77,3 +77,56 @@ async def test_unknown_ack_is_ignored(requires_infra, db):
     )
     async with async_session_factory() as session:
         assert (await session.execute(select(GatewayCommand))).scalars().all() == []
+
+
+async def test_sweeper_requeues_then_fails(requires_infra, db):
+    from datetime import timedelta
+
+    from fmp.core.database import async_session_factory
+    from fmp.core.redis import RedisClient
+    from fmp.ingestion.relay import QUEUE_OUTBOUND
+    from fmp.models import GatewayCommand, IoTGateway
+    from fmp.workers.tasks.commands import _scan_and_sweep
+    from sqlalchemy import select
+
+    ago = datetime.now(timezone.utc) - timedelta(minutes=10)
+
+    async with async_session_factory() as session:
+        gw = IoTGateway(gateway_mac="AA:BB:CC:DD:EE:05", name="GW5", is_active=True)
+        session.add(gw)
+        await session.flush()
+        cmd = GatewayCommand(
+            gateway_id=gw.id, command_type="reboot", payload_json={},
+            status="sent", attempts=1, max_attempts=3, next_retry_at=ago,
+        )
+        session.add(cmd)
+        await session.commit()
+        cmd_id = str(cmd.command_id)
+
+    redis = RedisClient()
+    await redis.client.delete(QUEUE_OUTBOUND)
+    await redis.client.aclose()
+
+    await _scan_and_sweep()
+
+    redis = RedisClient()
+    assert await redis.client.llen(QUEUE_OUTBOUND) == 1
+    await redis.client.delete(QUEUE_OUTBOUND)
+    await redis.client.aclose()
+
+    # exhaust: set attempts to max so sweep fails it instead
+    async with async_session_factory() as session:
+        cmd = (await session.execute(
+            select(GatewayCommand).where(GatewayCommand.command_id == cmd_id)
+        )).scalar_one()
+        cmd.attempts = 3
+        await session.commit()
+
+    await _scan_and_sweep()
+
+    async with async_session_factory() as session:
+        cmd = (await session.execute(
+            select(GatewayCommand).where(GatewayCommand.command_id == cmd_id)
+        )).scalar_one()
+        assert cmd.status == "failed"
+        assert cmd.error_message
