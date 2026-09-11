@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 14
     PASSWORD_MIN_LENGTH: int = 8
+    LOGIN_RATE_LIMIT_ENABLED: bool = True
+    LOGIN_RATE_LIMIT_ATTEMPTS: int = 5
+    LOGIN_RATE_LIMIT_WINDOW_SECONDS: int = 900
 
     # --- Database ----------------------------------------------------------
     POSTGRES_HOST: str = "localhost"

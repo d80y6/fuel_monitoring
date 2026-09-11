@@ -16,6 +16,10 @@ from fmp.core.config import get_settings
 
 settings = get_settings()
 
+# JWT issuer/audience: prevents token confusion across services/contexts (C1).
+TOKEN_ISSUER = "fuel-platform"
+TOKEN_AUDIENCE = "fuel-platform-api"
+
 # OWASP-recommended PBKDF2-SHA256 cost for interactive login as of 2023.
 PBKDF2_ITERATIONS = 210_000
 _SALT_BYTES = 16
@@ -62,6 +66,8 @@ def create_access_token(subject: str | int, extra: dict | None = None) -> str:
         "iat": now,
         "exp": now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
         "jti": uuid.uuid4().hex,
+        "iss": TOKEN_ISSUER,
+        "aud": TOKEN_AUDIENCE,
     }
     if extra:
         payload.update(extra)
@@ -69,7 +75,39 @@ def create_access_token(subject: str | int, extra: dict | None = None) -> str:
 
 
 def decode_token(token: str) -> dict[str, Any]:
-    return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+    """Strictly decode+verify a JWT.
+
+    Requires and validates exp/iat/iss/aud/sub and the HS256 signature, so
+    tokens minted by other services (wrong ``aud``/``iss``) are rejected.
+    """
+    return jwt.decode(
+        token,
+        settings.SECRET_KEY,
+        algorithms=[settings.JWT_ALGORITHM],
+        audience=TOKEN_AUDIENCE,
+        issuer=TOKEN_ISSUER,
+        options={"require": ["exp", "iat", "iss", "aud", "sub"]},
+    )
+
+
+def validate_password_complexity(plain: str) -> list[str]:
+    """Return password-policy violation messages; empty list means acceptable.
+
+    Policy: minimum length (``PASSWORD_MIN_LENGTH``) plus at least 3 of the 4
+    character classes (lowercase, uppercase, digit, symbol).
+    """
+    violations: list[str] = []
+    if len(plain) < settings.PASSWORD_MIN_LENGTH:
+        violations.append(f"must be at least {settings.PASSWORD_MIN_LENGTH} characters")
+    class_present = sum((
+        any(c.islower() for c in plain),
+        any(c.isupper() for c in plain),
+        any(c.isdigit() for c in plain),
+        any(not c.isalnum() for c in plain),
+    ))
+    if class_present < 3:
+        violations.append("must include at least 3 of: lowercase, uppercase, digit, symbol")
+    return violations
 
 
 def get_current_user_from_query(token: str) -> dict[str, Any] | None:

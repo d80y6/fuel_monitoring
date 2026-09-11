@@ -4,7 +4,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class UserRead(BaseModel):
@@ -20,3 +20,12 @@ class UserRead(BaseModel):
     phone: str | None = None
     last_login: datetime | None = None
     created_at: datetime
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1)
+    new_password: str = Field(min_length=1)
+
+
+class ChangePasswordResponse(BaseModel):
+    status: str
