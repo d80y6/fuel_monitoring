@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from fmp.core.config import get_settings
 from fmp.core.database import async_session_factory
 from fmp.core.redis import RedisClient
-from fmp.ingestion.relay import QUEUE_OUTBOUND, enqueue_command
+from fmp.ingestion.relay import enqueue_command
 from fmp.models import GatewayCommand
 from fmp.workers.celery_app import celery_app
 
