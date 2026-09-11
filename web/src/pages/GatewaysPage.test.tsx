@@ -5,7 +5,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 vi.mock('../api/client', () => ({
-  api: { listGateways: vi.fn(), createGateway: vi.fn(), updateGateway: vi.fn(), deleteGateway: vi.fn() },
+  api: {
+    listNotificationGateways: vi.fn(),
+    createNotificationGateway: vi.fn(),
+    updateNotificationGateway: vi.fn(),
+    deleteNotificationGateway: vi.fn(),
+  },
 }));
 import { api } from '../api/client';
 import GatewaysPage from './GatewaysPage';
@@ -27,7 +32,7 @@ const gw = {
 
 describe('GatewaysPage', () => {
   beforeEach(() => {
-    vi.mocked(api.listGateways).mockResolvedValue([gw] as never);
+    vi.mocked(api.listNotificationGateways).mockResolvedValue([gw] as never);
   });
 
   it('renders gateway list', async () => {
@@ -38,7 +43,7 @@ describe('GatewaysPage', () => {
   });
 
   it('opens create dialog and submits', async () => {
-    vi.mocked(api.createGateway).mockResolvedValue({
+    vi.mocked(api.createNotificationGateway).mockResolvedValue({
       id: 'g2', name: 'New gateway', type: 'smpp', config_json: {}, is_active: true, priority: 10, created_at: '2026-01-02T00:00:00Z',
     } as never);
     renderPage();
@@ -46,14 +51,14 @@ describe('GatewaysPage', () => {
     await userEvent.type(screen.getByLabelText(/^name$/i), 'New gateway');
     await userEvent.click(screen.getByRole('button', { name: /^create$/i }));
     await waitFor(() =>
-      expect(api.createGateway).toHaveBeenCalledWith(
+      expect(api.createNotificationGateway).toHaveBeenCalledWith(
         expect.objectContaining({ name: 'New gateway', type: 'smpp', config_json: {}, is_active: true, priority: 10 }),
       ),
     );
   });
 
   it('opens edit dialog, updates config, and submits', async () => {
-    vi.mocked(api.updateGateway).mockResolvedValue(gw as never);
+    vi.mocked(api.updateNotificationGateway).mockResolvedValue(gw as never);
     renderPage();
     await userEvent.click(await screen.findByRole('button', { name: /^edit$/i }));
     await userEvent.clear(screen.getByLabelText(/^config$/i));
@@ -61,12 +66,12 @@ describe('GatewaysPage', () => {
     await userEvent.click(screen.getByRole('checkbox', { name: /active/i }));
     await userEvent.click(screen.getByRole('button', { name: /^save$/i }));
     await waitFor(() =>
-      expect(api.updateGateway).toHaveBeenCalledWith(
+      expect(api.updateNotificationGateway).toHaveBeenCalledWith(
         'g1',
         expect.objectContaining({ is_active: false, priority: 10, config_json: { host: 'x' } }),
       ),
     );
-    expect(api.updateGateway).not.toHaveBeenCalledWith('g1', expect.objectContaining({ name: 'SMTP relay' }));
+    expect(api.updateNotificationGateway).not.toHaveBeenCalledWith('g1', expect.objectContaining({ name: 'SMTP relay' }));
   });
 
   it('disables name and type when editing', async () => {
@@ -78,11 +83,11 @@ describe('GatewaysPage', () => {
   });
 
   it('deletes a gateway after confirmation', async () => {
-    vi.mocked(api.deleteGateway).mockResolvedValue(undefined as never);
+    vi.mocked(api.deleteNotificationGateway).mockResolvedValue(undefined as never);
     renderPage();
     await userEvent.click(await screen.findByRole('button', { name: /^delete$/i }));
     expect(await screen.findByText('Delete "SMTP relay"?')).toBeInTheDocument();
     await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^delete$/i }));
-    await waitFor(() => expect(api.deleteGateway).toHaveBeenCalledWith('g1'));
+    await waitFor(() => expect(api.deleteNotificationGateway).toHaveBeenCalledWith('g1'));
   });
 });

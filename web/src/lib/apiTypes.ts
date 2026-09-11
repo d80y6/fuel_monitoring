@@ -379,3 +379,56 @@ export interface FuelTypeCreate {
 }
 
 export type TankTransaction = Pick<TransactionRead, 'id' | 'actual_liters' | 'status' | 'created_at'> & { tank_id: string };
+
+// --- IoT Gateway ---
+export type IoTCommandType =
+  | 'reboot' | 'status_probe' | 'pause_reporting' | 'resume_reporting'
+  | 'set_interval' | 'recalibrate' | 'zero_tank' | 'push_config';
+
+export interface IoTGateway {
+  id: string;
+  gateway_mac: string;
+  name: string;
+  firmware_version: string | null;
+  last_seen: string | null;
+  connection_status: 'online' | 'offline';
+  is_active: boolean;
+  tank_ids: string[];
+  created_at: string;
+}
+
+export interface IoTGatewayCreate {
+  gateway_mac: string;
+  name?: string;
+  firmware_version?: string;
+}
+
+export interface IoTGatewayUpdate {
+  name?: string;
+  firmware_version?: string;
+  is_active?: boolean;
+  tank_ids?: string[];
+}
+
+export interface IoTCommandCreate {
+  command_type: IoTCommandType;
+  payload: Record<string, unknown>;
+}
+
+export interface IoTCommand {
+  id: string;
+  command_id: string;
+  gateway_id: string;
+  command_type: IoTCommandType;
+  payload_json: Record<string, unknown>;
+  status: 'pending' | 'sent' | 'acked' | 'rejected' | 'failed';
+  attempts: number;
+  max_attempts: number;
+  sent_at: string | null;
+  next_retry_at: string | null;
+  ack_status: string | null;
+  ack_detail: string | null;
+  ack_received_at: string | null;
+  error_message: string | null;
+  created_at: string;
+}

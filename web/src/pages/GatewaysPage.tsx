@@ -9,7 +9,7 @@ import { Field, Input, Select, Textarea } from '../components/ui/fields';
 import { ConfirmDialog } from '../components/ui/confirm';
 
 export default function GatewaysPage() {
-  const gateways = useQuery({ queryKey: ['gateways'], queryFn: () => api.listGateways() });
+  const gateways = useQuery({ queryKey: ['gateways'], queryFn: () => api.listNotificationGateways() });
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<NotificationGatewayRead | null>(null);
   const [deleting, setDeleting] = useState<NotificationGatewayRead | null>(null);
@@ -87,12 +87,12 @@ function GatewayDialog({ initial, onClose }: { initial?: NotificationGatewayRead
         throw new Error('Invalid JSON');
       }
       return initial
-        ? api.updateGateway(initial.id, {
+        ? api.updateNotificationGateway(initial.id, {
             is_active: form.is_active,
             priority: Number(form.priority),
             config_json,
           })
-        : api.createGateway({
+        : api.createNotificationGateway({
             name: form.name,
             type: form.type as 'smpp' | 'whatsapp',
             config_json,
@@ -171,7 +171,7 @@ function DeleteGateway({ gateway, onCancel }: { gateway: NotificationGatewayRead
   const [error, setError] = useState<string | null>(null);
 
   const del = useMutation({
-    mutationFn: () => api.deleteGateway(gateway.id),
+    mutationFn: () => api.deleteNotificationGateway(gateway.id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['gateways'] });
       onCancel();

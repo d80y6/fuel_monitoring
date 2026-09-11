@@ -12,6 +12,7 @@ import { orgApi } from './org';
 import { dispensingApi } from './dispensing';
 import { adminApi } from './admin';
 import { monitoringApi } from './monitoring';
+import { iotApi } from './iot';
 
 const API_BASE = '/api/v1';
 
@@ -76,6 +77,7 @@ export const api = {
   ...dispensingApi,
   ...adminApi,
   ...monitoringApi,
+  ...iotApi,
 };
 
 export { setOnUnauthorized, setTokenProvider };

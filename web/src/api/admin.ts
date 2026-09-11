@@ -19,11 +19,11 @@ export const adminApi = {
     });
   },
 
-  async listGateways(): Promise<NotificationGatewayRead[]> {
+  async listNotificationGateways(): Promise<NotificationGatewayRead[]> {
     return request<NotificationGatewayRead[]>(`${API_BASE}/notification-gateways`);
   },
 
-  async createGateway(payload: {
+  async createNotificationGateway(payload: {
     name: string;
     type: 'smpp' | 'whatsapp'
     config_json: Record<string, unknown>;
@@ -36,7 +36,7 @@ export const adminApi = {
     });
   },
 
-  async updateGateway(
+  async updateNotificationGateway(
     id: string,
     payload: Partial<{
       config_json: Record<string, unknown>;
@@ -50,7 +50,7 @@ export const adminApi = {
     });
   },
 
-  async deleteGateway(id: string): Promise<void> {
+  async deleteNotificationGateway(id: string): Promise<void> {
     return request<void>(`${API_BASE}/notification-gateways/${id}`, {
       method: 'DELETE',
     });
