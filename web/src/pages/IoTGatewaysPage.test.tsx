@@ -41,6 +41,30 @@ describe('IoTGatewaysPage', () => {
     vi.mocked(api.listGateways).mockResolvedValue([gw] as never);
   });
 
+  it('renders the page header with New gateway action', async () => {
+    renderPage();
+    expect(await screen.findByRole('heading', { level: 2, name: 'IoT Gateways' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'New gateway' })).toBeInTheDocument();
+  });
+
+  it('renders a skeleton while gateways are loading', () => {
+    vi.mocked(api.listGateways).mockReturnValue(new Promise(() => {}) as never);
+    const { container } = renderPage();
+    expect(container.querySelector('.animate-pulse')).not.toBeNull();
+  });
+
+  it('renders an error card when gateways fail to load', async () => {
+    vi.mocked(api.listGateways).mockRejectedValue(new Error('boom'));
+    renderPage();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to load gateways.');
+  });
+
+  it('renders an empty state when there are no gateways', async () => {
+    vi.mocked(api.listGateways).mockResolvedValue([] as never);
+    renderPage();
+    expect(await screen.findByText('No gateways')).toBeInTheDocument();
+  });
+
   it('renders gateway rows with status pill', async () => {
     renderPage();
     expect(await screen.findByText('East Gate')).toBeInTheDocument();

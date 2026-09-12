@@ -6,6 +6,8 @@ import { api } from '../api/client';
 import type { IoTCommandType } from '../lib/apiTypes';
 import { Badge } from '../components/ui/badge';
 import { Field, Input, Select, Textarea } from '../components/ui/fields';
+import { Skeleton } from '../components/ui/Skeleton';
+import { ErrorCard } from '../components/ui/ErrorCard';
 
 const COMMAND_TYPES: { value: IoTCommandType; label: string }[] = [
   { value: 'reboot', label: 'Reboot' },
@@ -143,11 +145,11 @@ function CommandComposer({ gatewayId }: { gatewayId: string }) {
   };
 
   const fieldError = (name: string) =>
-    fieldErrors[name] ? <p className="text-sm text-red-600">{fieldErrors[name]}</p> : null;
+    fieldErrors[name] ? <p className="text-sm text-danger-fg">{fieldErrors[name]}</p> : null;
 
   return (
-    <form onSubmit={submit} className="space-y-3 bg-white rounded-lg border border-slate-200 p-4">
-      <h3 className="text-lg font-semibold text-slate-800">Send command</h3>
+    <form onSubmit={submit} className="space-y-3 bg-surface rounded-lg border border-line p-4">
+      <h3 className="text-lg font-semibold text-primary">Send command</h3>
       <Field label="Command type" htmlFor="cmd-type">
         <Select id="cmd-type" value={type} onChange={changeType}>
           {COMMAND_TYPES.map((c) => (
@@ -157,7 +159,7 @@ function CommandComposer({ gatewayId }: { gatewayId: string }) {
       </Field>
 
       {NO_PAYLOAD_TYPES.includes(type) ? (
-        <p className="text-sm text-slate-500">No payload required</p>
+        <p className="text-sm text-secondary">No payload required</p>
       ) : null}
 
       {type === 'pause_reporting' ? (
@@ -207,8 +209,8 @@ function CommandComposer({ gatewayId }: { gatewayId: string }) {
         </Field>
       ) : null}
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-      {sent ? <p className="text-sm text-emerald-700">{sent}</p> : null}
+      {error ? <p className="text-sm text-danger-fg">{error}</p> : null}
+      {sent ? <p className="text-sm text-ok-fg">{sent}</p> : null}
       <div className="flex justify-end">
         <button type="submit" disabled={mut.isPending} className="bg-brand text-white rounded px-3 py-2 text-sm font-medium disabled:opacity-50">
           Send
@@ -228,20 +230,20 @@ function LinkedTanksPanel({ tankIds }: { tankIds: string[] }) {
   });
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-4">
-      <h3 className="text-lg font-semibold text-slate-800 mb-3">Linked tanks</h3>
+    <div className="bg-surface rounded-lg border border-line p-4">
+      <h3 className="text-lg font-semibold text-primary mb-3">Linked tanks</h3>
       {tankIds.length === 0 ? (
-        <p className="text-sm text-slate-500">No tanks linked. Link tanks via admin (PATCH tank_ids) to enable commands.</p>
+        <p className="text-sm text-secondary">No tanks linked. Link tanks via admin (PATCH tank_ids) to enable commands.</p>
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-line">
           {tanks.map((q, i) => {
             const tankId = tankIds[i];
             const tank = q.data;
             return (
               <li key={tankId} className="py-2 flex items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="font-medium text-slate-800">{tank?.name ?? tankId}</p>
-                  {tank ? <p className="text-xs text-slate-400 font-mono truncate">{tank.site_id}</p> : null}
+                  <p className="font-medium text-primary">{tank?.name ?? tankId}</p>
+                  {tank ? <p className="text-xs text-muted font-mono truncate">{tank.site_id}</p> : null}
                 </div>
                 <Badge variant={tank?.connection_status === 'online' ? 'success' : 'default'}>
                   {q.isLoading ? 'loading…' : (tank?.connection_status ?? 'unknown')}
@@ -280,18 +282,18 @@ export default function IoTGatewayDetailPage() {
     },
   });
 
-  if (gateway.isLoading) return <p className="text-sm text-slate-500">Loading…</p>;
-  if (gateway.isError || !gateway.data) return <p className="text-sm text-rose-600">Failed to load gateway.</p>;
+  if (gateway.isLoading) return <Skeleton className="h-72 w-full" />;
+  if (gateway.isError || !gateway.data) return <ErrorCard message="Failed to load gateway." />;
   const g = gateway.data;
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
+      <div className="bg-surface rounded-lg border border-line p-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold text-slate-800">{g.name}</h2>
+          <h2 className="text-2xl font-semibold text-primary">{g.name}</h2>
           <div className="flex items-center gap-3">
             <Badge variant={g.connection_status === 'online' ? 'success' : 'default'}>{g.connection_status}</Badge>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm text-secondary">
               <input
                 type="checkbox"
                 checked={g.is_active}
@@ -303,23 +305,23 @@ export default function IoTGatewayDetailPage() {
           </div>
         </div>
         <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
-          <dt className="text-slate-500">MAC</dt><dd className="font-mono">{g.gateway_mac}</dd>
-          <dt className="text-slate-500">Firmware</dt><dd>{g.firmware_version ?? '—'}</dd>
-          <dt className="text-slate-500">Last seen</dt><dd>{g.last_seen ? new Date(g.last_seen).toLocaleString() : '—'}</dd>
-          <dt className="text-slate-500">Tanks</dt><dd>{g.tank_ids.length} tank(s)</dd>
+          <dt className="text-secondary">MAC</dt><dd className="font-mono">{g.gateway_mac}</dd>
+          <dt className="text-secondary">Firmware</dt><dd>{g.firmware_version ?? '—'}</dd>
+          <dt className="text-secondary">Last seen</dt><dd>{g.last_seen ? new Date(g.last_seen).toLocaleString() : '—'}</dd>
+          <dt className="text-secondary">Tanks</dt><dd>{g.tank_ids.length} tank(s)</dd>
         </dl>
-        {!g.is_active ? <p className="mt-3 text-sm text-amber-700">Not provisioned — link tanks via admin to enable commands.</p> : null}
+        {!g.is_active ? <p className="mt-3 text-sm text-warn-fg">Not provisioned — link tanks via admin to enable commands.</p> : null}
       </div>
 
       <LinkedTanksPanel tankIds={g.tank_ids} />
 
       {g.is_active ? <CommandComposer gatewayId={g.id} /> : null}
 
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <h3 className="text-lg font-semibold text-slate-800 mb-3">History</h3>
-        {commands.isLoading ? <p className="text-sm text-slate-500">Loading…</p> : null}
+      <div className="bg-surface rounded-lg border border-line p-4">
+        <h3 className="text-lg font-semibold text-primary mb-3">History</h3>
+        {commands.isLoading ? <p className="text-sm text-secondary">Loading…</p> : null}
         <table className="w-full text-sm">
-          <thead className="bg-slate-50 text-slate-500">
+          <thead className="bg-inset text-secondary">
             <tr>
               <th className="text-left px-4 py-2">Type</th>
               <th className="text-left px-4 py-2">Status</th>
@@ -330,14 +332,14 @@ export default function IoTGatewayDetailPage() {
           </thead>
           <tbody>
             {(commands.data ?? []).map((c) => (
-              <tr key={c.id} className="border-t border-slate-100">
-                <td className="px-4 py-2 font-medium text-slate-800">{c.command_type}</td>
+              <tr key={c.id} className="border-t border-line">
+                <td className="px-4 py-2 font-medium text-primary">{c.command_type}</td>
                 <td className="px-4 py-2">
                   <Badge variant={STATUS_VARIANT[c.status] ?? 'default'}>{c.status}</Badge>
                 </td>
-                <td className="px-4 py-2 text-slate-600">{c.attempts}/{c.max_attempts}</td>
-                <td className="px-4 py-2 text-slate-600">{c.sent_at ? new Date(c.sent_at).toLocaleString() : '—'}</td>
-                <td className="px-4 py-2 text-slate-600">
+                <td className="px-4 py-2 text-secondary">{c.attempts}/{c.max_attempts}</td>
+                <td className="px-4 py-2 text-secondary">{c.sent_at ? new Date(c.sent_at).toLocaleString() : '—'}</td>
+                <td className="px-4 py-2 text-secondary">
                   {c.ack_status ? `${c.ack_status}${c.ack_detail ? ` — ${c.ack_detail}` : ''}` : '—'}
                 </td>
               </tr>

@@ -9,36 +9,36 @@ export function DispenseLiveView({
   recent: TransactionRead[];
 }) {
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-4">
-      <h3 className="font-semibold text-slate-800 mb-3">In progress</h3>
+    <div className="bg-surface rounded-lg border border-line p-4">
+      <h3 className="font-semibold text-primary mb-3">In progress</h3>
       {active.length === 0 ? (
-        <p className="text-sm text-slate-500">No active authorizations.</p>
+        <p className="text-sm text-secondary">No active authorizations.</p>
       ) : (
         <div className="space-y-3">
           {active.map((a) => (
             <div key={a.id} className="flex items-center justify-between text-sm">
               <div>
-                <p className="font-medium text-slate-700">{a.employee_name || a.employee_id}</p>
-                <p className="text-xs text-slate-500">
+                <p className="font-medium text-secondary">{a.employee_name || a.employee_id}</p>
+                <p className="text-xs text-secondary">
                   {a.invoice_number ? `${a.invoice_number} · ` : ''}authorized {formatLiters(a.allocated_liters)}
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-semibold text-slate-800">
+                <p className="font-semibold text-primary">
                   {formatLiters(dispensedSoFar(a))}
-                  <span className="text-xs font-normal text-slate-400 ml-1">dispensed</span>
+                  <span className="text-xs font-normal text-muted ml-1">dispensed</span>
                 </p>
-                <span className="text-xs text-slate-500">{formatRemaining(a.remaining_liters)}</span>
+                <span className="text-xs text-secondary">{formatRemaining(a.remaining_liters)}</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full ml-2 ${statusColor(a.status)}`}>{a.status}</span>
               </div>
             </div>
           ))}
         </div>
       )}
-      <h3 className="font-semibold text-slate-800 mt-6 mb-3">Recent transactions</h3>
+      <h3 className="font-semibold text-primary mt-6 mb-3">Recent transactions</h3>
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-slate-500">
+          <tr className="text-left text-secondary">
             <th scope="col" className="py-1 pr-2">When</th>
             <th scope="col" className="py-1 pr-2">Dispenser</th>
             <th scope="col" className="py-1 pr-2">Status</th>
@@ -48,8 +48,8 @@ export function DispenseLiveView({
         </thead>
         <tbody>
           {recent.slice(0, 25).map((t) => (
-            <tr key={t.id} className="border-t border-slate-100">
-              <td className="py-1 pr-2 text-slate-600">{new Date(t.created_at).toLocaleString()}</td>
+            <tr key={t.id} className="border-t border-line">
+              <td className="py-1 pr-2 text-secondary">{new Date(t.created_at).toLocaleString()}</td>
               <td className="py-1 pr-2">{t.dispenser_id}</td>
               <td className="py-1 pr-2"><span className={`text-xs px-2 py-0.5 rounded-full ${statusColor(t.status)}`}>{t.status}</span></td>
               <td className="py-1 pr-2">{formatLiters(t.requested_liters)}</td>

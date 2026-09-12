@@ -6,6 +6,8 @@ import { useTelemetry } from '../hooks/useTelemetry';
 import { TankCanvas } from '../components/tanks/TankCanvas';
 import StrappingCard from '../components/tanks/StrappingCard';
 import { TelemetryChart } from '../components/charts/TelemetryChart';
+import { Skeleton } from '../components/ui/Skeleton';
+import { ErrorCard } from '../components/ui/ErrorCard';
 
 const WINDOWS: Record<string, number> = { '1h': 1, '6h': 6, '24h': 24, '7d': 168 };
 
@@ -47,37 +49,46 @@ export default function TankDetail() {
   );
 
   const tank = tankQ.data;
-  if (!tank) return <p className="text-slate-500">Loading tank…</p>;
+  if (tankQ.isError) return <ErrorCard message="Failed to load tank." />;
+  if (!tank) {
+    return (
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <Skeleton className="h-72 lg:col-span-1" />
+        <Skeleton className="h-72 lg:col-span-2" />
+        <Skeleton className="h-40 lg:col-span-3" />
+      </div>
+    );
+  }
 
   return (
     <div>
-      <Link to="/tanks" className="text-sm text-slate-500 hover:text-slate-700 mb-2 inline-block">← Tanks</Link>
+      <Link to="/tanks" className="text-sm text-secondary hover:text-primary mb-2 inline-block">← Tanks</Link>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 bg-white rounded-lg border border-slate-200 p-4">
+        <div className="lg:col-span-1 bg-surface rounded-lg border border-line p-4">
           <div className="max-w-xs mx-auto">
             <TankCanvas tank={tank} live={latest} fuels={fuelsQ.data ?? []} />
           </div>
           <div className="grid grid-cols-2 gap-2 mt-4">
             {readouts.map((r) => (
-              <div key={r.label} className="bg-slate-50 rounded p-2">
-                <p className="text-xs text-slate-500">{r.label}</p>
-                <p className="text-lg font-semibold text-slate-800">
+              <div key={r.label} className="bg-inset rounded p-2">
+                <p className="text-lg font-semibold text-primary">{r.label}</p>
+                <p className="text-lg font-semibold text-primary">
                   {r.value == null ? '—' : Number(r.value).toFixed(2)}
-                  <span className="text-xs font-normal text-slate-400 ml-1">{r.unit}</span>
+                  <span className="text-xs font-normal text-muted ml-1">{r.unit}</span>
                 </p>
               </div>
             ))}
           </div>
         </div>
-        <div className="lg:col-span-2 bg-white rounded-lg border border-slate-200 p-4">
+        <div className="lg:col-span-2 bg-surface rounded-lg border border-line p-4">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="font-semibold text-slate-800">{tank.name} · Telemetry</h3>
+            <h3 className="font-semibold text-primary">{tank.name} · Telemetry</h3>
             <div className="flex gap-1">
               {Object.keys(WINDOWS).map((k) => (
                 <button
                   key={k}
                   onClick={() => setWindow(k as keyof typeof WINDOWS)}
-                  className={`px-2 py-1 text-xs rounded ${window === k ? 'bg-brand text-white' : 'bg-slate-100 text-slate-600'}`}
+                  className={`px-2 py-1 text-xs rounded ${window === k ? 'bg-brand text-white' : 'bg-inset text-secondary'}`}
                 >
                   {k}
                 </button>
@@ -93,22 +104,22 @@ export default function TankDetail() {
           />
         </div>
       </div>
-      <div className="mt-6 bg-white rounded-lg border border-slate-200 p-4">
-        <h3 className="font-semibold text-slate-800 mb-2">Open alarms</h3>
+      <div className="mt-6 bg-surface rounded-lg border border-line p-4">
+        <h3 className="font-semibold text-primary mb-2">Open alarms</h3>
         {(alarmsQ.data ?? []).length === 0 ? (
-          <p className="text-sm text-slate-500">No open alarms.</p>
+          <p className="text-sm text-secondary">No open alarms.</p>
         ) : (
           <ul className="space-y-2">
             {(alarmsQ.data ?? []).map((a) => (
               <li key={a.id} className="flex items-center justify-between text-sm">
                 <div>
-                  <span className="font-medium text-slate-700">{a.type}</span>
-                  <span className="text-slate-500 ml-2">{a.message}</span>
+                  <span className="font-medium text-secondary">{a.type}</span>
+                  <span className="text-secondary ml-2">{a.message}</span>
                 </div>
                 <button
                   onClick={() => ack.mutate(a.id)}
                   disabled={a.acknowledged}
-                  className="text-xs bg-slate-100 px-2 py-1 rounded disabled:opacity-40"
+                  className="text-xs bg-inset px-2 py-1 rounded disabled:opacity-40"
                 >
                   {a.acknowledged ? 'Acked' : 'Ack'}
                 </button>
@@ -118,7 +129,7 @@ export default function TankDetail() {
         )}
       </div>
       {tank.tank_shape === 'custom_strapping' ? (
-        <div className="mt-6 bg-white rounded-lg border border-slate-200 p-4">
+        <div className="mt-6 bg-surface rounded-lg border border-line p-4">
           <StrappingCard tankId={tank.id} />
         </div>
       ) : null}

@@ -6,6 +6,8 @@ import {
   driveCumulativeFromTransactions,
 } from '../lib/driftCalc';
 import { TotalizerDriftChart } from '../components/charts/TotalizerDriftChart';
+import { PageHeader } from '../components/ui/PageHeader';
+import { EmptyState } from '../components/ui/EmptyState';
 
 export default function Totalizers() {
   const [stationId, setStationId] = useState<string | null>(null);

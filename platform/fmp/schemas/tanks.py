@@ -26,7 +26,6 @@ class TankBase(BaseModel):
     tank_length: float | None = Field(default=None, gt=0)
     dish_depth: float | None = Field(default=None, gt=0)
     tank_width: float | None = Field(default=None, gt=0)
-    fuel_type_id: uuid.UUID
     strapping_table_id: uuid.UUID | None = None
     tank_volume: float = Field(gt=0)
     elevation: float | None = None
@@ -42,6 +41,8 @@ class TankBase(BaseModel):
 
 
 class TankCreate(TankBase):
+    fuel_type_id: uuid.UUID
+
     @model_validator(mode="after")
     def _shape_consistency(self):
         if self.tank_shape == "vertical_cylinder" and self.tank_orientation != "vertical":
@@ -61,6 +62,7 @@ class TankRead(TankBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    fuel_type_id: uuid.UUID | None = None
     created_at: datetime
     connection_status: str
     last_connection: datetime | None

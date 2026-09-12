@@ -57,6 +57,18 @@ describe('AlarmCenter', () => {
     expect(screen.getByText('Tank Alpha')).toBeInTheDocument();
   });
 
+  it('renders a page header', async () => {
+    renderPage();
+    await screen.findByText('Level low');
+    expect(screen.getByRole('heading', { level: 2, name: 'Alarm Center' })).toBeInTheDocument();
+  });
+
+  it('renders a skeleton while alarms are loading', () => {
+    vi.mocked(api.tankAlarms).mockReturnValue(new Promise(() => {}) as never);
+    const { container } = renderPage();
+    expect(container.querySelector('.animate-pulse')).not.toBeNull();
+  });
+
   it('shows empty state when no alarms', async () => {
     vi.mocked(api.tankAlarms).mockResolvedValue([] as never);
     renderPage();

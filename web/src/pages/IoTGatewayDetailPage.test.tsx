@@ -65,6 +65,18 @@ describe('IoTGatewayDetailPage', () => {
     vi.mocked(api.listCommands).mockResolvedValue(hist as never);
   });
 
+  it('renders a skeleton while the gateway is loading', () => {
+    vi.mocked(api.getGateway).mockReturnValue(new Promise(() => {}) as never);
+    const { container } = renderPage();
+    expect(container.querySelector('.animate-pulse')).not.toBeNull();
+  });
+
+  it('renders an error card when the gateway fails to load', async () => {
+    vi.mocked(api.getGateway).mockRejectedValue(new Error('boom'));
+    renderPage();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Failed to load gateway.');
+  });
+
   it('renders summary + history', async () => {
     renderPage();
     expect(await screen.findByText('East Gate')).toBeInTheDocument();

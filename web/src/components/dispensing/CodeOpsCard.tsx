@@ -87,9 +87,9 @@ export function CodeOpsCard() {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-200">
-        <h3 className="text-sm font-semibold text-slate-800">Code operations</h3>
+    <div className="bg-surface rounded-lg border border-line overflow-hidden">
+      <div className="px-4 py-3 border-b border-line">
+        <h3 className="text-sm font-semibold text-primary">Code operations</h3>
       </div>
       <div className="p-4 space-y-4">
         <form

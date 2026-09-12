@@ -8,6 +8,8 @@ import { CodeOpsCard } from '../components/dispensing/CodeOpsCard';
 import UploadCard from '../components/dispensing/UploadCard';
 import { useAuthStore } from '../store/auth';
 import { canManage } from '../lib/roles';
+import { PageHeader } from '../components/ui/PageHeader';
+import { EmptyState } from '../components/ui/EmptyState';
 
 type Tab = 'overview' | 'allocations' | 'ops' | 'upload';
 const tabs: { key: Tab; label: string }[] = [
@@ -41,16 +43,16 @@ export default function Dispensing() {
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold text-slate-800 mb-6">Dispensing</h2>
+      <PageHeader title="Dispensing" subtitle="Transactions, allocations and operations" />
 
-      <div className="flex gap-1 mb-6 border-b border-slate-200">
+      <div className="flex gap-1 mb-6 border-b border-line">
         {tabs.filter((t) => t.key !== 'upload' || showUpload).map((t) => (
           <button
             key={t.key}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
               tab === t.key
                 ? 'bg-brand text-white'
-                : 'text-slate-600 hover:bg-slate-50'
+                : 'text-secondary hover:bg-inset'
             }`}
             onClick={() => setTab(t.key)}
           >
@@ -61,10 +63,10 @@ export default function Dispensing() {
 
       {tab === 'overview' && (
         <div>
-          <label htmlFor="station-select" className="block text-sm font-medium text-slate-700 mb-1">Station</label>
+          <label htmlFor="station-select" className="block text-sm font-medium text-secondary mb-1">Station</label>
           <select
             id="station-select"
-            className="mb-4 border border-slate-300 rounded px-3 py-2 text-sm"
+            className="mb-4 border border-line-strong rounded px-3 py-2 text-sm"
             value={stationId}
             onChange={(e) => setStationId(e.target.value)}
           >
@@ -74,13 +76,13 @@ export default function Dispensing() {
             <div className="lg:col-span-2">
               <DispenseLiveView active={active} recent={transactions.data ?? []} />
             </div>
-            <div className="bg-white rounded-lg border border-slate-200 p-4">
-              <h3 className="font-semibold text-slate-800 mb-3">Dispensers</h3>
+            <div className="bg-surface rounded-lg border border-line p-4">
+              <h3 className="font-semibold text-primary mb-3">Dispensers</h3>
               <ul className="space-y-2 text-sm">
                 {(dispensers.data ?? []).map((d) => (
                   <li key={d.id} className="flex items-center justify-between">
-                    <span className="text-slate-700">{d.name}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${d.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>
+                    <span className="text-secondary">{d.name}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${d.is_active ? 'bg-ok text-ok-fg' : 'bg-inset text-muted'}`}>
                       {d.is_active ? 'active' : 'inactive'}
                     </span>
                   </li>
@@ -98,9 +100,7 @@ export default function Dispensing() {
       {tab === 'upload' && showUpload && <UploadCard />}
 
       {tab === 'upload' && !showUpload && (
-        <div className="text-sm text-slate-500 p-4 bg-slate-50 rounded-lg">
-          You do not have permission to access this section.
-        </div>
+        <EmptyState title="Restricted" hint="You do not have permission to access this section." />
       )}
     </div>
   );

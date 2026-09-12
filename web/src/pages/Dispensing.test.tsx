@@ -67,6 +67,12 @@ describe('Dispensing page tabs', () => {
     vi.clearAllMocks();
   });
 
+  it('renders the page header with subtitle', async () => {
+    renderPage();
+    expect(await screen.findByRole('heading', { level: 2, name: 'Dispensing' })).toBeInTheDocument();
+    expect(screen.getByText('Transactions, allocations and operations')).toBeInTheDocument();
+  });
+
   it('renders with Overview tab active by default', async () => {
     renderPage();
     expect(await screen.findByText('Station A')).toBeInTheDocument();
