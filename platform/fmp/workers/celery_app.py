@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from celery import Celery
+from celery.schedules import crontab
+
 from fmp.core.config import get_settings
 
 settings = get_settings()
@@ -13,6 +15,7 @@ celery_app = Celery(
     include=[
         "fmp.workers.tasks.notifications",
         "fmp.workers.tasks.commands",
+        "fmp.workers.tasks.analytics",
     ],
 )
 
@@ -33,5 +36,9 @@ celery_app.conf.beat_schedule = {
     "sweep-gateway-commands": {
         "task": "commands.sweep_commands",
         "schedule": 30.0,
+    },
+    "analytics-daily-consumption": {
+        "task": "analytics.compute_all_consumption",
+        "schedule": crontab(hour=0, minute=5),
     },
 }

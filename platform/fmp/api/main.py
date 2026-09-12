@@ -10,6 +10,7 @@ from fmp.api.v1 import (
     auth as auth_router,
 )
 from fmp.api.v1 import (
+    analytics,
     companies,
     dispensing,
     fuel_types,
@@ -43,6 +44,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router.router)
+app.include_router(analytics.router)
 app.include_router(dispensing.router)
 app.include_router(tanks.router)
 app.include_router(realtime.router)

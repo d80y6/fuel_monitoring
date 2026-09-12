@@ -11,6 +11,7 @@ from fmp.models.user import UploadBatch, User
 from fmp.models.fuel import FuelType, StrappingTable
 from fmp.models.tank import Alarm, Measurement, Tank
 from fmp.models.gateway import COMMAND_TYPES, GatewayCommand, IoTGateway
+from fmp.models.analytics import ConsumptionSummary
 
 __all__ = [
     "Base",
@@ -38,4 +39,5 @@ __all__ = [
     "COMMAND_TYPES",
     "GatewayCommand",
     "IoTGateway",
+    "ConsumptionSummary",
 ]

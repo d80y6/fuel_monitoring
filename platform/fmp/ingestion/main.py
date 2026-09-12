@@ -45,12 +45,14 @@ async def lifespan(_app: FastAPI):
     global _loop, _client
 
     from fmp.ingestion.batch_writer import ensure_hypertables
+    from fmp.ingestion.tsdb_policies import ensure_timescale_policies
 
     async with async_session_factory() as session:
         try:
             await ensure_hypertables(session)
+            await ensure_timescale_policies(session)
         except Exception:  # noqa: BLE001 — telemetry still works without TS
-            logger.warning("hypertable bootstrap skipped (is TimescaleDB enabled?)")
+            logger.warning("hypertable/policy bootstrap skipped (is TimescaleDB enabled?)")
 
     _loop = asyncio.get_running_loop()
     _client = MqttClient(CallbackAPIVersion.VERSION2)

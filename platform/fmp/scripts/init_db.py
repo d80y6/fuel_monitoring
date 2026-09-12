@@ -20,6 +20,7 @@ async def init_db() -> None:
     from fmp.ingestion.batch_writer import ensure_hypertables
     from fmp.scripts.seed_admin import seed_admin
     from fmp.scripts.seed_fuel_types import seed_fuel_types
+    from fmp.ingestion.tsdb_policies import ensure_timescale_policies
 
     async with engine.begin() as conn:
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS timescaledb"))
@@ -32,6 +33,7 @@ async def init_db() -> None:
 
     async with async_session_factory() as session:
         await ensure_hypertables(session)
+        await ensure_timescale_policies(session)
 
     await engine.dispose()
 

@@ -87,6 +87,15 @@ class Settings(BaseSettings):
     COMMAND_MAX_ATTEMPTS: int = 3
     COMMAND_PENDING_TTL_SECONDS: int = 120
 
+    # --- TimescaleDB lifecycle ---------------------------------------------
+    TSDB_MEASUREMENTS_RETENTION_DAYS: int = 30
+    TSDB_COMPRESSION_AFTER_DAYS: int = 7
+
+    # --- Analytics ---------------------------------------------------------
+    CONSUMPTION_DEFAULT_DAYS: int = 30
+    CONSUMPTION_FORECAST_WINDOW_DAYS: int = 7
+    CSV_EXPORT_BATCH_SIZE: int = 1000
+
     # --- Admin seed --------------------------------------------------------
     ADMIN_USERNAME: str = "admin"
     ADMIN_EMAIL: str = "admin@fuelplatform.local"
