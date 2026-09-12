@@ -21,5 +21,13 @@ export default defineConfig({
     // The 5000ms default testTimeout is too tight; 15s gives evidence-backed headroom.
     testTimeout: 15_000,
     hookTimeout: 15_000,
+    // Cap worker threads so an oversubscribed 4-CPU box cannot starve jsdom tests
+    // past the per-test timeout (observed 15s wall-clock timeouts at max parallelism).
+    poolOptions: {
+      threads: {
+        minThreads: 1,
+        maxThreads: 2,
+      },
+    },
   },
 });

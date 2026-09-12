@@ -32,4 +32,10 @@ describe('Sidebar', () => {
     expect(screen.getByText('Companies')).toBeInTheDocument();
     expect(screen.getByText('Gateways')).toBeInTheDocument();
   });
+
+  it('renders icons in the navigation', () => {
+    useAuthStore.setState({ user: admin });
+    const { container } = render(<MemoryRouter><Sidebar /></MemoryRouter>);
+    expect(container.querySelectorAll('nav svg').length).toBeGreaterThan(0);
+  });
 });

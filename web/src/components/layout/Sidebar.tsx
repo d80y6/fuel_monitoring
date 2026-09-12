@@ -2,10 +2,12 @@ import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
 import { useRealtimeAlarms } from '../../hooks/useRealtimeAlarms';
 import { canManage } from '../../lib/roles';
+import { Icon, type IconName } from '../ui/icons';
 
 interface NavItem {
   to: string;
   label: string;
+  icon: IconName;
   manageOnly?: boolean;
 }
 
@@ -15,28 +17,28 @@ interface NavGroup {
 }
 
 const groups: NavGroup[] = [
-  { items: [{ to: '/dashboard', label: 'Dashboard' }] },
+  { items: [{ to: '/dashboard', label: 'Dashboard', icon: 'dashboard' }] },
   {
     heading: 'Monitoring',
     items: [
-      { to: '/tanks', label: 'Tanks' },
-      { to: '/dispensing', label: 'Dispensing' },
-      { to: '/totalizers', label: 'Totalizers' },
-      { to: '/alarms', label: 'Alarm Center' },
+      { to: '/tanks', label: 'Tanks', icon: 'tank' },
+      { to: '/dispensing', label: 'Dispensing', icon: 'dispensing' },
+      { to: '/totalizers', label: 'Totalizers', icon: 'totalizers' },
+      { to: '/alarms', label: 'Alarm Center', icon: 'alarm' },
     ],
   },
   {
     heading: 'Operations',
     items: [
-      { to: '/companies', label: 'Companies', manageOnly: true },
+      { to: '/companies', label: 'Companies', icon: 'building', manageOnly: true },
     ],
   },
   {
     heading: 'Admin',
     items: [
-      { to: '/admin/fuel-types', label: 'Fuel Types', manageOnly: true },
-      { to: '/admin/gateways', label: 'Gateways', manageOnly: true },
-      { to: '/admin/iot-gateways', label: 'IoT Gateways', manageOnly: true },
+      { to: '/admin/fuel-types', label: 'Fuel Types', icon: 'fuel', manageOnly: true },
+      { to: '/admin/gateways', label: 'Gateways', icon: 'gateway', manageOnly: true },
+      { to: '/admin/iot-gateways', label: 'IoT Gateways', icon: 'gateway', manageOnly: true },
     ],
   },
 ];
@@ -73,14 +75,15 @@ export function Sidebar() {
                     key={l.to}
                     to={l.to}
                     className={({ isActive }) =>
-                      `block rounded px-3 py-2 text-sm ${
+                      `flex items-center gap-2.5 rounded px-3 py-2 text-sm ${
                         isActive ? 'bg-brand text-white' : 'hover:bg-slate-800'
                       }`
                     }
                   >
-                    {l.label}
+                    <Icon name={l.icon} className="h-4 w-4 shrink-0" />
+                    <span className="flex-1 truncate">{l.label}</span>
                     {l.to === '/dashboard' && openCount > 0 ? (
-                      <span className="ml-2 inline-block w-2 h-2 rounded-full bg-rose-400" />
+                      <span className="inline-block h-2 w-2 rounded-full bg-rose-400" />
                     ) : null}
                   </NavLink>
                 ))}

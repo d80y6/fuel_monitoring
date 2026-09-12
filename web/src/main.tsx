@@ -5,7 +5,11 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { useAuthStore } from './store/auth';
 import { useTelemetrySocket } from './hooks/useTelemetrySocket';
+import { ThemeProvider } from './components/theme/ThemeProvider';
+import { registerChartThemes } from './lib/chartTheme';
 import './index.css';
+
+void registerChartThemes();
 
 void useAuthStore.getState().boot();
 
@@ -15,7 +19,11 @@ const queryClient = new QueryClient({
 
 function Root() {
   useTelemetrySocket();
-  return <RouterProvider router={router} />;
+  return (
+    <ThemeProvider>
+      <RouterProvider router={router} />
+    </ThemeProvider>
+  );
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

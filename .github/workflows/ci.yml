@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+
+jobs:
+  backend:
+    name: Backend (pytest + pip-audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: timescale/timescaledb:2.11.0-pg14
+        env:
+          POSTGRES_DB: fuel_test
+          POSTGRES_USER: fuel_platform
+          POSTGRES_PASSWORD: fuel_platform
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fuel_platform -d fuel_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: platform/requirements.txt
+
+      - name: Install Python dependencies
+        working-directory: platform
+        run: pip install -r requirements.txt
+
+      - name: Run pytest (unit + integration)
+        working-directory: platform
+        env:
+          POSTGRES_HOST: 127.0.0.1
+          POSTGRES_PORT: "5432"
+          POSTGRES_USER: fuel_platform
+          POSTGRES_PASSWORD: fuel_platform
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: "6379"
+          FMP_TESTING: "1"
+          ENVIRONMENT: test
+        run: pytest -q
+
+      - name: Python dependency security scan (pip-audit)
+        run: |
+          pip install pip-audit
+          pip-audit
+
+  frontend:
+    name: Frontend (tsc + vitest + npm audit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Run vitest
+        run: npx vitest run
+
+      - name: npm dependency security audit
+        run: npm audit --audit-level=high
