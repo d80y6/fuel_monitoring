@@ -99,7 +99,7 @@ export function TankCanvas({ tank, live, fuels = [], compact = false }: TankCanv
         ) : null}
       </svg>
       {!compact ? (
-        <div className="text-center text-sm font-medium text-slate-700 mt-1">
+        <div className="text-center text-sm font-medium text-secondary mt-1">
           {fillPct}% · {Math.round(live?.gov_volume ?? live?.volume ?? 0).toLocaleString()} L
         </div>
       ) : null}

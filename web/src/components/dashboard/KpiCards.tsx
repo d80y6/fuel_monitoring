@@ -19,21 +19,21 @@ export function KpiCards() {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <div className="text-xs text-slate-500 mb-1">Tanks</div>
-        <div className="text-2xl font-bold text-slate-800">{tanks.data?.length ?? '—'}</div>
+      <div className="bg-surface rounded-lg border border-line p-4">
+        <div className="text-xs text-muted mb-1">Tanks</div>
+        <div className="text-2xl font-bold text-primary">{tanks.data?.length ?? '—'}</div>
       </div>
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <div className="text-xs text-slate-500 mb-1">Open alarms</div>
-        <div className="text-2xl font-bold text-rose-600">{openAlarms}</div>
+      <div className="bg-surface rounded-lg border border-line p-4">
+        <div className="text-xs text-muted mb-1">Open alarms</div>
+        <div className="text-2xl font-bold text-danger-fg">{openAlarms}</div>
       </div>
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <div className="text-xs text-slate-500 mb-1">Stations online</div>
-        <div className="text-2xl font-bold text-emerald-600">{online}</div>
+      <div className="bg-surface rounded-lg border border-line p-4">
+        <div className="text-xs text-muted mb-1">Stations online</div>
+        <div className="text-2xl font-bold text-ok-fg">{online}</div>
       </div>
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <div className="text-xs text-slate-500 mb-1">24h dispensed</div>
-        <div className="text-2xl font-bold text-slate-800">{liters}</div>
+      <div className="bg-surface rounded-lg border border-line p-4">
+        <div className="text-xs text-muted mb-1">24h dispensed</div>
+        <div className="text-2xl font-bold text-primary">{liters}</div>
       </div>
     </div>
   );

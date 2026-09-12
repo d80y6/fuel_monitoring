@@ -1,31 +1,31 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
-import { useRealtimeAlarms } from '../hooks/useRealtimeAlarms';
 import { useTelemetry } from '../hooks/useTelemetry';
 import { TankTile } from '../components/tanks/TankTile';
 import { KpiCards } from '../components/dashboard/KpiCards';
+import { AlertSummaryStrip } from '../components/dashboard/AlertSummaryStrip';
+import { PageHeader } from '../components/ui/PageHeader';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Skeleton } from '../components/ui/Skeleton';
+import { ErrorCard } from '../components/ui/ErrorCard';
 import type { FuelType, TankRead } from '../lib/apiTypes';
 
 export default function Dashboard() {
   const tanks = useQuery({ queryKey: ['tanks'], queryFn: () => api.listTanks() });
   const fuels = useQuery({ queryKey: ['fuel-types'], queryFn: () => api.listFuelTypes() });
-  const alarms = useRealtimeAlarms();
-  const open = alarms.filter((a) => !a.acknowledged);
   const rows = tanks.data ?? [];
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold text-slate-800">Dashboard</h2>
-        {open.length > 0 ? (
-          <span className="text-sm bg-rose-100 text-rose-700 px-3 py-1 rounded-full">
-            {open.length} open alarm{open.length > 1 ? 's' : ''}
-          </span>
-        ) : null}
-      </div>
+      <PageHeader title="Dashboard" subtitle="Live tank overview" />
+      <AlertSummaryStrip />
       <KpiCards />
-      {tanks.isLoading ? <p className="text-slate-500">Loading tanks…</p> : null}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+      {tanks.isLoading ? <Skeleton className="h-40 w-full" /> : null}
+      {tanks.isError ? <ErrorCard message="Failed to load tanks." /> : null}
+      {!tanks.isLoading && !tanks.isError && rows.length === 0 ? (
+        <EmptyState title="No tanks" hint="Tanks will appear here once provisioned." />
+      ) : null}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
         {rows.map((t) => <TankRow key={t.id} tank={t} fuels={fuels.data ?? []} />)}
       </div>
     </div>
