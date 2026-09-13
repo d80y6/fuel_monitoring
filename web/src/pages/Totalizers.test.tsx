@@ -1,8 +1,8 @@
-import { render, screen } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock('../api/client', () => ({
+vi.mock("../api/client", () => ({
   api: {
     listStations: vi.fn(),
     listDispensers: vi.fn(),
@@ -10,13 +10,13 @@ vi.mock('../api/client', () => ({
     listTransactions: vi.fn(),
   },
 }));
-import { api } from '../api/client';
+import { api } from "../api/client";
 
-vi.mock('../components/charts/TotalizerDriftChart', () => ({
+vi.mock("../components/charts/TotalizerDriftChart", () => ({
   TotalizerDriftChart: () => <div data-testid="mock-drift-chart" />,
 }));
 
-import Totalizers from './Totalizers';
+import Totalizers from "./Totalizers";
 
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -27,7 +27,7 @@ function renderPage() {
   );
 }
 
-describe('Totalizers', () => {
+describe("Totalizers", () => {
   beforeEach(() => {
     vi.mocked(api.listStations).mockResolvedValue([] as never);
     vi.mocked(api.listDispensers).mockResolvedValue([] as never);
@@ -35,13 +35,15 @@ describe('Totalizers', () => {
     vi.mocked(api.listTransactions).mockResolvedValue([] as never);
   });
 
-  it('renders a page header', async () => {
+  it("renders a page header", async () => {
     renderPage();
-    expect(await screen.findByRole('heading', { level: 2, name: 'Totalizers' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Totalizers" }),
+    ).toBeInTheDocument();
   });
 
-  it('renders an empty state when there is no drift data', async () => {
+  it("renders an empty state when there is no drift data", async () => {
     renderPage();
-    expect(await screen.findByText('No totalizer drift data')).toBeInTheDocument();
+    expect(await screen.findByText("No drift data")).toBeInTheDocument();
   });
 });

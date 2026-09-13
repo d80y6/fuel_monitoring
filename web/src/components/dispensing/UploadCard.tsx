@@ -43,9 +43,9 @@ export default function UploadCard() {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-      <div className="px-4 py-3 border-b border-slate-200">
-        <h3 className="text-sm font-semibold text-slate-800">Upload quota sheet</h3>
+    <div className="bg-surface rounded-lg border border-line overflow-hidden">
+      <div className="px-4 py-3 border-b border-line">
+        <h3 className="text-sm font-semibold text-primary">Upload quota sheet</h3>
       </div>
       <div className="p-4">
         <form onSubmit={submit} className="space-y-3">
@@ -64,12 +64,12 @@ export default function UploadCard() {
               type="file"
               accept=".xlsx,.xls,.csv"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm text-slate-700 file:mr-3 file:rounded file:border-0 file:bg-brand file:py-1.5 file:px-3 file:text-sm file:font-medium file:text-white"
+              className="block w-full text-sm text-secondary file:mr-3 file:rounded file:border-0 file:bg-brand file:py-1.5 file:px-3 file:text-sm file:font-medium file:text-white"
             />
           </Field>
-          {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+          {error ? <p className="text-sm text-danger-fg">{error}</p> : null}
           {result ? <UploadSummary outcome={result} /> : (
-            <p className="text-sm text-slate-500">Select company and .xlsx/.csv quota sheet, then upload.</p>
+            <p className="text-sm text-secondary">Select company and .xlsx/.csv quota sheet, then upload.</p>
           )}
           <div className="flex justify-end pt-1">
             <button
@@ -94,7 +94,7 @@ function UploadSummary({ outcome }: { outcome: ExcelIngestOutcome }) {
       {result.errors
         .filter((err) => err.error)
         .map((err) => (
-          <p key={err.row} className="text-rose-600">{`Row ${err.row}: ${err.error}`}</p>
+          <p key={err.row} className="text-danger-fg">{`Row ${err.row}: ${err.error}`}</p>
         ))}
       {pending_dispatch?.length ? (
         <p>{`${pending_dispatch.length} codes pending dispatch.`}</p>

@@ -46,13 +46,13 @@ export default function Totalizers() {
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold text-slate-800 mb-6">Totalizers</h2>
+      <PageHeader title="Totalizers" subtitle="Meter vs authorization drift" />
       <div className="flex gap-4 mb-4 items-end">
         <div>
-          <label htmlFor="tot-station-select" className="block text-sm font-medium text-slate-700 mb-1">Station</label>
+          <label htmlFor="tot-station-select" className="block text-sm font-medium text-secondary mb-1">Station</label>
           <select
             id="tot-station-select"
-            className="border border-slate-300 rounded px-3 py-2 text-sm"
+            className="border border-line-strong rounded px-3 py-2 text-sm"
             value={station ?? ''}
             onChange={(e) => { setStationId(e.target.value); setDispenserId(null); }}
           >
@@ -60,10 +60,10 @@ export default function Totalizers() {
           </select>
         </div>
         <div>
-          <label htmlFor="tot-dispenser-select" className="block text-sm font-medium text-slate-700 mb-1">Dispenser</label>
+          <label htmlFor="tot-dispenser-select" className="block text-sm font-medium text-secondary mb-1">Dispenser</label>
           <select
             id="tot-dispenser-select"
-            className="border border-slate-300 rounded px-3 py-2 text-sm"
+            className="border border-line-strong rounded px-3 py-2 text-sm"
             value={dispenser ?? ''}
             onChange={(e) => setDispenserId(e.target.value)}
           >
@@ -72,13 +72,13 @@ export default function Totalizers() {
         </div>
       </div>
       {drift.length === 0 ? (
-        <p className="text-slate-500">No totalizer drift data.</p>
+        <EmptyState title="No drift data" hint="Totalizer drift will appear here once readings are available." />
       ) : (
-        <div className="bg-white rounded-lg border border-slate-200 p-4">
+        <div className="bg-surface rounded-lg border border-line p-4">
           <TotalizerDriftChart series={drift} />
         </div>
       )}
-      <p className="text-xs text-slate-400 mt-4">
+      <p className="text-xs text-muted mt-4">
         Drift reflects (totalizer cumulative − authorized cumulative) at each sample. Positive = meter ahead of authorizations.
       </p>
     </div>

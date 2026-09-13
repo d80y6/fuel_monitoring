@@ -114,7 +114,7 @@ export function CodeOpsCard() {
               <Input id="ops-requested" type="number" step="any" min="0.1" value={requestedLiters} onChange={(e) => setRequestedLiters(e.target.value)} required />
             </Field>
           </div>
-          {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+          {error ? <p className="text-sm text-danger-fg">{error}</p> : null}
           <div className="flex justify-end">
             <button
               type="submit"
@@ -127,17 +127,17 @@ export function CodeOpsCard() {
         </form>
 
         {validation && !validation.valid ? (
-          <div className="p-3 bg-rose-50 rounded">
-            <p className="text-sm font-medium text-rose-700">{validation.reason ?? 'Invalid code'}</p>
+          <div className="p-3 bg-danger rounded">
+            <p className="text-sm font-medium text-danger-fg">{validation.reason ?? 'Invalid code'}</p>
           </div>
         ) : null}
 
         {validation?.valid ? (
-          <div className="border-t border-slate-100 pt-4 space-y-4">
-            <div className="p-3 bg-slate-50 rounded text-sm space-y-0.5">
-              <p className="font-medium text-slate-800">{validation.employee_name}</p>
-              <p className="text-slate-600">Remaining: <strong>{formatLiters(validation.remaining_liters)}</strong></p>
-              <p className="text-slate-600">Code: <strong>{code}</strong></p>
+          <div className="border-t border-line pt-4 space-y-4">
+            <div className="p-3 bg-inset rounded text-sm space-y-0.5">
+              <p className="font-medium text-primary">{validation.employee_name}</p>
+              <p className="text-secondary">Remaining: <strong>{formatLiters(validation.remaining_liters)}</strong></p>
+              <p className="text-secondary">Code: <strong>{code}</strong></p>
             </div>
             <form
               onSubmit={(e: FormEvent) => {
@@ -177,23 +177,23 @@ export function CodeOpsCard() {
         ) : null}
 
         {result ? (
-          <div className="p-3 bg-slate-50 rounded text-sm space-y-1">
+          <div className="p-3 bg-inset rounded text-sm space-y-1">
             <p className="flex items-center gap-2">
               <span className="font-medium">Status:</span>
               <Badge variant={RESULT_BADGE[result.status] ?? 'default'}>{result.status}</Badge>
-              {!result.success ? <span className="text-rose-600">failed</span> : null}
+              {!result.success ? <span className="text-danger-fg">failed</span> : null}
             </p>
-            <p className="text-slate-600">Transaction: <strong>{result.transaction_id}</strong></p>
-            <p className="text-slate-600">
+            <p className="text-secondary">Transaction: <strong>{result.transaction_id}</strong></p>
+            <p className="text-secondary">
               Delivered: {formatLiters(result.actual_liters)} / Requested: {formatLiters(result.requested_liters)}
             </p>
             {result.status === 'PARTIAL' && result.partial?.new_code ? (
-              <p className="text-slate-600">
+              <p className="text-secondary">
                 New code for remaining {formatLiters(result.partial.remaining_liters)}: <strong>{result.partial.new_code}</strong>
               </p>
             ) : null}
             {result.status === 'DISCREPANCY' && result.discrepancy_flag ? (
-              <p className="text-rose-600">Discrepancy: {result.discrepancy_flag}</p>
+              <p className="text-danger-fg">Discrepancy: {result.discrepancy_flag}</p>
             ) : null}
           </div>
         ) : null}
