@@ -28,3 +28,16 @@ for HTTP+WS, while static assets are served directly by the nginx container.
 - `src/lib/tankGeometry.ts` — TS port of the backend tank-geometry engine for
   live SVG visualization (matches backend fixtures via tests).
 - TanStack Query for REST; dual-axis ECharts (GOV/NSV vs temperature/density).
+
+## Theming
+
+- **Toggle**: Light / System / Dark switch in the app header, persisted under
+  localStorage key `fmp-theme`.
+- **Tokens**: semantic Tailwind classes with no per-element `.dark:` overrides —
+  surface/inset containers (`bg-surface`, `bg-inset`), text ranks (`text-primary`,
+  `text-secondary`, `text-muted`), hairlines (`border-line`, `border-line-strong`),
+  and status tokens (`text-danger-fg`, `text-ok-fg`, `text-warn-fg`, `text-info-fg`).
+- **Switching**: System follows `prefers-color-scheme`; the resolved scheme flips a
+  `.dark` class on `<html>` (Tailwind `darkMode: 'class'`), which drives the tokens.
+- **Charts**: ECharts themes `fmp-light` / `fmp-dark` are applied via the resolved
+  scheme so series, axes, and tooltips match the current mode.
