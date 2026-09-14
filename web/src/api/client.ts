@@ -100,7 +100,6 @@ export const api = {
   async changePassword(currentPassword: string, newPassword: string): Promise<{ status: string }> {
     return request<{ status: string }>(`${API_BASE}/auth/change-password`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
     });
   },
@@ -111,7 +110,8 @@ export const api = {
   },
 
   async getConsumption(tankId: string, days = 30, windowDays = 7): Promise<ConsumptionAnalytics> {
-    return request<ConsumptionAnalytics>(`${API_BASE}/analytics/consumption/${tankId}?days=${days}&window_days=${windowDays}`);
+    const params = new URLSearchParams({ days: String(days), window_days: String(windowDays) });
+    return request<ConsumptionAnalytics>(`${API_BASE}/analytics/consumption/${tankId}?${params.toString()}`);
   },
 
   ...orgApi,

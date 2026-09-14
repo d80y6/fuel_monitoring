@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, request, setOnUnauthorized, setTokenProvider } from '../src/api/http';
+import { ApiError, getBlob, request, setOnUnauthorized, setRefreshSession, setTokenProvider } from '../src/api/http';
 import { api } from '../src/api/client';
 
 const json = (data: unknown, init: ResponseInit = {}) =>
@@ -40,6 +40,54 @@ describe('request', () => {
     );
     await expect(request('/api/v1/tanks')).rejects.toBeInstanceOf(ApiError);
     expect(on401).toHaveBeenCalledOnce();
+  });
+});
+
+describe('getBlob', () => {
+  beforeEach(() => {
+    setTokenProvider(() => 'tok123');
+    setOnUnauthorized(() => {});
+    setRefreshSession(async () => false);
+    vi.stubGlobal('fetch', vi.fn());
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  const blobResponse = () =>
+    new Response('a,b\n1,2', { status: 200, headers: { 'Content-Type': 'text/csv' } });
+
+  it('adds the Bearer token and returns a blob', async () => {
+    vi.mocked(fetch).mockResolvedValue(blobResponse());
+    const out = await getBlob('/api/v1/tanks/t1/export');
+    const [, init] = vi.mocked(fetch).mock.calls[0];
+    const authHeader = (init.headers as any).get?.('Authorization') ?? init.headers?.Authorization;
+    expect(authHeader).toBe('Bearer tok123');
+    await expect(out.text()).resolves.toBe('a,b\n1,2');
+  });
+
+  it('refreshes once and retries on a 401', async () => {
+    setRefreshSession(async () => true);
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(blobResponse());
+    const out = await getBlob('/api/v1/tanks/t1/export');
+    expect(fetch).toHaveBeenCalledTimes(2);
+    await expect(out.text()).resolves.toBe('a,b\n1,2');
+  });
+
+  it('fires onUnauthorized when a 401 cannot be refreshed', async () => {
+    const on401 = vi.fn();
+    setOnUnauthorized(on401);
+    vi.mocked(fetch).mockResolvedValue(new Response(null, { status: 401 }));
+    await expect(getBlob('/api/v1/tanks/t1/export')).rejects.toBeInstanceOf(ApiError);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(on401).toHaveBeenCalledOnce();
+  });
+
+  it('throws ApiError on non-ok responses', async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'nope' }), { status: 400 }),
+    );
+    await expect(getBlob('/api/v1/tanks/t1/export')).rejects.toBeInstanceOf(ApiError);
   });
 });
 
