@@ -15,6 +15,13 @@ export default function UploadCard() {
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<ExcelIngestOutcome | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dispatchMsg, setDispatchMsg] = useState<string | null>(null);
+
+  const dispatchMutation = useMutation({
+    mutationFn: (batchId: string) => api.redispatchBatch(batchId),
+    onSuccess: (d) => setDispatchMsg(d.message),
+    onError: (err) => setDispatchMsg(err instanceof ApiError ? err.detail : 'Dispatch failed'),
+  });
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -68,7 +75,14 @@ export default function UploadCard() {
             />
           </Field>
           {error ? <p className="text-sm text-danger-fg">{error}</p> : null}
-          {result ? <UploadSummary outcome={result} /> : (
+          {result ? (
+            <UploadSummary
+              outcome={result}
+              onDispatch={(batchId) => { setDispatchMsg(null); dispatchMutation.mutate(batchId); }}
+              dispatching={dispatchMutation.isPending}
+              dispatchMsg={dispatchMsg}
+            />
+          ) : (
             <p className="text-sm text-secondary">Select company and .xlsx/.csv quota sheet, then upload.</p>
           )}
           <div className="flex justify-end pt-1">
@@ -86,7 +100,17 @@ export default function UploadCard() {
   );
 }
 
-function UploadSummary({ outcome }: { outcome: ExcelIngestOutcome }) {
+function UploadSummary({
+  outcome,
+  onDispatch,
+  dispatching,
+  dispatchMsg,
+}: {
+  outcome: ExcelIngestOutcome;
+  onDispatch: (batchId: string) => void;
+  dispatching: boolean;
+  dispatchMsg: string | null;
+}) {
   const { result, pending_dispatch } = outcome;
   return (
     <div className="text-sm space-y-1">
@@ -97,7 +121,16 @@ function UploadSummary({ outcome }: { outcome: ExcelIngestOutcome }) {
           <p key={err.row} className="text-danger-fg">{`Row ${err.row}: ${err.error}`}</p>
         ))}
       {pending_dispatch?.length ? (
-        <p>{`${pending_dispatch.length} codes pending dispatch.`}</p>
+        <div className="space-y-1">
+          <p className="text-xs text-secondary">
+            {pending_dispatch.length} {pending_dispatch.length === 1 ? 'code' : 'codes'} pending dispatch.
+          </p>
+          <button type="button" onClick={() => onDispatch(outcome.result.batch_id)} disabled={dispatching}
+                  className="text-xs bg-inset px-2 py-1 rounded">
+            {dispatching ? 'Dispatching…' : 'Dispatch now'}
+          </button>
+          {dispatchMsg ? <p className="text-xs text-primary">{dispatchMsg}</p> : null}
+        </div>
       ) : null}
     </div>
   );
