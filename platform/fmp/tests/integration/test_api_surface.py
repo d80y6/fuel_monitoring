@@ -22,6 +22,10 @@ async def test_end_to_end_org_authz(db):
         r = await client.get("/api/v1/companies")
         assert r.status_code == 401 or r.status_code == 403
 
+        # dispatch requires an authenticated admin/company_admin
+        r = await client.post(f"/api/v1/dispensing/upload/{uuid.uuid4()}/dispatch")
+        assert r.status_code in (401, 403)
+
     # seed an admin and override auth for the authenticated portion
     from fmp.core.database import async_session_factory
     from fmp.core.security import hash_password
