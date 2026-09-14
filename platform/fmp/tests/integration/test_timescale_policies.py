@@ -246,3 +246,33 @@ async def test_policies_idempotent():
             "SELECT view_name FROM timescaledb_information.continuous_aggregates"
         ))).all()
         assert any("measurements_hourly" in r[0] for r in rows)
+
+
+async def test_policies_idempotent_with_compressed_chunks():
+    """Re-ensure after a chunk has been compressed must not raise.
+
+    TimescaleDB refuses *any* re-application of the compression ``SET`` on a
+    hypertable that already owns compressed chunks ("cannot change configuration
+    on already compressed chunks"). This is exactly the state the production
+    db-init hits on re-run once the compression policy (7 days) has aged chunks.
+    """
+    await _reset_schema()
+
+    from fmp.core.database import async_session_factory
+    from fmp.ingestion.tsdb_policies import ensure_timescale_policies
+
+    async with async_session_factory() as session:
+        tank = await _seed_tank(session)
+        await _seed_hourly_readings(session, tank, hours=12)
+
+        chunk = (await session.execute(text(
+            "SELECT format('\"%s\".\"%s\"', c.chunk_schema, c.chunk_name) "
+            "FROM timescaledb_information.chunks c "
+            "WHERE c.hypertable_name = 'measurements' AND c.is_compressed = false "
+            "ORDER BY c.range_start LIMIT 1"
+        ))).scalar_one()
+        await session.execute(text(f"SELECT compress_chunk('{chunk}'::regclass)"))
+        await session.commit()
+
+    async with async_session_factory() as session:
+        await ensure_timescale_policies(session)  # must not raise on compressed chunks

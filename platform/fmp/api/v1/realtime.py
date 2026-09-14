@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 
 from fmp.api.realtime import manager
 from fmp.core.redis import RedisClient, get_redis_client
-from fmp.core.security import get_current_user_from_query
+from fmp.core.security import get_current_user_from_query, token_revoked
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,9 @@ async def ws_telemetry(
     """
     user = get_current_user_from_query(token)
     if user is None:
+        await ws.close(code=4401)
+        return
+    if await token_revoked(redis, user):
         await ws.close(code=4401)
         return
 
@@ -64,6 +67,9 @@ async def ws_alarms(
 ):
     user = get_current_user_from_query(token)
     if user is None:
+        await ws.close(code=4401)
+        return
+    if await token_revoked(redis, user):
         await ws.close(code=4401)
         return
     await ws.accept()

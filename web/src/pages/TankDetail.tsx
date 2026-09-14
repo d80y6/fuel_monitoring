@@ -1,28 +1,47 @@
-import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../api/client';
-import { useTelemetry } from '../hooks/useTelemetry';
-import { TankCanvas } from '../components/tanks/TankCanvas';
-import StrappingCard from '../components/tanks/StrappingCard';
-import { TelemetryChart } from '../components/charts/TelemetryChart';
-import { Skeleton } from '../components/ui/Skeleton';
-import { ErrorCard } from '../components/ui/ErrorCard';
+import { lazy, Suspense, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "../api/client";
+import { useTelemetry } from "../hooks/useTelemetry";
+import { webglSupported } from "../lib/webgl";
+import { TankCanvas } from "../components/tanks/TankCanvas";
+import StrappingCard from "../components/tanks/StrappingCard";
+import { TelemetryChart } from "../components/charts/TelemetryChart";
+import { Skeleton } from "../components/ui/Skeleton";
+import { ErrorCard } from "../components/ui/ErrorCard";
 
-const WINDOWS: Record<string, number> = { '1h': 1, '6h': 6, '24h': 24, '7d': 168 };
+const TankCanvas3D = webglSupported()
+  ? lazy(() => import("../components/tanks/TankCanvas3D"))
+  : null;
+
+const WINDOWS: Record<string, number> = {
+  "1h": 1,
+  "6h": 6,
+  "24h": 24,
+  "7d": 168,
+};
 
 export default function TankDetail() {
-  const { tankId = '' } = useParams();
-  const [window, setWindow] = useState<keyof typeof WINDOWS>('24h');
+  const { tankId = "" } = useParams();
+  const [window, setWindow] = useState<keyof typeof WINDOWS>("24h");
   const queryClient = useQueryClient();
 
-  const tankQ = useQuery({ queryKey: ['tank', tankId], queryFn: () => api.getTank(tankId) });
-  const fuelsQ = useQuery({ queryKey: ['fuel-types'], queryFn: () => api.listFuelTypes() });
-  const alarmsQ = useQuery({ queryKey: ['alarms', tankId], queryFn: () => api.tankAlarms(tankId, true, 50) });
+  const tankQ = useQuery({
+    queryKey: ["tank", tankId],
+    queryFn: () => api.getTank(tankId),
+  });
+  const fuelsQ = useQuery({
+    queryKey: ["fuel-types"],
+    queryFn: () => api.listFuelTypes(),
+  });
+  const alarmsQ = useQuery({
+    queryKey: ["alarms", tankId],
+    queryFn: () => api.tankAlarms(tankId, true, 50),
+  });
   const { live, latest } = useTelemetry(tankId);
 
   const range = useQuery({
-    queryKey: ['range', tankId, window],
+    queryKey: ["range", tankId, window],
     queryFn: () => {
       const hours = WINDOWS[window];
       const end = new Date();
@@ -33,19 +52,24 @@ export default function TankDetail() {
 
   const ack = useMutation({
     mutationFn: (alarmId: string) => api.ackAlarm(tankId, alarmId),
-    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['alarms', tankId] }),
+    onSuccess: () =>
+      void queryClient.invalidateQueries({ queryKey: ["alarms", tankId] }),
   });
 
   const readouts = useMemo(
     () => [
-      { label: 'GOV', value: latest?.gov_volume ?? latest?.volume, unit: 'L' },
-      { label: 'NSV', value: latest?.net_volume, unit: 'L' },
-      { label: 'Density', value: latest?.density_at_temperature, unit: 'kg/m³' },
-      { label: 'Temperature', value: latest?.temperature, unit: '°C' },
-      { label: 'Level', value: latest?.level, unit: 'm' },
-      { label: 'Fill', value: latest?.fill_percent, unit: '%' },
+      { label: "GOV", value: latest?.gov_volume ?? latest?.volume, unit: "L" },
+      { label: "NSV", value: latest?.net_volume, unit: "L" },
+      {
+        label: "Density",
+        value: latest?.density_at_temperature,
+        unit: "kg/m³",
+      },
+      { label: "Temperature", value: latest?.temperature, unit: "°C" },
+      { label: "Level", value: latest?.level, unit: "m" },
+      { label: "Fill", value: latest?.fill_percent, unit: "%" },
     ],
-    [latest]
+    [latest],
   );
 
   const tank = tankQ.data;
@@ -62,19 +86,36 @@ export default function TankDetail() {
 
   return (
     <div>
-      <Link to="/tanks" className="text-sm text-secondary hover:text-primary mb-2 inline-block">← Tanks</Link>
+      <Link
+        to="/tanks"
+        className="text-sm text-secondary hover:text-primary mb-2 inline-block"
+      >
+        ← Tanks
+      </Link>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 bg-surface rounded-lg border border-line p-4">
           <div className="max-w-xs mx-auto">
-            <TankCanvas tank={tank} live={latest} fuels={fuelsQ.data ?? []} />
+            {TankCanvas3D ? (
+              <Suspense fallback={<Skeleton className="h-72" />}>
+                <TankCanvas3D
+                  tank={tank}
+                  live={latest}
+                  fuels={fuelsQ.data ?? []}
+                />
+              </Suspense>
+            ) : (
+              <TankCanvas tank={tank} live={latest} fuels={fuelsQ.data ?? []} />
+            )}
           </div>
           <div className="grid grid-cols-2 gap-2 mt-4">
             {readouts.map((r) => (
               <div key={r.label} className="bg-inset rounded p-2">
                 <p className="text-lg font-semibold text-primary">{r.label}</p>
                 <p className="text-lg font-semibold text-primary">
-                  {r.value == null ? '—' : Number(r.value).toFixed(2)}
-                  <span className="text-xs font-normal text-muted ml-1">{r.unit}</span>
+                  {r.value == null ? "—" : Number(r.value).toFixed(2)}
+                  <span className="text-xs font-normal text-muted ml-1">
+                    {r.unit}
+                  </span>
                 </p>
               </div>
             ))}
@@ -82,13 +123,15 @@ export default function TankDetail() {
         </div>
         <div className="lg:col-span-2 bg-surface rounded-lg border border-line p-4">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="font-semibold text-primary">{tank.name} · Telemetry</h3>
+            <h3 className="font-semibold text-primary">
+              {tank.name} · Telemetry
+            </h3>
             <div className="flex gap-1">
               {Object.keys(WINDOWS).map((k) => (
                 <button
                   key={k}
                   onClick={() => setWindow(k as keyof typeof WINDOWS)}
-                  className={`px-2 py-1 text-xs rounded ${window === k ? 'bg-brand text-white' : 'bg-inset text-secondary'}`}
+                  className={`px-2 py-1 text-xs rounded ${window === k ? "bg-brand text-white" : "bg-inset text-secondary"}`}
                 >
                   {k}
                 </button>
@@ -111,7 +154,10 @@ export default function TankDetail() {
         ) : (
           <ul className="space-y-2">
             {(alarmsQ.data ?? []).map((a) => (
-              <li key={a.id} className="flex items-center justify-between text-sm">
+              <li
+                key={a.id}
+                className="flex items-center justify-between text-sm"
+              >
                 <div>
                   <span className="font-medium text-secondary">{a.type}</span>
                   <span className="text-secondary ml-2">{a.message}</span>
@@ -121,14 +167,14 @@ export default function TankDetail() {
                   disabled={a.acknowledged}
                   className="text-xs bg-inset px-2 py-1 rounded disabled:opacity-40"
                 >
-                  {a.acknowledged ? 'Acked' : 'Ack'}
+                  {a.acknowledged ? "Acked" : "Ack"}
                 </button>
               </li>
             ))}
           </ul>
         )}
       </div>
-      {tank.tank_shape === 'custom_strapping' ? (
+      {tank.tank_shape === "custom_strapping" ? (
         <div className="mt-6 bg-surface rounded-lg border border-line p-4">
           <StrappingCard tankId={tank.id} />
         </div>
