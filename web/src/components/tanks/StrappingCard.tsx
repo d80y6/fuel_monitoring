@@ -34,10 +34,17 @@ export default function StrappingCard({ tankId }: { tankId: string }) {
   });
 
   const startEdit = () => {
+    save.reset();
     setRows((strapping.data?.calibration_data ?? []).map((p) => ({ height: p.height, volume: p.volume })));
     setMethod(strapping.data?.interpolation_method ?? 'linear');
     setError(null);
     setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    save.reset();
+    setError(null);
+    setEditing(false);
   };
 
   const setRow = (i: number, field: keyof StrappingDraft, value: string) => {
@@ -49,6 +56,12 @@ export default function StrappingCard({ tankId }: { tankId: string }) {
   const submit = () => {
     setError(null);
     if (rows.length < 2) { setError('Strapping table requires at least 2 points.'); return; }
+    for (const row of rows) {
+      if (!Number.isFinite(row.height) || !Number.isFinite(row.volume)) {
+        setError('Heights and volumes must be valid numbers.');
+        return;
+      }
+    }
     for (let i = 1; i < rows.length; i++) {
       if (rows[i - 1].height >= rows[i].height) { setError('Heights must be strictly ascending.'); return; }
     }
@@ -123,10 +136,9 @@ export default function StrappingCard({ tankId }: { tankId: string }) {
             <button type="button" onClick={addRow} className="text-xs bg-inset px-2 py-1 rounded">Add row</button>
             <button type="button" onClick={submit} disabled={save.isPending}
                     className="text-xs bg-brand text-white px-2 py-1 rounded disabled:opacity-50">Save</button>
-            <button type="button" onClick={() => setEditing(false)} className="text-xs bg-inset px-2 py-1 rounded">Cancel</button>
+            <button type="button" onClick={cancelEdit} className="text-xs bg-inset px-2 py-1 rounded">Cancel</button>
           </div>
           {error ? <p role="alert" className="text-sm text-danger-fg">{error}</p> : null}
-          {save.isError ? <p role="alert" className="text-sm text-danger-fg">Save failed</p> : null}
         </div>
       ) : s && s.calibration_data.length > 0 ? (
         <>
