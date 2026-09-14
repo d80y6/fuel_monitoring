@@ -68,7 +68,9 @@ export default function ConsumptionCard({ tankId, days = 30 }: ConsumptionCardPr
     <div>
       <h3 className="font-semibold text-primary mb-2">Consumption (last {data.days} days)</h3>
       <p className="text-xs text-secondary mb-2">
-        Forecast: {Math.round(data.forecast.liters_per_day ?? 0).toLocaleString('en-US')} L/day
+        {data.forecast.liters_per_day == null
+          ? 'Forecast: —'
+          : `Forecast: ${Math.round(data.forecast.liters_per_day).toLocaleString('en-US')} L/day`}
       </p>
       <ReactECharts
         option={option}

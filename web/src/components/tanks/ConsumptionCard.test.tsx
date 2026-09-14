@@ -48,4 +48,15 @@ describe('ConsumptionCard', () => {
     expect(await screen.findByText('No consumption data')).toBeInTheDocument();
     expect(screen.queryByTestId('mock-echarts')).toBeNull();
   });
+
+  it('shows a dash forecast when liters_per_day is null', async () => {
+    vi.mocked(api.getConsumption).mockResolvedValue({
+      ...analytics,
+      forecast: { ...analytics.forecast, liters_per_day: null },
+    } as never);
+    renderCard();
+    expect(await screen.findByText('Consumption (last 30 days)')).toBeInTheDocument();
+    expect(screen.getByText(/Forecast: —/)).toBeInTheDocument();
+    expect(screen.getByTestId('mock-echarts')).toBeInTheDocument();
+  });
 });
