@@ -1,5 +1,6 @@
 import type {
   AlarmSummary,
+  ConsumptionAnalytics,
   ListTanksResponse,
   LoginResponse,
   TankCreatePayload,
@@ -7,7 +8,7 @@ import type {
   TelemetryPoint,
   UserRead,
 } from '../lib/apiTypes';
-import { request, setOnUnauthorized, setTokenProvider } from './http';
+import { getBlob, request, setOnUnauthorized, setTokenProvider } from './http';
 import { orgApi } from './org';
 import { dispensingApi } from './dispensing';
 import { adminApi } from './admin';
@@ -26,6 +27,29 @@ export const api = {
 
   async me(): Promise<UserRead> {
     return request<UserRead>(`${API_BASE}/auth/me`);
+  },
+
+  async refresh(refreshToken: string): Promise<LoginResponse> {
+    return request<LoginResponse>(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      skipAuthRetry: true,
+    });
+  },
+
+  async logout(accessToken: string, refreshToken: string | null): Promise<void> {
+    try {
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+    } catch {
+      // fire-and-forget: revocation failure is non-critical
+    }
   },
 
   async listTanks(): Promise<ListTanksResponse> {
@@ -71,6 +95,23 @@ export const api = {
       `${API_BASE}/tanks/${tankId}/alarms/${alarmId}/ack`,
       { method: 'POST' },
     );
+  },
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ status: string }> {
+    return request<{ status: string }>(`${API_BASE}/auth/change-password`, {
+      method: 'POST',
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    });
+  },
+
+  async exportTankCsv(tankId: string, start: string, end: string): Promise<Blob> {
+    const params = new URLSearchParams({ start, end });
+    return getBlob(`${API_BASE}/tanks/${tankId}/export?${params.toString()}`);
+  },
+
+  async getConsumption(tankId: string, days = 30, windowDays = 7): Promise<ConsumptionAnalytics> {
+    const params = new URLSearchParams({ days: String(days), window_days: String(windowDays) });
+    return request<ConsumptionAnalytics>(`${API_BASE}/analytics/consumption/${tankId}?${params.toString()}`);
   },
 
   ...orgApi,

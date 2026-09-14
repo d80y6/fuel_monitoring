@@ -72,6 +72,28 @@ class RedisClient:
         await pipe.execute()
         return True, max(0, limit - count - 1)
 
+    # ---- JWT revocation denylist ----------------------------------------
+    def _revocation_key(self, jti: str) -> str:
+        return f"revoked:jwt:{jti}"
+
+    async def revoke_jwt(self, jti: str, ttl_seconds: int) -> None:
+        await self._client.set(self._revocation_key(jti), "1", ex=ttl_seconds)
+
+    async def claim_revocation(self, jti: str, ttl_seconds: int) -> bool:
+        """Atomically denylist a jti ONLY if it is not already denylisted.
+
+        Returns True when this call created the entry (won the race, e.g. the
+        single-use refresh rotation); False when the jti was already revoked.
+        """
+        return bool(
+            await self._client.set(
+                self._revocation_key(jti), "1", ex=ttl_seconds, nx=True
+            )
+        )
+
+    async def jwt_revoked(self, jti: str) -> bool:
+        return await self._client.exists(self._revocation_key(jti)) == 1
+
     # ---- pub/sub ----------------------------------------------------------
     async def publish(self, channel: str, message: dict) -> int:
         import json

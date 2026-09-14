@@ -19,6 +19,7 @@ import FuelTypesPage from './pages/FuelTypesPage';
 import GatewaysPage from './pages/GatewaysPage';
 import IoTGatewaysPage from './pages/IoTGatewaysPage';
 import IoTGatewayDetailPage from './pages/IoTGatewayDetailPage';
+import SettingsPage from './pages/SettingsPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const authed = isAuthed(useAuthStore((s) => s.token));
@@ -49,6 +50,7 @@ export const router = createBrowserRouter([
       { path: 'dispensing', element: <Dispensing /> },
       { path: 'totalizers', element: <Totalizers /> },
       { path: 'alarms', element: <AlarmCenter /> },
+      { path: 'settings', element: <SettingsPage /> },
       {
         element: <RequireManage />,
         children: [

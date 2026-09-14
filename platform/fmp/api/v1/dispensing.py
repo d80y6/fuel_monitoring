@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fmp.api.deps import CurrentUser, SessionDep
+from fmp.api.deps import CurrentUser, PrivilegedUser, SessionDep
 from fmp.core.database import get_session
 from fmp.core.redis import get_redis_client, RedisClient
 from fmp.models import Allocation, DispenseTransaction, UploadBatch
@@ -95,6 +95,7 @@ async def complete(
 async def redispatch_batch_codes(
     batch_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
+    _user: PrivilegedUser = None,
 ) -> dict:
     """Placeholder hook for re-dispatching an already-uploaded batch.
 

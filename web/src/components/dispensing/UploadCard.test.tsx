@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 vi.mock('../../api/client', () => ({
-  api: { listCompanies: vi.fn(), uploadQuotaSheet: vi.fn() },
+  api: { listCompanies: vi.fn(), uploadQuotaSheet: vi.fn(), redispatchBatch: vi.fn() },
 }));
 vi.mock('../../store/auth', () => ({
   useAuthStore: (sel: (s: { user: { id: string } | null }) => unknown) => sel?.({ user: { id: 'u1' } }),
@@ -105,7 +105,7 @@ describe('UploadCard', () => {
 
     await screen.findByText('Uploaded 2 rows. Failures: 1.');
     expect(screen.getByText('Row 3: Invalid liters')).toBeInTheDocument();
-    expect(screen.getByText('1 codes pending dispatch.')).toBeInTheDocument();
+    expect(screen.getByText('1 code pending dispatch.')).toBeInTheDocument();
     expect(screen.queryByText('Select company and .xlsx/.csv quota sheet, then upload.')).not.toBeInTheDocument();
   });
 
@@ -156,5 +156,23 @@ describe('UploadCard', () => {
 
     resolveFn(outcome);
     await waitFor(() => expect(button).toBeEnabled());
+  });
+
+  it('dispatches pending codes and shows the returned message', async () => {
+    vi.mocked(api.uploadQuotaSheet).mockResolvedValue(outcome as never);
+    vi.mocked(api.redispatchBatch).mockResolvedValue({
+      message: 'Codes not persisted by design; re-upload to re-send.',
+      batch_id: 'b1',
+      status: 'ok',
+    } as never);
+    renderCard();
+    await screen.findByText('Acme');
+    await userEvent.selectOptions(screen.getByLabelText(/company/i), 'c1');
+    await userEvent.upload(screen.getByLabelText(/file/i), new File(['x'], 'sheet.xlsx'));
+    await userEvent.click(screen.getByRole('button', { name: /^upload$/i }));
+    await screen.findByText('1 code pending dispatch.');
+    await userEvent.click(screen.getByRole('button', { name: /dispatch now/i }));
+    await screen.findByText('Codes not persisted by design; re-upload to re-send.');
+    expect(vi.mocked(api.redispatchBatch)).toHaveBeenCalledWith('b1');
   });
 });

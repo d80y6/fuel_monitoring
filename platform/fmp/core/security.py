@@ -1,4 +1,5 @@
 """Security primitives: password hashing, JWT, RBAC dependencies."""
+
 from __future__ import annotations
 
 import base64
@@ -6,6 +7,7 @@ import hashlib
 import hmac
 import os
 import secrets
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -74,13 +76,55 @@ def create_access_token(subject: str | int, extra: dict | None = None) -> str:
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
+def create_refresh_token(subject: str | int) -> str:
+    """Mint a longer-lived refresh token bound to the same subject.
+
+    Issued with ``typ=refresh``; ``decode_token`` rejects such tokens so a
+    refresh token can never be accepted as an access token, and the refresh
+    path can distinguish it from an access token.
+    """
+    now = datetime.now(timezone.utc)
+    payload: dict[str, Any] = {
+        "sub": str(subject),
+        "iat": now,
+        "exp": now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        "jti": uuid.uuid4().hex,
+        "iss": TOKEN_ISSUER,
+        "aud": TOKEN_AUDIENCE,
+        "typ": "refresh",
+    }
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def decode_refresh_token(token: str) -> dict[str, Any]:
+    """Strictly decode+verify a token as a refresh token (``typ=refresh``).
+
+    Requires ``typ`` in addition to the access-token claim set; access tokens,
+    wrong-audience/issuer tokens, tampered or expired tokens all raise
+    ``jwt.PyJWTError``.
+    """
+    claims = jwt.decode(
+        token,
+        settings.SECRET_KEY,
+        algorithms=[settings.JWT_ALGORITHM],
+        audience=TOKEN_AUDIENCE,
+        issuer=TOKEN_ISSUER,
+        options={"require": ["exp", "iat", "iss", "aud", "sub", "typ"]},
+    )
+    if claims.get("typ") != "refresh":
+        raise jwt.InvalidTokenError("token is not a refresh token")
+    return claims
+
+
 def decode_token(token: str) -> dict[str, Any]:
-    """Strictly decode+verify a JWT.
+    """Strictly decode+verify a JWT, explicitly rejecting refresh tokens.
 
     Requires and validates exp/iat/iss/aud/sub and the HS256 signature, so
     tokens minted by other services (wrong ``aud``/``iss``) are rejected.
+    Long-lived ``typ=refresh`` tokens are rejected outright so they can never
+    be accepted where an access token is required.
     """
-    return jwt.decode(
+    claims = jwt.decode(
         token,
         settings.SECRET_KEY,
         algorithms=[settings.JWT_ALGORITHM],
@@ -88,6 +132,76 @@ def decode_token(token: str) -> dict[str, Any]:
         issuer=TOKEN_ISSUER,
         options={"require": ["exp", "iat", "iss", "aud", "sub"]},
     )
+    if claims.get("typ") == "refresh":
+        raise jwt.InvalidTokenError("refresh token used as access token")
+    return claims
+
+
+#: Bounded in-process fallback revocation denylist (jti -> exp epoch) for when
+#: Redis is unreachable, mirroring the login rate-limiter fallback so a revoked
+#: token is never silently re-accepted. Assumes a single-process deployment.
+_REVOKED_MAX_KEYS = 100_000
+_revoked_jtis: dict[str, int] = {}
+
+
+async def revoke_token(redis, claims: dict[str, Any]) -> None:
+    """Denylist the token's ``jti`` for its remaining lifetime (exp - now).
+
+    Redis holds the denylist when available; on outage the jti is recorded in a
+    bounded in-process dict so revocation never fails open.
+    """
+    jti = claims.get("jti")
+    exp = claims.get("exp")
+    if not isinstance(jti, str) or not isinstance(exp, int):
+        return
+    ttl = max(1, exp - int(time.time()))
+    try:
+        await redis.revoke_jwt(jti, ttl)
+        return
+    except Exception:
+        pass
+    _revoked_jtis[jti] = exp
+    while len(_revoked_jtis) > _REVOKED_MAX_KEYS:
+        _revoked_jtis.pop(next(iter(_revoked_jtis)))
+
+
+async def token_revoked(redis, claims: dict[str, Any]) -> bool:
+    """True when the token's ``jti`` has been revoked (Redis or fallback)."""
+    jti = claims.get("jti")
+    exp = claims.get("exp")
+    if not isinstance(jti, str):
+        return False
+    try:
+        if await redis.jwt_revoked(jti):
+            return True
+    except Exception:
+        pass
+    return isinstance(exp, int) and _revoked_jtis.get(jti, -1) > int(time.time())
+
+
+async def claim_token(redis, claims: dict[str, Any]) -> bool:
+    """Atomically revoke the token, winning exactly one racer.
+
+    Combines the revocation check and write into a single atomic ``SET NX`` so
+    concurrent rotation of the same refresh token cannot both succeed: the first
+    caller claims the jti (returns True) and any later caller sees it already
+    revoked (returns False). Falls back to a process-local claim on Redis outage.
+    """
+    jti = claims.get("jti")
+    exp = claims.get("exp")
+    if not isinstance(jti, str) or not isinstance(exp, int):
+        return False
+    ttl = max(1, exp - int(time.time()))
+    try:
+        return bool(await redis.claim_revocation(jti, ttl))
+    except Exception:
+        pass
+    if jti in _revoked_jtis and _revoked_jtis[jti] > int(time.time()):
+        return False
+    _revoked_jtis[jti] = exp
+    while len(_revoked_jtis) > _REVOKED_MAX_KEYS:
+        _revoked_jtis.pop(next(iter(_revoked_jtis)))
+    return True
 
 
 def validate_password_complexity(plain: str) -> list[str]:
@@ -99,14 +213,18 @@ def validate_password_complexity(plain: str) -> list[str]:
     violations: list[str] = []
     if len(plain) < settings.PASSWORD_MIN_LENGTH:
         violations.append(f"must be at least {settings.PASSWORD_MIN_LENGTH} characters")
-    class_present = sum((
-        any(c.islower() for c in plain),
-        any(c.isupper() for c in plain),
-        any(c.isdigit() for c in plain),
-        any(not c.isalnum() for c in plain),
-    ))
+    class_present = sum(
+        (
+            any(c.islower() for c in plain),
+            any(c.isupper() for c in plain),
+            any(c.isdigit() for c in plain),
+            any(not c.isalnum() for c in plain),
+        )
+    )
     if class_present < 3:
-        violations.append("must include at least 3 of: lowercase, uppercase, digit, symbol")
+        violations.append(
+            "must include at least 3 of: lowercase, uppercase, digit, symbol"
+        )
     return violations
 
 

@@ -47,6 +47,16 @@ async def authenticate(session, username: str, password: str) -> User | None:
     return user
 
 
+async def load_active_user(session, user_id: uuid.UUID) -> User | None:
+    """Resolve a user id to an active, non-deleted user or ``None``."""
+    user = (
+        await session.execute(select(User).where(User.id == user_id))
+    ).scalar_one_or_none()
+    if user is None or not user.is_active or user.deleted_at is not None:
+        return None
+    return user
+
+
 async def load_user_for_token(session, token: str) -> User | None:
     """Resolve a JWT subject back to an active user (for the Bearer dependency)."""
     try:
@@ -59,7 +69,4 @@ async def load_user_for_token(session, token: str) -> User | None:
     except (ValueError, TypeError):
         return None
 
-    user = (await session.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
-    if user is None or not user.is_active or user.deleted_at is not None:
-        return None
-    return user
+    return await load_active_user(session, user_id)

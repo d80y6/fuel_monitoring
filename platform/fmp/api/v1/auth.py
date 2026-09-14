@@ -1,23 +1,31 @@
-"""Authentication API: login, current user, change-password. JWT-issuing endpoints."""
+"""Authentication API: login, refresh (rotation), logout, current user, change-password."""
 from __future__ import annotations
 
 import time
+import uuid
 
+import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
 
-from fmp.api.deps import CurrentUser, SessionDep
+from fmp.api.deps import CurrentUser, SessionDep, _bearer
 from fmp.core.config import get_settings
 from fmp.core.redis import RedisClient, get_redis_client
 from fmp.core.security import (
+    claim_token,
     create_access_token,
+    create_refresh_token,
+    decode_refresh_token,
+    decode_token,
     hash_password,
+    revoke_token,
     validate_password_complexity,
     verify_password,
 )
 from fmp.models import User
 from fmp.schemas.user import ChangePasswordRequest, ChangePasswordResponse, UserRead
-from fmp.services.auth import authenticate
+from fmp.services.auth import authenticate, load_active_user
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -35,8 +43,21 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
     user: UserRead
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str = Field(min_length=1)
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: str | None = None
+
+
+class LogoutResponse(BaseModel):
+    status: str = "ok"
 
 
 def _login_rate_key(username: str, client_ip: str) -> str:
@@ -115,7 +136,88 @@ async def login(
             headers=headers,
         )
     token = create_access_token(user.id, extra={"role": user.role})
-    return LoginResponse(access_token=token, user=UserRead.model_validate(user))
+    refresh_token = create_refresh_token(user.id)
+    return LoginResponse(
+        access_token=token,
+        refresh_token=refresh_token,
+        user=UserRead.model_validate(user),
+    )
+
+
+@router.post("/refresh", response_model=LoginResponse)
+async def refresh(
+    payload: RefreshRequest,
+    session: SessionDep,
+    redis: RedisClient = Depends(get_redis_client),
+):
+    """Rotate a refresh token into a fresh access + refresh token pair.
+
+    The presented refresh token is revoked on success (rotation), so a stolen
+    refresh token is single-use. ``claim_token`` performs the revocation and
+    its prior-revoked check atomically (``SET NX``), so two concurrent
+    refreshes with the same token cannot both succeed. The user must still
+    exist and be active.
+    """
+    try:
+        claims = decode_refresh_token(payload.refresh_token)
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    if not await claim_token(redis, claims):
+        raise HTTPException(
+            status_code=401,
+            detail="Refresh token revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    try:
+        user_id = uuid.UUID(str(claims.get("sub")))
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or expired refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = await load_active_user(session, user_id)
+    if user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="User inactive or removed",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access = create_access_token(user.id, extra={"role": user.role})
+    refresh = create_refresh_token(user.id)
+    return LoginResponse(
+        access_token=access,
+        refresh_token=refresh,
+        user=UserRead.model_validate(user),
+    )
+
+
+@router.post("/logout", response_model=LogoutResponse)
+async def logout(
+    payload: LogoutRequest,
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    redis: RedisClient = Depends(get_redis_client),
+):
+    """Revoke the presented access token and any supplied refresh token.
+
+    Deliberately does not require a valid token to reach the handler so a client
+    can clean up even with an already-expired/revoked session.
+    """
+    if credentials is not None:
+        try:
+            await revoke_token(redis, decode_token(credentials.credentials))
+        except jwt.PyJWTError:
+            pass
+    if payload.refresh_token:
+        try:
+            await revoke_token(redis, decode_refresh_token(payload.refresh_token))
+        except jwt.PyJWTError:
+            pass
+    return LogoutResponse(status="ok")
 
 
 @router.get("/me", response_model=UserRead)

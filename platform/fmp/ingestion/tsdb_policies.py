@@ -78,16 +78,43 @@ async def ensure_cagg_refresh_policies(conn) -> None:
         logger.info("refresh policy attached to %s", view)
 
 
+async def _hypertable_compression_enabled(conn, name: str, schema: str = "public") -> bool:
+    row = await conn.execute(text(
+        "SELECT compression_enabled FROM timescaledb_information.hypertables "
+        "WHERE hypertable_schema = :schema AND hypertable_name = :name"
+    ), {"schema": schema, "name": name})
+    return bool(row.scalar_one_or_none())
+
+
+async def _cagg_compression_enabled(conn, view_name: str) -> bool:
+    row = await conn.execute(text(
+        "SELECT compression_enabled FROM timescaledb_information.continuous_aggregates "
+        "WHERE view_schema = 'public' AND view_name = :name"
+    ), {"name": view_name})
+    return bool(row.scalar_one_or_none())
+
+
 async def ensure_compression(conn) -> None:
-    """Enable compression on the hypertable and its aggregates (idempotent)."""
-    await conn.execute(text(
-        "ALTER TABLE measurements SET (timescaledb.compress = true, "
-        "timescaledb.compress_segmentby = 'tank_id')"
-    ))
-    for view in _CONTINUOUS_AGGREGATES:
+    """Enable compression on the hypertable and its aggregates (idempotent).
+
+    The compression ``SET`` cannot be re-applied once a hypertable owns
+    compressed chunks — TimescaleDB raises "cannot change configuration on
+    already compressed chunks" — so the ALTERs are skipped whenever compression
+    is already enabled (the state production db-init reaches after the
+    compression policy has aged its first chunks past ``TSDB_COMPRESSION_AFTER_DAYS``).
+    Changing segmentby/orderby on a compressed table is a manual, chunk-rewriting
+    migration and is intentionally left untouched here.
+    """
+    if not await _hypertable_compression_enabled(conn, "measurements"):
         await conn.execute(text(
-            f"ALTER MATERIALIZED VIEW {view} SET (timescaledb.compress = true)"
+            "ALTER TABLE measurements SET (timescaledb.compress = true, "
+            "timescaledb.compress_segmentby = 'tank_id')"
         ))
+    for view in _CONTINUOUS_AGGREGATES:
+        if not await _cagg_compression_enabled(conn, view):
+            await conn.execute(text(
+                f"ALTER MATERIALIZED VIEW {view} SET (timescaledb.compress = true)"
+            ))
     await conn.execute(text(
         f"SELECT add_compression_policy('measurements', "
         f"INTERVAL '{settings.TSDB_COMPRESSION_AFTER_DAYS} days', if_not_exists => true)"

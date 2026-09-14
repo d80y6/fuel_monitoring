@@ -136,3 +136,62 @@ async def test_change_password_weak_new_rejected(db):
         )
         assert r.status_code == 422, r.text
         assert "must be at least 8 characters" in r.text
+
+
+async def test_login_returns_refresh_token_and_refresh_rotates(db):
+    from fmp.api.main import app
+
+    username = f"rt_{uuid.uuid4().hex[:10]}"
+    await _seed_user(username, "RightPass1!")
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        r = await _login(client, username, "RightPass1!")
+        assert r.status_code == 200, r.text
+        body = r.json()
+        refresh_token = body["refresh_token"]
+        assert refresh_token
+
+        # rotate: old refresh token → new pair
+        rr = await client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": refresh_token},
+        )
+        assert rr.status_code == 200, rr.text
+        rotated_refresh = rr.json()["refresh_token"]
+        assert rotated_refresh != refresh_token
+
+        # the rotated-away refresh token must now be rejected (single-use)
+        again = await client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": refresh_token},
+        )
+        assert again.status_code == 401, again.text
+
+        # the new refresh token is still valid
+        third = await client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": rotated_refresh},
+        )
+        assert third.status_code == 200, third.text
+
+
+async def test_logout_revokes_access_token(db):
+    from fmp.api.main import app
+
+    username = f"lo_{uuid.uuid4().hex[:10]}"
+    await _seed_user(username, "RightPass1!")
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        token = await _token_for(client, username, "RightPass1!")
+        headers = {"Authorization": f"Bearer {token}"}
+
+        me = await client.get("/api/v1/auth/me", headers=headers)
+        assert me.status_code == 200
+
+        lo = await client.post("/api/v1/auth/logout", json={}, headers=headers)
+        assert lo.status_code == 200, lo.text
+        assert lo.json() == {"status": "ok"}
+
+        # the access token is now revoked
+        me2 = await client.get("/api/v1/auth/me", headers=headers)
+        assert me2.status_code == 401
