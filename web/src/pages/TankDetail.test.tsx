@@ -55,6 +55,10 @@ vi.mock("../components/tanks/StrappingCard", () => ({
   default: () => <div data-testid="mock-strapping-card" />,
 }));
 
+vi.mock("../components/tanks/ConsumptionCard", () => ({
+  default: () => <div data-testid="mock-consumption-card" />,
+}));
+
 import TankDetail from "./TankDetail";
 import { Canvas } from "@react-three/fiber";
 
@@ -157,43 +161,58 @@ describe("TankDetail", () => {
     );
   });
 
-  it("exports the current window as CSV", async () => {
-    const user = userEvent.setup();
-    const create = vi.fn().mockReturnValue("blob:url");
-    const revoke = vi.fn();
-    Object.defineProperty(URL, "createObjectURL", {
-      configurable: true,
-      value: create,
-    });
-    Object.defineProperty(URL, "revokeObjectURL", {
-      configurable: true,
-      value: revoke,
-    });
-    const click = vi.fn();
-    HTMLAnchorElement.prototype.click = click;
-    vi.mocked(api.exportTankCsv).mockResolvedValue(new Blob([]) as never);
+  it("renders the consumption analytics card", async () => {
     renderPage();
-    await screen.findByRole("heading", {
-      level: 3,
-      name: /Alpha · Telemetry/,
-    });
-    await user.click(screen.getByRole("button", { name: /export csv/i }));
-    expect(vi.mocked(api.exportTankCsv)).toHaveBeenCalledTimes(1);
-    const [id, start, end] = vi.mocked(api.exportTankCsv).mock.calls[0];
-    expect(id).toBe("t1");
-    expect(new Date(start).getTime()).toBeLessThanOrEqual(new Date(end).getTime());
-    expect(start).toMatch(/T.*Z$/);
-    expect(click).toHaveBeenCalled();
-    expect(revoke).toHaveBeenCalled();
-    Object.defineProperty(URL, "createObjectURL", {
-      configurable: true,
-      value: undefined,
-    });
-    Object.defineProperty(URL, "revokeObjectURL", {
-      configurable: true,
-      value: undefined,
-    });
-    (HTMLAnchorElement.prototype.click as unknown) = undefined;
+    await screen.findByRole("heading", { level: 3, name: /Alpha · Telemetry/ });
+    expect(
+      screen.queryByTestId("mock-consumption-card"),
+    ).toBeInTheDocument();
+  });
+
+  it("exports the current window as CSV", async () => {
+    const origCreate = URL.createObjectURL;
+    const origRevoke = URL.revokeObjectURL;
+    const origClick = HTMLAnchorElement.prototype.click;
+    try {
+      Object.defineProperty(URL, "createObjectURL", {
+        configurable: true,
+        value: () => "blob:url",
+      });
+      const revoke = vi.fn();
+      Object.defineProperty(URL, "revokeObjectURL", {
+        configurable: true,
+        value: revoke,
+      });
+      const click = vi.fn();
+      HTMLAnchorElement.prototype.click = click;
+      const user = userEvent.setup();
+      vi.mocked(api.exportTankCsv).mockResolvedValue(new Blob([]) as never);
+      renderPage();
+      await screen.findByRole("heading", {
+        level: 3,
+        name: /Alpha · Telemetry/,
+      });
+      await user.click(screen.getByRole("button", { name: /export csv/i }));
+      expect(vi.mocked(api.exportTankCsv)).toHaveBeenCalledTimes(1);
+      const [id, start, end] = vi.mocked(api.exportTankCsv).mock.calls[0];
+      expect(id).toBe("t1");
+      expect(
+        new Date(start).getTime(),
+      ).toBeLessThanOrEqual(new Date(end).getTime());
+      expect(start).toMatch(/T.*Z$/);
+      expect(click).toHaveBeenCalled();
+      expect(revoke).toHaveBeenCalled();
+    } finally {
+      Object.defineProperty(URL, "createObjectURL", {
+        configurable: true,
+        value: origCreate,
+      });
+      Object.defineProperty(URL, "revokeObjectURL", {
+        configurable: true,
+        value: origRevoke,
+      });
+      HTMLAnchorElement.prototype.click = origClick;
+    }
   });
 });
 

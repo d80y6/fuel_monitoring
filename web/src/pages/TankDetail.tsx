@@ -6,6 +6,7 @@ import { useTelemetry } from "../hooks/useTelemetry";
 import { webglSupported } from "../lib/webgl";
 import { TankCanvas } from "../components/tanks/TankCanvas";
 import StrappingCard from "../components/tanks/StrappingCard";
+import ConsumptionCard from "../components/tanks/ConsumptionCard";
 import { TelemetryChart } from "../components/charts/TelemetryChart";
 import { Skeleton } from "../components/ui/Skeleton";
 import { ErrorCard } from "../components/ui/ErrorCard";
@@ -175,11 +176,11 @@ export default function TankDetail() {
                 <Icon name="download" className="w-3.5 h-3.5" />
                 {exporting ? "Exporting…" : "Export CSV"}
               </button>
-              {exportError ? (
-                <p className="text-xs text-danger-fg">{exportError}</p>
-              ) : null}
             </div>
           </div>
+          {exportError ? (
+            <p className="text-xs text-danger-fg">{exportError}</p>
+          ) : null}
           <TelemetryChart
             points={range.data ?? []}
             live={live ?? latest}
@@ -221,6 +222,9 @@ export default function TankDetail() {
           <StrappingCard tankId={tank.id} />
         </div>
       ) : null}
+      <div className="mt-6 bg-surface rounded-lg border border-line p-4">
+        <ConsumptionCard tankId={tank.id} />
+      </div>
     </div>
   );
 }
