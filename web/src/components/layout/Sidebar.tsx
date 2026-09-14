@@ -41,6 +41,10 @@ const groups: NavGroup[] = [
       { to: '/admin/iot-gateways', label: 'IoT Gateways', icon: 'gateway', manageOnly: true },
     ],
   },
+  {
+    heading: 'Account',
+    items: [{ to: '/settings', label: 'Settings', icon: 'settings' }],
+  },
 ];
 
 export function Sidebar() {
