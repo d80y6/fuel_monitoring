@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -28,6 +29,7 @@ vi.mock("../api/client", () => ({
     tankAlarms: vi.fn(),
     rangeReadings: vi.fn(),
     ackAlarm: vi.fn(),
+    exportTankCsv: vi.fn(),
   },
 }));
 import { api } from "../api/client";
@@ -153,6 +155,45 @@ describe("TankDetail", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Failed to load tank.",
     );
+  });
+
+  it("exports the current window as CSV", async () => {
+    const user = userEvent.setup();
+    const create = vi.fn().mockReturnValue("blob:url");
+    const revoke = vi.fn();
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: create,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: revoke,
+    });
+    const click = vi.fn();
+    HTMLAnchorElement.prototype.click = click;
+    vi.mocked(api.exportTankCsv).mockResolvedValue(new Blob([]) as never);
+    renderPage();
+    await screen.findByRole("heading", {
+      level: 3,
+      name: /Alpha · Telemetry/,
+    });
+    await user.click(screen.getByRole("button", { name: /export csv/i }));
+    expect(vi.mocked(api.exportTankCsv)).toHaveBeenCalledTimes(1);
+    const [id, start, end] = vi.mocked(api.exportTankCsv).mock.calls[0];
+    expect(id).toBe("t1");
+    expect(new Date(start).getTime()).toBeLessThanOrEqual(new Date(end).getTime());
+    expect(start).toMatch(/T.*Z$/);
+    expect(click).toHaveBeenCalled();
+    expect(revoke).toHaveBeenCalled();
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: undefined,
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: undefined,
+    });
+    (HTMLAnchorElement.prototype.click as unknown) = undefined;
   });
 });
 

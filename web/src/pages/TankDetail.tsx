@@ -9,6 +9,7 @@ import StrappingCard from "../components/tanks/StrappingCard";
 import { TelemetryChart } from "../components/charts/TelemetryChart";
 import { Skeleton } from "../components/ui/Skeleton";
 import { ErrorCard } from "../components/ui/ErrorCard";
+import { Icon } from "../components/ui/icons";
 
 const TankCanvas3D = webglSupported()
   ? lazy(() => import("../components/tanks/TankCanvas3D"))
@@ -24,6 +25,8 @@ const WINDOWS: Record<string, number> = {
 export default function TankDetail() {
   const { tankId = "" } = useParams();
   const [window, setWindow] = useState<keyof typeof WINDOWS>("24h");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const tankQ = useQuery({
@@ -84,6 +87,33 @@ export default function TankDetail() {
     );
   }
 
+  const handleExport = async () => {
+    const hours = WINDOWS[window];
+    const end = new Date();
+    const start = new Date(end.getTime() - hours * 60 * 60 * 1000);
+    setExporting(true);
+    setExportError(null);
+    try {
+      const blob = await api.exportTankCsv(
+        tank.id,
+        start.toISOString(),
+        end.toISOString(),
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `tank-${tank.id}-${start.toISOString().slice(0, 10)}-to-${end.toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportError("Export failed");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div>
       <Link
@@ -136,6 +166,18 @@ export default function TankDetail() {
                   {k}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={handleExport}
+                disabled={exporting}
+                className="flex items-center gap-1.5 text-xs bg-inset px-2 py-1 rounded"
+              >
+                <Icon name="download" className="w-3.5 h-3.5" />
+                {exporting ? "Exporting…" : "Export CSV"}
+              </button>
+              {exportError ? (
+                <p className="text-xs text-danger-fg">{exportError}</p>
+              ) : null}
             </div>
           </div>
           <TelemetryChart
