@@ -11,6 +11,12 @@ import { request } from './http';
 
 const API_BASE = '/api/v1';
 
+export interface DispatchStatus {
+  message: string;
+  batch_id: string;
+  status: string;
+}
+
 export const dispensingApi = {
   async listAllocations(limit: number = 100): Promise<AllocationRead[]> {
     return request<AllocationRead[]>(`${API_BASE}/dispensing/allocations?max_rows=${limit}`);
@@ -45,6 +51,13 @@ export const dispensingApi = {
     return request<DispenseCompleteResponse>(`${API_BASE}/dispensing/complete`, {
       method: 'POST',
       body: JSON.stringify(payload),
+    });
+  },
+
+  async redispatchBatch(batchId: string): Promise<DispatchStatus> {
+    return request<DispatchStatus>(`${API_BASE}/dispensing/upload/${batchId}/dispatch`, {
+      method: 'POST',
+      body: JSON.stringify({}),
     });
   },
 };

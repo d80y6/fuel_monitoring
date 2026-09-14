@@ -14,6 +14,7 @@ export interface UserRead {
 
 export interface LoginResponse {
   access_token: string;
+  refresh_token: string;
   token_type: string;
   user: UserRead;
 }
@@ -128,6 +129,26 @@ export interface StrappingTable {
   calibration_data: StrappingPoint[];
   interpolation_method: 'linear' | 'cubic_spline';
   created_at: string;
+}
+
+// --- Consumption analytics ---
+export interface ConsumptionPoint {
+  date: string;
+  liters: number;
+}
+
+export interface ConsumptionForecast {
+  method: 'sma';
+  window_days: number;
+  liters_per_day: number | null;
+}
+
+export interface ConsumptionAnalytics {
+  tank_id: string;
+  days: number;
+  method: 'sma';
+  forecast: ConsumptionForecast;
+  series: ConsumptionPoint[];
 }
 
 export interface AllocationRead {

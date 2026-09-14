@@ -28,7 +28,7 @@ export default function Totalizers() {
     queryFn: () => {
       const end = new Date();
       const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
-      return api.listTotalizers(dispenser ?? undefined, start.toISOString(), end.toISOString());
+      return api.listTotalizers(dispenser!, start.toISOString(), end.toISOString());
     },
     enabled: Boolean(dispenser),
   });
