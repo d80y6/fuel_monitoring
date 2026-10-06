@@ -5,7 +5,8 @@ export interface UserRead {
   first_name: string | null;
   last_name: string | null;
   role: string;
-  is_superuser: boolean;
+  /** Tenant binding. `null` only for platform admins (role 'admin'). */
+  company_id: string | null;
   is_active: boolean;
   phone: string | null;
   last_login: string | null;
@@ -453,3 +454,115 @@ export interface IoTCommand {
   error_message: string | null;
   created_at: string;
 }
+// ---------------------------------------------------------------------------
+// Administration: users, audit trail, notifications
+// ---------------------------------------------------------------------------
+
+export interface UserCreate {
+  username: string;
+  email: string;
+  password: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  role: string;
+  company_id?: string | null;
+  phone?: string | null;
+}
+
+export interface UserUpdate {
+  email?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  role?: string;
+  company_id?: string | null;
+  phone?: string | null;
+  is_active?: boolean;
+}
+
+export interface AuditEvent {
+  id: string;
+  at: string;
+  actor_id: string | null;
+  actor_username: string | null;
+  company_id: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  detail: Record<string, unknown> | null;
+}
+
+/**
+ * A configured notification channel.
+ *
+ * `config_json` is secret-masked by the server: credentials come back as the
+ * literal '********', never in clear. Sending a masked value back preserves the
+ * stored secret; omitting it leaves it untouched.
+ */
+export interface NotificationGateway {
+  id: string;
+  name: string;
+  type: string;
+  config_json: Record<string, unknown>;
+  is_active: boolean;
+  priority: number;
+  company_id: string | null;
+  created_at: string;
+}
+
+/** Sentinel the server substitutes for every secret value. */
+export const SECRET_MASK = '********';
+
+export interface NotificationRule {
+  id: string;
+  company_id: string | null;
+  name: string;
+  event_type: string;
+  min_level: 'WARNING' | 'CRITICAL';
+  site_id: string | null;
+  channel: string;
+  targets: string[];
+  template: string | null;
+  enabled: boolean;
+  created_at: string;
+}
+
+export interface NotificationRuleCreate {
+  name: string;
+  event_type?: string;
+  min_level: 'WARNING' | 'CRITICAL';
+  site_id?: string | null;
+  channel: string;
+  targets: string[];
+  template?: string | null;
+  enabled?: boolean;
+}
+
+export type NotificationRuleUpdate = Partial<
+  Omit<NotificationRuleCreate, 'event_type'>
+>;
+
+export interface NotificationLog {
+  id: string;
+  company_id: string | null;
+  allocation_id: string | null;
+  event_type: string;
+  event_ref: string | null;
+  channel: string;
+  recipient: string;
+  status: string;
+  provider_message_id: string | null;
+  error_message: string | null;
+  retry_count: number;
+  sent_at: string | null;
+  created_at: string;
+}
+
+export interface TestDispatchSummary {
+  event_type: string;
+  evaluated_rules: number;
+  sent: number;
+  failed: number;
+}
+
+/** Alarm state machine values (see the alarms table lifecycle). */
+export type AlarmState = 'active' | 'acknowledged' | 'escalated' | 'resolved' | 'suppressed';

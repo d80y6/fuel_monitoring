@@ -1,10 +1,6 @@
-// @ts-expect-error Node built-in available at runtime via vitest/node
 import { readFileSync } from 'node:fs';
-// @ts-expect-error Node built-in available at runtime via vitest/node
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-
-declare var __dirname: string;
 
 const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8');
 

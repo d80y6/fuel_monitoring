@@ -1,14 +1,17 @@
 import { NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
 import { useRealtimeAlarms } from '../../hooks/useRealtimeAlarms';
-import { canManage } from '../../lib/roles';
+import { canAdminister, canManage } from '../../lib/roles';
 import { Icon, type IconName } from '../ui/icons';
 
 interface NavItem {
   to: string;
   label: string;
   icon: IconName;
+  /** Requires a management role (tenant admin or platform admin). */
   manageOnly?: boolean;
+  /** Requires a platform admin (cross-tenant operations). */
+  adminOnly?: boolean;
 }
 
 interface NavGroup {
@@ -16,10 +19,18 @@ interface NavGroup {
   items: NavItem[];
 }
 
+/**
+ * Navigation reflects the server's authorization model.
+ *
+ * `manageOnly` items need admin or company_admin; `adminOnly` items need a
+ * platform admin. Every entry here resolves to a real route in `router.tsx` —
+ * no dead links — and the server rejects the underlying calls regardless of
+ * what this list shows.
+ */
 const groups: NavGroup[] = [
   { items: [{ to: '/dashboard', label: 'Dashboard', icon: 'dashboard' }] },
   {
-    heading: 'Monitoring',
+    heading: 'Operations',
     items: [
       { to: '/tanks', label: 'Tanks', icon: 'tank' },
       { to: '/dispensing', label: 'Dispensing', icon: 'dispensing' },
@@ -28,16 +39,26 @@ const groups: NavGroup[] = [
     ],
   },
   {
-    heading: 'Operations',
+    heading: 'Organization',
     items: [
-      { to: '/companies', label: 'Companies', icon: 'building', manageOnly: true },
+      { to: '/sites', label: 'Sites', icon: 'site', manageOnly: true },
+      { to: '/companies', label: 'Companies', icon: 'building', adminOnly: true },
     ],
   },
   {
-    heading: 'Admin',
+    heading: 'Notifications',
     items: [
+      { to: '/admin/notification-rules', label: 'Rules', icon: 'bell', manageOnly: true },
+      { to: '/admin/notification-log', label: 'Delivery Log', icon: 'reports', manageOnly: true },
+    ],
+  },
+  {
+    heading: 'Administration',
+    items: [
+      { to: '/admin/users', label: 'Users', icon: 'users', manageOnly: true },
+      { to: '/admin/audit', label: 'Audit Log', icon: 'audit', manageOnly: true },
       { to: '/admin/fuel-types', label: 'Fuel Types', icon: 'fuel', manageOnly: true },
-      { to: '/admin/gateways', label: 'Gateways', icon: 'gateway', manageOnly: true },
+      { to: '/admin/gateways', label: 'Channels', icon: 'gateway', manageOnly: true },
       { to: '/admin/iot-gateways', label: 'IoT Gateways', icon: 'gateway', manageOnly: true },
     ],
   },
@@ -53,6 +74,10 @@ export function Sidebar() {
   const alarms = useRealtimeAlarms();
   const openCount = alarms.filter((a) => !a.acknowledged).length;
   const userCanManage = canManage(user?.role);
+  const userCanAdminister = canAdminister(user?.role);
+
+  const isVisible = (item: NavItem) =>
+    (!item.manageOnly || userCanManage) && (!item.adminOnly || userCanAdminister);
 
   return (
     <aside className="w-56 shrink-0 bg-slate-900 text-slate-100 flex flex-col">
@@ -60,11 +85,9 @@ export function Sidebar() {
         <p className="font-bold tracking-tight">FuelOps SCADA</p>
         <p className="text-xs text-slate-400">{user?.username ?? ''}</p>
       </div>
-      <nav className="flex-1 px-2 py-4 space-y-4">
+      <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-4" aria-label="Main">
         {groups.map((group) => {
-          const visibleItems = group.items.filter(
-            (item) => !item.manageOnly || userCanManage,
-          );
+          const visibleItems = group.items.filter(isVisible);
           if (visibleItems.length === 0) return null;
           return (
             <div key={group.heading ?? 'root'}>
@@ -86,8 +109,12 @@ export function Sidebar() {
                   >
                     <Icon name={l.icon} className="h-4 w-4 shrink-0" />
                     <span className="flex-1 truncate">{l.label}</span>
-                    {l.to === '/dashboard' && openCount > 0 ? (
-                      <span className="inline-block h-2 w-2 rounded-full bg-rose-400" />
+                    {l.to === '/alarms' && openCount > 0 ? (
+                      <span
+                        className="inline-block h-2 w-2 rounded-full bg-rose-400"
+                        aria-label={`${openCount} unacknowledged alarms`}
+                        role="img"
+                      />
                     ) : null}
                   </NavLink>
                 ))}

@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fmp.api.v1 import (
     alarms,
     analytics,
+    audit,
     companies,
     dispensing,
     fuel_types,
@@ -48,6 +49,7 @@ app.add_middleware(
 app.include_router(auth_router.router)
 app.include_router(alarms.router)
 app.include_router(analytics.router)
+app.include_router(audit.router)
 app.include_router(users.router)
 app.include_router(dispensing.router)
 app.include_router(tanks.router)

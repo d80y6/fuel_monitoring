@@ -41,9 +41,9 @@ vi.mock('../components/dispensing/DispenseLiveView', () => ({
 
 import Dispensing from './Dispensing';
 
-function renderPage(userOverride: { role: string } = { role: 'manager' }) {
+function renderPage(userOverride: { role: string } = { role: 'company_admin' }) {
   vi.mocked(useAuthStore).mockImplementation((selector: any) => {
-    const state = { user: { role: userOverride.role, is_superuser: false, username: 'test' } };
+    const state = { user: { role: userOverride.role, company_id: 'c1', username: 'test' } };
     return typeof selector === 'function' ? selector(state) : state;
   });
 
@@ -99,7 +99,7 @@ describe('Dispensing page tabs', () => {
 
   it('manager user can see and click Upload tab', async () => {
     const user = userEvent.setup();
-    renderPage({ role: 'manager' });
+    renderPage({ role: 'company_admin' });
     await screen.findByText('Station A');
     await user.click(screen.getByText('Upload'));
     expect(screen.getByTestId('card-Upload')).toBeInTheDocument();

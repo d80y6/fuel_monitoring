@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet, createBrowserRouter } from 'react-router-dom';
 import { isAuthed } from './lib/authGuard';
-import { canManage } from './lib/roles';
+import { canManage, isPlatformAdmin } from './lib/roles';
 import { useAuthStore } from './store/auth';
 import { AppLayout } from './components/layout/AppLayout';
 import Login from './pages/Login';
@@ -20,6 +20,10 @@ import GatewaysPage from './pages/GatewaysPage';
 import IoTGatewaysPage from './pages/IoTGatewaysPage';
 import IoTGatewayDetailPage from './pages/IoTGatewayDetailPage';
 import SettingsPage from './pages/SettingsPage';
+import UsersPage from './pages/UsersPage';
+import AuditPage from './pages/AuditPage';
+import NotificationRulesPage from './pages/NotificationRulesPage';
+import NotificationLogPage from './pages/NotificationLogPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const authed = isAuthed(useAuthStore((s) => s.token));
@@ -27,9 +31,23 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Route guard for asset and configuration management.
+ *
+ * Hiding a route is only a usability affordance — the server enforces the same
+ * rule on every endpoint. Roles come from `lib/roles`, which is pinned to the
+ * backend by `tests/roles.test.ts`.
+ */
 function RequireManage() {
   const user = useAuthStore((s) => s.user);
   if (!canManage(user?.role)) return <Navigate to="/dashboard" replace />;
+  return <Outlet />;
+}
+
+/** Platform-operator only: cross-tenant organization management. */
+function RequirePlatformAdmin() {
+  const user = useAuthStore((s) => s.user);
+  if (!isPlatformAdmin(user)) return <Navigate to="/dashboard" replace />;
   return <Outlet />;
 }
 
@@ -52,9 +70,9 @@ export const router = createBrowserRouter([
       { path: 'alarms', element: <AlarmCenter /> },
       { path: 'settings', element: <SettingsPage /> },
       {
+        // Management: tenant admin + platform admin
         element: <RequireManage />,
         children: [
-          { path: 'companies', element: <CompaniesPage /> },
           { path: 'sites', element: <SitesPage /> },
           { path: 'stations/:siteId', element: <StationsPage /> },
           { path: 'dispensers/:stationId', element: <DispensersPage /> },
@@ -62,7 +80,16 @@ export const router = createBrowserRouter([
           { path: 'admin/gateways', element: <GatewaysPage /> },
           { path: 'admin/iot-gateways', element: <IoTGatewaysPage /> },
           { path: 'admin/iot-gateways/:id', element: <IoTGatewayDetailPage /> },
+          { path: 'admin/users', element: <UsersPage /> },
+          { path: 'admin/notification-rules', element: <NotificationRulesPage /> },
+          { path: 'admin/notification-log', element: <NotificationLogPage /> },
+          { path: 'admin/audit', element: <AuditPage /> },
         ],
+      },
+      {
+        // Platform administration: cross-tenant
+        element: <RequirePlatformAdmin />,
+        children: [{ path: 'companies', element: <CompaniesPage /> }],
       },
     ],
   },
