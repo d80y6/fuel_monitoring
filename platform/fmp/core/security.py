@@ -9,7 +9,7 @@ import os
 import secrets
 import time
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import jwt
@@ -62,7 +62,7 @@ def verify_password(plain: str, stored: str) -> bool:
 
 
 def create_access_token(subject: str | int, extra: dict | None = None) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload: dict[str, Any] = {
         "sub": str(subject),
         "iat": now,
@@ -83,7 +83,7 @@ def create_refresh_token(subject: str | int) -> str:
     refresh token can never be accepted as an access token, and the refresh
     path can distinguish it from an access token.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload: dict[str, Any] = {
         "sub": str(subject),
         "iat": now,

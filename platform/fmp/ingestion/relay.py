@@ -11,7 +11,7 @@ import asyncio
 import inspect
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fmp.core.config import get_settings
 
@@ -45,7 +45,7 @@ def compute_backoff(attempts: int) -> int:
 
 
 def next_retry_datetime(attempts: int) -> datetime:
-    return datetime.now(timezone.utc) + timedelta(seconds=compute_backoff(attempts))
+    return datetime.now(UTC) + timedelta(seconds=compute_backoff(attempts))
 
 
 async def enqueue_command(redis, *, command_id: str, gateway_mac: str,
@@ -57,7 +57,7 @@ async def enqueue_command(redis, *, command_id: str, gateway_mac: str,
         "gateway_mac": gateway_mac,
         "type": command_type,
         "payload": payload,
-        "issued_at": issued_at or datetime.now(timezone.utc).isoformat(),
+        "issued_at": issued_at or datetime.now(UTC).isoformat(),
     }
     return await redis.lpush(QUEUE_OUTBOUND, json.dumps(message, default=str))
 
@@ -92,7 +92,7 @@ async def publish_command(_client, redis, command_id: str, gateway_mac: str,
         "command_id": command_id,
         "type": command_type,
         "payload": payload,
-        "issued_at": datetime.now(timezone.utc).isoformat(),
+        "issued_at": datetime.now(UTC).isoformat(),
         "attempts": attempts,
     }
     rc, _mid = _client.publish(
@@ -173,7 +173,7 @@ async def _mark_sent(command_id: str) -> None:
         if row is None:
             return
         row.status = "sent"
-        row.sent_at = datetime.now(timezone.utc)
+        row.sent_at = datetime.now(UTC)
         row.attempts += 1
         row.next_retry_at = next_retry_datetime(row.attempts)
         await session.commit()

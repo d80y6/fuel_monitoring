@@ -1,0 +1,17 @@
+# Development / CI tooling for the platform backend.
+#
+# Runtime dependencies live in requirements.txt. This file pins the tools that
+# only CI and local development need: the lint gate, the dependency audit, and
+# local test conveniences.
+#
+#   pip install -r requirements.txt -r requirements-dev.txt
+#   ruff check fmp/
+#   pytest
+#   pip-audit -r requirements.txt
+-r requirements.txt
+
+ruff>=0.6,<1.0            # lint gate (config in pyproject.toml)
+pip-audit>=2.7,<3.0       # dependency vulnerability scan
+httpx>=0.27               # TestClient / integration-test transport
+pytest>=8.0
+pytest-asyncio>=0.23

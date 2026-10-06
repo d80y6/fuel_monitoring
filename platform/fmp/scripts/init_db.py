@@ -27,8 +27,9 @@ _PLATFORM_ROOT = Path(__file__).resolve().parents[2]
 
 def run_alembic_upgrade_head() -> None:
     """Apply the Alembic chain to ``head`` using the platform's alembic.ini."""
-    from alembic import command
     from alembic.config import Config
+
+    from alembic import command
 
     cfg = Config(str(_PLATFORM_ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(_PLATFORM_ROOT / "alembic"))
@@ -40,9 +41,9 @@ async def init_db() -> None:
     from fmp.core.config import settings
     from fmp.core.database import Base, async_session_factory, engine
     from fmp.ingestion.batch_writer import ensure_hypertables
+    from fmp.ingestion.tsdb_policies import ensure_timescale_policies
     from fmp.scripts.seed_admin import seed_admin
     from fmp.scripts.seed_fuel_types import seed_fuel_types
-    from fmp.ingestion.tsdb_policies import ensure_timescale_policies
 
     async with engine.begin() as conn:
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS timescaledb"))

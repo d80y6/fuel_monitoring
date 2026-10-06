@@ -13,8 +13,8 @@ pytestmark = pytest.mark.asyncio
 @pytest_asyncio.fixture
 async def role_user(db, request):
     """Seed a user of a given role and override get_current_user to return it."""
-    from fmp.api.main import app
     from fmp.api.deps import get_current_user
+    from fmp.api.main import app
     from fmp.core.database import async_session_factory
     from fmp.core.security import hash_password
     from fmp.models import User

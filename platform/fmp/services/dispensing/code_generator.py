@@ -12,8 +12,8 @@ Design
 from __future__ import annotations
 
 import secrets
-from datetime import datetime, timedelta, timezone
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime, timedelta
 
 from fmp.core.config import get_settings
 from fmp.core.redis import RedisClient
@@ -77,4 +77,4 @@ async def _fp_known(redis: RedisClient, fp: str) -> bool:
 
 
 def code_expiry() -> datetime:
-    return datetime.now(timezone.utc) + timedelta(days=settings.CODE_TTL_DAYS)
+    return datetime.now(UTC) + timedelta(days=settings.CODE_TTL_DAYS)

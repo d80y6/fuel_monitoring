@@ -61,7 +61,7 @@ class DispenseCompleteRequest(BaseModel):
     secret_totalizer_after: int = Field(ge=0)
 
     @model_validator(mode="after")
-    def _check_totalizer_monotonic(self) -> "DispenseCompleteRequest":
+    def _check_totalizer_monotonic(self) -> DispenseCompleteRequest:
         if self.secret_totalizer_after < self.secret_totalizer_before:
             raise ValueError("totalizer_after must be >= totalizer_before")
         return self

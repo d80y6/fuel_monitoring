@@ -20,7 +20,7 @@ from __future__ import annotations
 import asyncio
 import os
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy.pool import NullPool
@@ -93,7 +93,7 @@ def _seed_gateway_rows() -> None:
                 command_type="reboot",
                 payload_json={},
                 status="pending",
-                created_at=datetime.now(timezone.utc) - timedelta(hours=1),
+                created_at=datetime.now(UTC) - timedelta(hours=1),
             ))
             # sent, at max attempts, past next_retry_at → failed_sent branch
             session.add(GatewayCommand(
@@ -103,7 +103,7 @@ def _seed_gateway_rows() -> None:
                 status="sent",
                 attempts=3,
                 max_attempts=3,
-                next_retry_at=datetime.now(timezone.utc) - timedelta(minutes=5),
+                next_retry_at=datetime.now(UTC) - timedelta(minutes=5),
             ))
             await session.commit()
 

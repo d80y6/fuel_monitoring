@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -37,7 +37,7 @@ async def test_authenticated_alarm_acknowledgement_persists_actor_and_tenant(db)
         await session.flush()
         alarm = Alarm(
             tank_id=tank.id,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             type="low_level",
             level="WARNING",
             message="Low fuel level",

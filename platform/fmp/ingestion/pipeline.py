@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import object_session
@@ -223,7 +223,7 @@ class IngestionPipeline:
                 # violation can fire again.
                 continue
             row.state = "resolved"
-            row.resolved_at = datetime.now(timezone.utc)
+            row.resolved_at = datetime.now(UTC)
             row.resolved_message = (
                 f"Condition cleared: value {value:.3f} "
                 f"{'m' if alarm_type.endswith('level') else 'L'} back inside the safe band "
@@ -319,11 +319,11 @@ class IngestionPipeline:
             )
 
             if fired_alarms or resolved:
-                from datetime import datetime, timezone
+                from datetime import datetime
 
                 from fmp.models import Alarm
 
-                at = captured_at or datetime.now(timezone.utc)
+                at = captured_at or datetime.now(UTC)
                 for cand in fired_alarms:
                     session.add(Alarm(
                         tank_id=tank.id, timestamp=at, type=cand.type,
@@ -402,7 +402,7 @@ async def publish_alarm(redis, tank, alarm: AlarmCandidate, at=None, *, company_
         "tank_id": str(tank.id),
         "company_id": company_id,
         "state": state,
-        "timestamp": (at or datetime.now(timezone.utc)).isoformat(),
+        "timestamp": (at or datetime.now(UTC)).isoformat(),
     })
 
 
@@ -417,5 +417,5 @@ async def publish_alarm_resolution(redis, tank, alarm, at=None, *, company_id=No
         "alarm_id": str(alarm.id),
         "company_id": company_id,
         "state": "resolved",
-        "timestamp": (at or datetime.now(timezone.utc)).isoformat(),
+        "timestamp": (at or datetime.now(UTC)).isoformat(),
     })

@@ -14,8 +14,8 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import select
 
 from fmp.api.deps import CurrentUser, SessionDep
-from fmp.core.tenancy import company_id_for_tank, tenant_scope
 from fmp.core.config import get_settings
+from fmp.core.tenancy import company_id_for_tank, tenant_scope
 from fmp.models import Tank
 from fmp.services.analytics.consumption import compute_consumption
 

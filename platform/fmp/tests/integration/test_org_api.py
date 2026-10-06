@@ -1,8 +1,8 @@
 """Integration tests for dispensers PATCH endpoint."""
 from __future__ import annotations
 
-import pytest
 import httpx
+import pytest
 
 pytestmark = pytest.mark.asyncio
 

@@ -77,9 +77,10 @@ async def test_gateway_crud_and_link(api):
     assert r.status_code == 200 and r.json()["name"] == "East Gate"
 
     # patch: rename + link a tank (the api fixture seeds one)
+    from sqlalchemy import select
+
     from fmp.core.database import async_session_factory
     from fmp.models import Tank
-    from sqlalchemy import select
 
     async with async_session_factory() as session:
         tank = (await session.execute(select(Tank))).scalars().first()

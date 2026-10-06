@@ -23,10 +23,9 @@ def _reset_dependency_overrides():
 async def db():
     """Fresh schema per test against the live TimescaleDB (fuel_test)."""
     os.environ.setdefault("POSTGRES_DB", "fuel_test")
+    import fmp.models  # noqa: F401
     from fmp.core.database import Base, async_session_factory, engine
     from fmp.ingestion.batch_writer import ensure_hypertables
-
-    import fmp.models  # noqa: F401
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)

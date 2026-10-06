@@ -49,11 +49,17 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-          cache-dependency-path: platform/requirements.txt
+          cache-dependency-path: |
+            platform/requirements.txt
+            platform/requirements-dev.txt
 
       - name: Install Python dependencies
         working-directory: platform
-        run: pip install -r requirements.txt
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        working-directory: platform
+        run: ruff check fmp/
 
       - name: Run pytest (unit + integration)
         working-directory: platform
@@ -71,9 +77,8 @@ jobs:
         run: pytest -q
 
       - name: Python dependency security scan (pip-audit)
-        run: |
-          pip install pip-audit
-          pip-audit
+        working-directory: platform
+        run: pip-audit -r requirements.txt
 
   frontend:
     name: Frontend (tsc + vitest + npm audit)

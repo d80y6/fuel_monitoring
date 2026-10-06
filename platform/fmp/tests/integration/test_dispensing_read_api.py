@@ -18,8 +18,8 @@ pytestmark = pytest.mark.asyncio
 @pytest_asyncio.fixture
 async def token_override(db):
     """Seed an admin user and override get_current_user to return it."""
-    from fmp.api.main import app
     from fmp.api.deps import get_current_user
+    from fmp.api.main import app
     from fmp.core.database import async_session_factory
     from fmp.core.security import hash_password
     from fmp.models import User
@@ -58,8 +58,8 @@ async def seed_data(db):
         Allocation,
         Company,
         DispenseCode,
-        DispenseTransaction,
         Dispenser,
+        DispenseTransaction,
         Employee,
         Site,
         Station,

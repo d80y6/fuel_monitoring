@@ -20,7 +20,7 @@ from __future__ import annotations
 import asyncio
 import math
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 from sqlalchemy import select
@@ -70,7 +70,7 @@ def _hourly_volumes(days: int) -> list[float]:
     for i in range(days * HOURS_PER_DAY + 1):
         volumes.append(round(v, 1))
         hour_of_day = i % HOURS_PER_DAY
-        if hour_of_day == 6 and 5 <= i // HOURS_PER_DAY % 2:
+        if hour_of_day == 6 and i // HOURS_PER_DAY % 2 >= 5:
             v = start + rng.uniform(-700, -200)
         elif hour_of_day == 6:
             v = start + rng.uniform(300, 800)
@@ -135,14 +135,14 @@ async def _get_or_create(session: AsyncSession) -> dict:
             raspberry_pi_id="pi-demo-0001",
             firmware_version="2.1.0",
             connection_status="online",
-            last_heartbeat=datetime.now(timezone.utc),
+            last_heartbeat=datetime.now(UTC),
         )
         session.add(station)
         await session.flush()
     else:
         station.site_id = site.id
         station.connection_status = "online"
-        station.last_heartbeat = datetime.now(timezone.utc)
+        station.last_heartbeat = datetime.now(UTC)
 
     dispenser = (
         await session.execute(
@@ -199,13 +199,13 @@ async def _get_or_create(session: AsyncSession) -> dict:
                 firmware_version="1.4.0",
                 connection_status="online",
                 is_active=True,
-                last_seen=datetime.now(timezone.utc),
+                last_seen=datetime.now(UTC),
             )
             session.add(gw)
             await session.flush()
         else:
             gw.connection_status = "online"
-            gw.last_seen = datetime.now(timezone.utc)
+            gw.last_seen = datetime.now(UTC)
             gw.is_active = True
         gateways.append(gw)
 
@@ -242,7 +242,7 @@ async def _get_or_create(session: AsyncSession) -> dict:
                 high_volume_threshold=9500.0,
                 is_active=True,
                 connection_status="online",
-                last_connection=datetime.now(timezone.utc),
+                last_connection=datetime.now(UTC),
             )
             session.add(tank)
             await session.flush()
@@ -251,7 +251,7 @@ async def _get_or_create(session: AsyncSession) -> dict:
             tank.gateway_id = gateways[idx].id
             tank.gateway_mac = gateways[idx].gateway_mac
             tank.connection_status = "online"
-            tank.last_connection = datetime.now(timezone.utc)
+            tank.last_connection = datetime.now(UTC)
         tanks.append(tank)
 
     return {
@@ -268,7 +268,7 @@ async def _get_or_create(session: AsyncSession) -> dict:
 
 def _build_measurement_rows(tank: Tank, fuel_density: float) -> list[dict]:
     volumes = _hourly_volumes(SEED_DAYS)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start = (now - timedelta(days=SEED_DAYS)).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
@@ -306,9 +306,10 @@ def _build_measurement_rows(tank: Tank, fuel_density: float) -> list[dict]:
 
 async def seed_demo(engine: AsyncEngine | None = None) -> dict:
     """Seed the demo hierarchy + telemetry; returns a summary of what exists."""
-    from fmp.core.database import async_session_factory, engine as default_engine
-    from fmp.models import FuelType, Tank
+    from fmp.core.database import async_session_factory
+    from fmp.core.database import engine as default_engine
     from fmp.ingestion.batch_writer import ensure_hypertables, insert_measurements
+    from fmp.models import FuelType, Tank
 
     owns_engine = engine is None
     if owns_engine:

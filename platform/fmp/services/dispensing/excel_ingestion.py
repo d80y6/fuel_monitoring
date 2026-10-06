@@ -17,14 +17,12 @@ rejected wholesale.
 """
 from __future__ import annotations
 
-import asyncio
 import csv
 import json
 import logging
-import random
 import re
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -81,7 +79,7 @@ class _Row:
     is_error: bool = False
 
     @classmethod
-    def error(cls, row_index: int, employee_id: str, msg: str) -> "_Row":
+    def error(cls, row_index: int, employee_id: str, msg: str) -> _Row:
         return cls(
             row_index=row_index,
             result=ExcelRowOutput(
@@ -92,7 +90,7 @@ class _Row:
         )
 
     @classmethod
-    def ok(cls, fields: dict, row_index: int) -> "_Row":
+    def ok(cls, fields: dict, row_index: int) -> _Row:
         return cls(
             row_index=row_index,
             result=ExcelRowOutput(

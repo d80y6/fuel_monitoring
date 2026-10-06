@@ -24,7 +24,8 @@ async def seed_admin(engine: AsyncEngine | None = None) -> str:
     caller-provided engine is never disposed — ownership stays with the caller.
     """
     from fmp.core.config import settings
-    from fmp.core.database import async_session_factory, engine as default_engine
+    from fmp.core.database import async_session_factory
+    from fmp.core.database import engine as default_engine
     from fmp.core.security import hash_password, validate_password_complexity
     from fmp.models.user import User
 

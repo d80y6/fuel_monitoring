@@ -6,16 +6,15 @@ from datetime import datetime
 
 from sqlalchemy import (
     BigInteger,
-    Boolean,
     DateTime,
     Float,
     ForeignKey,
+    Identity,
     Integer,
     PrimaryKeyConstraint,
     String,
     Text,
 )
-from sqlalchemy import Identity
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -42,10 +41,10 @@ class Allocation(TimestampMixin, Base):
     remaining_liters: Mapped[float] = mapped_column(Float, default=0.0)
     status: Mapped[str] = mapped_column(String(32), default="PENDING", index=True)
 
-    employee: Mapped["Employee"] = relationship(  # noqa: F821
+    employee: Mapped[Employee] = relationship(  # noqa: F821
         back_populates="allocations", lazy="selectin"
     )
-    codes: Mapped[list["DispenseCode"]] = relationship(back_populates="allocation")
+    codes: Mapped[list[DispenseCode]] = relationship(back_populates="allocation")
 
 
 class DispenseCode(TimestampMixin, Base):
@@ -75,7 +74,7 @@ class DispenseCode(TimestampMixin, Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    allocation: Mapped["Allocation"] = relationship(back_populates="codes")
+    allocation: Mapped[Allocation] = relationship(back_populates="codes")
 
 
 class DispenseTransaction(TimestampMixin, Base):

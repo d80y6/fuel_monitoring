@@ -7,7 +7,7 @@ forecast accumulate at a fixed cadence and can be audited post-hoc.
 from __future__ import annotations
 
 import uuid as uuid_type
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
@@ -31,5 +31,5 @@ class ConsumptionSummary(UUIDPrimaryKeyMixin, Base):
     forecast_liters_per_day: Mapped[float | None] = mapped_column(Float)
     forecast_window_days: Mapped[int | None] = mapped_column(Integer)
     computed_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )

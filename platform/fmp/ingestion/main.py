@@ -18,20 +18,20 @@ import logging
 import ssl
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select
-
 from fastapi import Depends, FastAPI
-from paho.mqtt.client import Client as MqttClient, CallbackAPIVersion
+from paho.mqtt.client import CallbackAPIVersion
+from paho.mqtt.client import Client as MqttClient
+from sqlalchemy import select
 
 from fmp.core.config import get_settings
 from fmp.core.database import async_session_factory
+from fmp.core.device_auth import require_ingest_key
 from fmp.core.redis import RedisClient
 from fmp.ingestion.pipeline import IngestionPipeline, publish_live
 from fmp.ingestion.relay import parse_command_ack_topic
-from fmp.core.device_auth import require_ingest_key
 from fmp.schemas.dispensing import CodeValidateRequest, DispenseCompleteRequest
 from fmp.schemas.telemetry import BackfillBatch, IngestOutcome, TelemetryFrame
 from fmp.services.dispensing.dispense_engine import complete_dispense, validate_code
@@ -106,7 +106,7 @@ _dead_letters: list[dict[str, Any]] = []
 def _dead_letter(gateway_mac: str, kind: str, payload: dict[str, Any], reason: str) -> None:
     """Record a rejected frame with the reason it could not be applied (G-115)."""
     entry = {
-        "at": datetime.now(timezone.utc).isoformat(),
+        "at": datetime.now(UTC).isoformat(),
         "gateway_mac": gateway_mac,
         "kind": kind,
         "reason": reason,
@@ -300,7 +300,7 @@ async def _handle_reading(redis: RedisClient, payload: dict[str, Any], *, gatewa
         if captured_at is None:
             # tz-aware: the measurements hypertable is timestamptz and a naive
             # value would be interpreted in the server's local zone (G-205).
-            captured_at = datetime.now(timezone.utc)
+            captured_at = datetime.now(UTC)
 
         company_id = await resolve_company_id(raw_redis, session, str(tank.id))
         reading = await pipeline.process(
@@ -367,7 +367,7 @@ async def _handle_status(redis: RedisClient, payload: dict[str, Any], gateway_ma
     """Update tank + owning station and (re)register the gateway on a heartbeat."""
     from fmp.models import IoTGateway, Station, Tank
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     firmware = payload.get("firmware_version")
     async with async_session_factory() as session:
         gateway = (
@@ -435,14 +435,14 @@ async def _handle_command_ack(redis: RedisClient, payload: dict[str, Any], gatew
         row.status = "acked" if status == "executed" else "rejected"
         row.ack_status = status
         row.ack_detail = payload.get("detail")
-        row.ack_received_at = datetime.now(timezone.utc)
+        row.ack_received_at = datetime.now(UTC)
         row.next_retry_at = None
         gateway = (
             await session.execute(select(IoTGateway).where(IoTGateway.id == row.gateway_id))
         ).scalar_one_or_none()
         if gateway is not None:
             gateway.connection_status = "online"
-            gateway.last_seen = datetime.now(timezone.utc)
+            gateway.last_seen = datetime.now(UTC)
         await session.commit()
         logger.info("command %s %s (gateway %s)", command_id, status, gateway_mac)
 

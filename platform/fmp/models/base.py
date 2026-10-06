@@ -8,7 +8,11 @@ from sqlalchemy import DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
+# Re-exported: every model module and the test suite import ``Base`` from here,
+# so it is part of this module's public surface, not an unused import.
 from fmp.core.database import Base
+
+__all__ = ["Base", "SoftDeleteMixin", "TimestampMixin", "UUIDPrimaryKeyMixin"]
 
 
 class UUIDPrimaryKeyMixin:

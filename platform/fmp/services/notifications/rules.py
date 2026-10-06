@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -217,4 +217,4 @@ DEFAULT_TEST_TEXT = (
 
 
 def default_test_text() -> str:
-    return DEFAULT_TEST_TEXT.format(sent_at=datetime.now(timezone.utc).isoformat())
+    return DEFAULT_TEST_TEXT.format(sent_at=datetime.now(UTC).isoformat())

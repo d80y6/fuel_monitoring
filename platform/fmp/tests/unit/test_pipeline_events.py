@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import UTC
 
 import pytest
 
@@ -37,7 +38,7 @@ def _tank(**overrides):
 async def test_alarm_published_to_alarms_channel_on_first_crossing():
     from datetime import datetime, timezone
 
-    from fmp.ingestion.pipeline import IngestionPipeline, ALARMS_CHANNEL
+    from fmp.ingestion.pipeline import ALARMS_CHANNEL, IngestionPipeline
 
     # only the critical threshold is above the simulated level (~0.36 m)
     tank = _tank(
@@ -51,7 +52,7 @@ async def test_alarm_published_to_alarms_channel_on_first_crossing():
     r = await pipeline.process(
         FakeSession(), redis, tank,
         pressure=0.03, temperature=25.0,
-        captured_at=datetime.now(timezone.utc),
+        captured_at=datetime.now(UTC),
     )
     assert r is not None
     assert any(a.type == "critical_level" for a in r.alarms)
@@ -67,7 +68,7 @@ async def test_alarm_published_to_alarms_channel_on_first_crossing():
 async def test_alarm_not_republished_while_open():
     from datetime import datetime, timezone
 
-    from fmp.ingestion.pipeline import IngestionPipeline, ALARMS_CHANNEL
+    from fmp.ingestion.pipeline import ALARMS_CHANNEL, IngestionPipeline
 
     tank = _tank(
         low_level_threshold=0.2,
@@ -80,7 +81,7 @@ async def test_alarm_not_republished_while_open():
         await pipeline.process(
             FakeSession(), redis, tank,
             pressure=0.03, temperature=25.0,
-            captured_at=datetime.now(timezone.utc),
+            captured_at=datetime.now(UTC),
         )
 
     alarm_msgs = [m for ch, m in redis.published if ch == ALARMS_CHANNEL]
@@ -91,7 +92,7 @@ async def test_alarm_not_republished_while_open():
 async def test_reading_published_to_telemetry_channel():
     from datetime import datetime, timezone
 
-    from fmp.ingestion.pipeline import IngestionPipeline, LIVE_CHANNEL, publish_live
+    from fmp.ingestion.pipeline import LIVE_CHANNEL, IngestionPipeline, publish_live
 
     tank = _tank()
     redis = FakeRedis()
@@ -100,7 +101,7 @@ async def test_reading_published_to_telemetry_channel():
     r = await pipeline.process(
         FakeSession(), redis, tank,
         pressure=0.125, temperature=25.0,
-        captured_at=datetime.now(timezone.utc),
+        captured_at=datetime.now(UTC),
     )
     assert r is not None
     await publish_live(redis, r)
@@ -137,7 +138,7 @@ class _TankStub:
 
 @pytest.mark.asyncio
 async def test_processed_reading_carries_gov_nsv_density():
-    from fmp.ingestion.pipeline import IngestionPipeline, LIVE_CHANNEL, publish_live
+    from fmp.ingestion.pipeline import LIVE_CHANNEL, IngestionPipeline, publish_live
 
     pipeline = IngestionPipeline(write_batch=False)
     redis = FakeRedis()

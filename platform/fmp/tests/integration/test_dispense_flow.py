@@ -76,9 +76,9 @@ async def _seed_fixture(session, redis):
 
 
 async def test_full_partial_dispense_flow(requires_infra):
+    import fmp.models  # noqa: F401
     from fmp.core.database import Base, async_session_factory, engine
     from fmp.core.redis import RedisClient
-    import fmp.models  # noqa: F401
 
     # isolate: use a dedicated test database name
     os.environ.setdefault("POSTGRES_DB", "fuel_test")

@@ -20,7 +20,7 @@ site belongs to their company (see fmp.core.tenancy).
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -55,10 +55,10 @@ def effective_status(tank: Tank, now: datetime | None = None) -> str:
     """Freshness-aware status: stale heartbeats always read as offline."""
     if tank.last_connection is None:
         return "offline"
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     last = tank.last_connection
     if last.tzinfo is None:
-        last = last.replace(tzinfo=timezone.utc)
+        last = last.replace(tzinfo=UTC)
     if now - last > timedelta(seconds=settings.TANK_STALE_AFTER_SECONDS):
         return "offline"
     return tank.connection_status
@@ -367,7 +367,7 @@ async def acknowledge_alarm(
         raise HTTPException(404, "alarm not found")
     alarm.acknowledged = True
     alarm.acknowledged_by = current.id
-    alarm.acknowledged_at = datetime.now(timezone.utc)
+    alarm.acknowledged_at = datetime.now(UTC)
     if alarm.state == "active":
         alarm.state = "acknowledged"
     audit_log.record(

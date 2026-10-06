@@ -20,7 +20,7 @@ Validation rules chosen for industrial probes:
 from __future__ import annotations
 
 import math
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -33,7 +33,7 @@ MIN_PRESSURE_BAR = -2.0
 #: Sanity ceiling — beyond this a frame is a device fault, not a real tank.
 MAX_PRESSURE_BAR = 50.0
 #: Device clocks drift, but a frame from before this epoch is a fault.
-EARLIEST_PLAUSIBLE = datetime(2000, 1, 1, tzinfo=timezone.utc)
+EARLIEST_PLAUSIBLE = datetime(2000, 1, 1, tzinfo=UTC)
 #: Frames may be buffered offline, so allow modest future skew.
 MAX_FUTURE_SKEW = timedelta(days=1)
 
@@ -83,12 +83,12 @@ class TelemetryFrame(BaseModel):
         if v is None:
             return None
         if v.tzinfo is None:
-            v = v.replace(tzinfo=timezone.utc)
+            v = v.replace(tzinfo=UTC)
         else:
-            v = v.astimezone(timezone.utc)
+            v = v.astimezone(UTC)
         if v < EARLIEST_PLAUSIBLE:
             raise ValueError("device timestamp predates 2000 — suspect device clock")
-        if v > datetime.now(timezone.utc) + MAX_FUTURE_SKEW:
+        if v > datetime.now(UTC) + MAX_FUTURE_SKEW:
             raise ValueError("device timestamp is more than a day in the future")
         return v
 

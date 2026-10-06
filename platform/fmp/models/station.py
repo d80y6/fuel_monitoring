@@ -8,12 +8,12 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from fmp.core.database import Base
 from fmp.models.base import (
     SoftDeleteMixin,
     TimestampMixin,
     UUIDPrimaryKeyMixin,
 )
-from fmp.core.database import Base
 
 
 class Company(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
@@ -25,8 +25,8 @@ class Company(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     contact_email: Mapped[str | None] = mapped_column(String(120))
     contact_phone: Mapped[str | None] = mapped_column(String(20))
 
-    sites: Mapped[list["Site"]] = relationship(back_populates="company")
-    employees: Mapped[list["Employee"]] = relationship(back_populates="company")
+    sites: Mapped[list[Site]] = relationship(back_populates="company")
+    employees: Mapped[list[Employee]] = relationship(back_populates="company")
 
 
 class Site(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
@@ -40,9 +40,9 @@ class Site(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     location: Mapped[str | None] = mapped_column(String(255))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    company: Mapped["Company"] = relationship(back_populates="sites")
-    stations: Mapped[list["Station"]] = relationship(back_populates="site")
-    tanks: Mapped[list["Tank"]] = relationship(back_populates="site")  # noqa: F821
+    company: Mapped[Company] = relationship(back_populates="sites")
+    stations: Mapped[list[Station]] = relationship(back_populates="site")
+    tanks: Mapped[list[Tank]] = relationship(back_populates="site")  # noqa: F821
 
 
 class Station(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
@@ -64,8 +64,8 @@ class Station(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     api_key_hash: Mapped[str | None] = mapped_column(String(256))
     api_key_prefix: Mapped[str | None] = mapped_column(String(16), index=True)
 
-    site: Mapped["Site"] = relationship(back_populates="stations")
-    dispensers: Mapped[list["Dispenser"]] = relationship(back_populates="station")
+    site: Mapped[Site] = relationship(back_populates="stations")
+    dispensers: Mapped[list[Dispenser]] = relationship(back_populates="station")
 
 
 class Dispenser(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -80,7 +80,7 @@ class Dispenser(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     dispenser_model: Mapped[str | None] = mapped_column(String(64))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    station: Mapped["Station"] = relationship(back_populates="dispensers")
+    station: Mapped[Station] = relationship(back_populates="dispensers")
 
 
 class Employee(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
@@ -95,7 +95,7 @@ class Employee(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    company: Mapped["Company"] = relationship(back_populates="employees")
-    allocations: Mapped[list["Allocation"]] = relationship(  # noqa: F821
+    company: Mapped[Company] = relationship(back_populates="employees")
+    allocations: Mapped[list[Allocation]] = relationship(  # noqa: F821
         back_populates="employee"
     )

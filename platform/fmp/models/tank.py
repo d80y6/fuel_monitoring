@@ -5,7 +5,16 @@ import uuid as uuid_type
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, PrimaryKeyConstraint, String, Text
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    PrimaryKeyConstraint,
+    String,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -69,12 +78,12 @@ class Tank(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     connection_status: Mapped[str] = mapped_column(String(20), default="offline")
     last_connection: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    site: Mapped["Site"] = relationship(back_populates="tanks")  # noqa: F821
-    gateway: Mapped["IoTGateway"] = relationship(back_populates="tanks")  # noqa: F821
-    alarms: Mapped[list["Alarm"]] = relationship(
+    site: Mapped[Site] = relationship(back_populates="tanks")  # noqa: F821
+    gateway: Mapped[IoTGateway] = relationship(back_populates="tanks")  # noqa: F821
+    alarms: Mapped[list[Alarm]] = relationship(
         back_populates="tank", cascade="all, delete-orphan"
     )
-    fuel_type: Mapped["FuelType"] = relationship(lazy="selectin")  # noqa: F821
+    fuel_type: Mapped[FuelType] = relationship(lazy="selectin")  # noqa: F821
 
     @property
     def total_capacity_liters(self) -> float:
@@ -107,7 +116,7 @@ class Alarm(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     acknowledged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    tank: Mapped["Tank"] = relationship(back_populates="alarms")
+    tank: Mapped[Tank] = relationship(back_populates="alarms")
 
 
 class Measurement(Base):

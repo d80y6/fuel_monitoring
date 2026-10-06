@@ -9,7 +9,7 @@ from __future__ import annotations
 import csv
 import io
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
@@ -18,9 +18,9 @@ pytestmark = pytest.mark.asyncio
 
 async def test_csv_export_measurements(client):
     from fmp.core.database import async_session_factory
-    from fmp.models import Company, Site, Tank, Measurement
+    from fmp.models import Company, Measurement, Site, Tank
 
-    t0 = datetime.now(timezone.utc)
+    t0 = datetime.now(UTC)
     volumes = []
 
     async with async_session_factory() as session:
@@ -117,8 +117,8 @@ async def test_csv_export_requires_authentication(client):
         session.add(tank)
         await session.commit()
 
-    start = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
-    end = datetime.now(timezone.utc).isoformat()
+    start = (datetime.now(UTC) - timedelta(days=1)).isoformat()
+    end = datetime.now(UTC).isoformat()
     resp = await client.get(
         f"/api/v1/tanks/{tank.id}/export",
         params={"start": start, "end": end},

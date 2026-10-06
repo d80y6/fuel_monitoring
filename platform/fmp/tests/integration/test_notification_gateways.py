@@ -10,11 +10,10 @@ pytestmark = pytest.mark.asyncio
 
 @pytest_asyncio.fixture
 async def token_override(db):
-    from fmp.core.database import async_session_factory
-    from fmp.core.security import hash_password
-    from fmp.models import User
     from fmp.api.deps import get_current_user
-    from fmp.core.security import create_access_token
+    from fmp.core.database import async_session_factory
+    from fmp.core.security import create_access_token, hash_password
+    from fmp.models import User
 
     pw = hash_password("AdminPass123")
     async with async_session_factory() as session:

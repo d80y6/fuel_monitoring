@@ -7,10 +7,11 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_backfill_assigns_gateway_id(requires_infra, db):
+    from sqlalchemy import select
+
     from fmp.core.database import async_session_factory
     from fmp.models import Company, IoTGateway, Site, Tank
     from fmp.scripts.backfill_gateways import backfill_gateways
-    from sqlalchemy import select
 
     async with async_session_factory() as session:
         company = Company(name="BackfillCo")
@@ -47,10 +48,11 @@ async def test_backfill_assigns_gateway_id(requires_infra, db):
 
 
 async def test_backfill_idempotent(requires_infra, db):
+    from sqlalchemy import func, select
+
     from fmp.core.database import async_session_factory
     from fmp.models import Company, IoTGateway, Site, Tank
     from fmp.scripts.backfill_gateways import backfill_gateways
-    from sqlalchemy import select, func
 
     async with async_session_factory() as session:
         co = Company(name="TestCo-Idem")

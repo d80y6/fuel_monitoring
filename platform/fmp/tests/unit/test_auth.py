@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import pytest
 
@@ -87,7 +87,7 @@ def test_issue_token_contains_role_claim():
 
 @pytest.mark.asyncio
 async def test_load_user_for_token_roundtrip():
-    user = _user(last_login=datetime.now(timezone.utc))
+    user = _user(last_login=datetime.now(UTC))
     token = issue_token_for_user(user)
     loaded = await load_user_for_token(StubSession(user), token)
     assert loaded is user

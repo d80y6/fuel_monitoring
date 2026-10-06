@@ -24,7 +24,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -32,7 +32,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from fmp.core.config import get_settings
 from fmp.core.redis import RedisClient
-from fmp.core.security import code_fingerprint, hash_code, verify_code
+from fmp.core.security import code_fingerprint, verify_code
 from fmp.models.dispensing import (
     Allocation,
     DispenseCode,
@@ -100,7 +100,7 @@ async def validate_code(
         return _reject("code_not_active")
     if disp_code.attempt_count >= disp_code.max_attempts:
         return _reject("max_attempts_exceeded")
-    if disp_code.expires_at is not None and disp_code.expires_at < datetime.now(timezone.utc):
+    if disp_code.expires_at is not None and disp_code.expires_at < datetime.now(UTC):
         return _reject("code_expired")
     if allocation.status in {"FULFILLED", "VOID"}:
         return _reject("allocation_settled")
@@ -165,7 +165,7 @@ async def complete_dispense(
         allocation.remaining_liters = round(max(0.0, remaining_before - actual), 3)
         disp_code.consumed_liters = round(disp_code.consumed_liters + actual, 3)
         disp_code.status = "CONSUMED"
-        disp_code.used_at = datetime.now(timezone.utc)
+        disp_code.used_at = datetime.now(UTC)
 
         txn = DispenseTransaction(
             station_id=req.station_id,

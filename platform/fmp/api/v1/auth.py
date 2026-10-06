@@ -23,7 +23,6 @@ from fmp.core.security import (
     validate_password_complexity,
     verify_password,
 )
-from fmp.models import User
 from fmp.schemas.user import ChangePasswordRequest, ChangePasswordResponse, UserRead
 from fmp.services.auth import authenticate, load_active_user
 

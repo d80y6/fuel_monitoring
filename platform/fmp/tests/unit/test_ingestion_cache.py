@@ -6,10 +6,10 @@ import pytest
 from fmp.ingestion.cache import (
     TANK_CACHE_TTL,
     TANK_NEG_TTL,
+    gateway_cache_key,
     neg_cache_key,
     resolve_tank_id,
     serial_cache_key,
-    gateway_cache_key,
 )
 from fmp.tests.conftest import FakeRedis
 

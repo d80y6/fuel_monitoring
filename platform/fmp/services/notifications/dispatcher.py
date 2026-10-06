@@ -21,7 +21,7 @@ import logging
 import struct
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -418,7 +418,7 @@ async def log_delivery(
             provider_message_id=provider_message_id,
             error_message=(error or None),
             retry_count=retry,
-            sent_at=datetime.now(timezone.utc) if status == "SENT" else None,
+            sent_at=datetime.now(UTC) if status == "SENT" else None,
         )
     )
     await session.commit()

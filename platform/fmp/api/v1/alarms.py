@@ -6,7 +6,7 @@ N+1 fan-out over ``/api/v1/tanks/{id}/alarms``.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import desc, select
@@ -95,7 +95,7 @@ async def ack_alarm(
     alarm, _tank, _site = await _load_scoped(session, alarm_id, current)
     alarm.acknowledged = True
     alarm.acknowledged_by = current.id
-    alarm.acknowledged_at = datetime.now(timezone.utc)
+    alarm.acknowledged_at = datetime.now(UTC)
     if alarm.state == "active":
         alarm.state = "acknowledged"
     audit_log.record(
@@ -115,7 +115,7 @@ async def resolve_alarm(
 ):
     alarm, tank, site = await _load_scoped(session, alarm_id, current)
     alarm.state = "resolved"
-    alarm.resolved_at = datetime.now(timezone.utc)
+    alarm.resolved_at = datetime.now(UTC)
     alarm.resolved_message = message or f"resolved manually by {current.username}"
     alarm.acknowledged = True
     audit_log.record(

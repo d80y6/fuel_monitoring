@@ -26,9 +26,9 @@ async def ensure_hypertables(session) -> list[str]:
     created: list[str] = []
     for table, (column, chunk_interval) in HYPERTABLE_CONFIG.items():
         await session.execute(text(
-            f"SELECT create_hypertable(':table', ':column', "
-            f"chunk_time_interval => INTERVAL ':interval', "
-            f"if_not_exists => TRUE, migrate_data => TRUE)"
+            "SELECT create_hypertable(':table', ':column', "
+            "chunk_time_interval => INTERVAL ':interval', "
+            "if_not_exists => TRUE, migrate_data => TRUE)"
             .replace(":table", table)
             .replace(":column", column)
             .replace(":interval", chunk_interval)

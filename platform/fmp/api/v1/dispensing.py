@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fmp.api.deps import CurrentUser, PrivilegedUser, SessionDep
 from fmp.core.database import get_session
 from fmp.core.device_auth import require_station
-from fmp.core.redis import get_redis_client, RedisClient
+from fmp.core.redis import RedisClient, get_redis_client
 from fmp.core.tenancy import scope_company_query, tenant_scope
 from fmp.models import Allocation, Company, DispenseTransaction, Site, Station, UploadBatch
 from fmp.schemas.dispensing import (

@@ -67,8 +67,8 @@ async def tank_seed(db):
 
 
 def _set_override(user):
-    from fmp.api.main import app
     from fmp.api.deps import get_current_user
+    from fmp.api.main import app
 
     app.dependency_overrides[get_current_user] = lambda: user
 

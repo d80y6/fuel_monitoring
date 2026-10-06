@@ -16,7 +16,7 @@ from dataclasses import dataclass
 
 from sqlalchemy import Select
 
-from fmp.models import Tank, Site, Station, User
+from fmp.models import Site, Station, Tank, User
 
 
 @dataclass(frozen=True)

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -18,7 +18,7 @@ settings = get_settings()
 
 
 async def _scan_and_sweep() -> dict[str, int]:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     pending_cutoff = now - timedelta(seconds=settings.COMMAND_PENDING_TTL_SECONDS)
     retried = failed_sent = failed_pending = 0
 

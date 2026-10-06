@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import pytest
 
@@ -12,10 +12,11 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_status_heartbeat_auto_registers_gateway(requires_infra, db):
+    from sqlalchemy import select
+
     from fmp.core.database import async_session_factory
     from fmp.ingestion.main import _handle_status
     from fmp.models import IoTGateway
-    from sqlalchemy import select
 
     await _handle_status(FakeRedis(), {"status": "online", "firmware_version": "2.1.0"},
                          "AA:BB:CC:DD:EE:77")
@@ -42,7 +43,7 @@ async def test_ack_handler_updates_row_and_gateway(requires_infra, db):
         cmd = GatewayCommand(
             gateway_id=gw.id, command_type="reboot", payload_json={},
             status="sent", attempts=1, max_attempts=3,
-            next_retry_at=datetime.now(timezone.utc),
+            next_retry_at=datetime.now(UTC),
         )
         session.add(cmd)
         await session.commit()
@@ -67,10 +68,11 @@ async def test_ack_handler_updates_row_and_gateway(requires_infra, db):
 
 
 async def test_unknown_ack_is_ignored(requires_infra, db):
+    from sqlalchemy import select
+
     from fmp.core.database import async_session_factory
     from fmp.ingestion.main import _handle_command_ack
     from fmp.models import GatewayCommand
-    from sqlalchemy import select
 
     await _handle_command_ack(
         FakeRedis(), {"command_id": str(uuid.uuid4()), "status": "executed"}, "AA:BB:CC:DD:EE:99"
@@ -82,14 +84,15 @@ async def test_unknown_ack_is_ignored(requires_infra, db):
 async def test_sweeper_requeues_then_fails(requires_infra, db):
     from datetime import timedelta
 
+    from sqlalchemy import select
+
     from fmp.core.database import async_session_factory
     from fmp.core.redis import RedisClient
     from fmp.ingestion.relay import QUEUE_OUTBOUND
     from fmp.models import GatewayCommand, IoTGateway
     from fmp.workers.tasks.commands import _scan_and_sweep
-    from sqlalchemy import select
 
-    ago = datetime.now(timezone.utc) - timedelta(minutes=10)
+    ago = datetime.now(UTC) - timedelta(minutes=10)
 
     async with async_session_factory() as session:
         gw = IoTGateway(gateway_mac="AA:BB:CC:DD:EE:05", name="GW5", is_active=True)
@@ -120,7 +123,7 @@ async def test_sweeper_requeues_then_fails(requires_infra, db):
             select(GatewayCommand).where(GatewayCommand.command_id == cmd_id)
         )).scalar_one()
         cmd.attempts = 3
-        cmd.next_retry_at = datetime.now(timezone.utc) - timedelta(minutes=5)
+        cmd.next_retry_at = datetime.now(UTC) - timedelta(minutes=5)
         await session.commit()
 
     await _scan_and_sweep()

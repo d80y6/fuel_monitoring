@@ -7,9 +7,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from fmp.api.v1 import (
-    auth as auth_router,
-)
-from fmp.api.v1 import (
     alarms,
     analytics,
     companies,
@@ -24,6 +21,9 @@ from fmp.api.v1 import (
     tanks,
     totalizers,
     users,
+)
+from fmp.api.v1 import (
+    auth as auth_router,
 )
 from fmp.core.config import get_settings
 

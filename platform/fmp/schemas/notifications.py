@@ -58,7 +58,7 @@ class NotificationGatewayRead(BaseModel):
 class ExcelIngestOutcome(BaseModel):
     """Result of an Excel upload: batch summary + codes awaiting dispatch."""
     result: ExcelIngestResult
-    pending_dispatch: list["PendingDispatch"]
+    pending_dispatch: list[PendingDispatch]
 
 class PendingDispatch(BaseModel):
     """A code that must be delivered to an employee right away."""

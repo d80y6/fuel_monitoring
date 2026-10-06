@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 
 import pytest
 from sqlalchemy import text
@@ -47,10 +47,10 @@ async def _seed_tank(session):
 
 
 async def test_hypertables_and_pipeline(requires_infra):
+    import fmp.models  # noqa: F401
     from fmp.core.database import Base, async_session_factory, engine
     from fmp.ingestion.batch_writer import ensure_hypertables, insert_measurements
     from fmp.ingestion.pipeline import IngestionPipeline
-    import fmp.models  # noqa: F401
 
     os.environ.setdefault("POSTGRES_DB", "fuel_test")
     redis = FakeRedis()
@@ -71,7 +71,7 @@ async def test_hypertables_and_pipeline(requires_infra):
     # standalone batch insert returns rowcount and persists
     async with async_session_factory() as session:
         tank = await _seed_tank(session)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         rows = [
             {"timestamp": now, "tank_id": tank.id, "pressure": 0.5, "temperature": 20.0,
              "level": 1.0, "volume": 3141.0, "fill_percent": 34.1, "is_outlier": False, "status": 0},
@@ -92,7 +92,7 @@ async def test_hypertables_and_pipeline(requires_infra):
             r = await pipeline.process(
                 session, redis, tank,
                 pressure=0.125, temperature=25.0, status=0,
-                captured_at=datetime.now(timezone.utc),
+                captured_at=datetime.now(UTC),
             )
             assert r is not None and r.is_outlier is False
 
@@ -101,7 +101,7 @@ async def test_hypertables_and_pipeline(requires_infra):
             r = await pipeline.process(
                 session, redis, tank,
                 pressure=0.4, temperature=25.0, status=0,
-                captured_at=datetime.now(timezone.utc),
+                captured_at=datetime.now(UTC),
             )
             assert r is not None
             if any(a.type == "high_level" for a in r.alarms):
@@ -115,7 +115,7 @@ async def test_hypertables_and_pipeline(requires_infra):
             r = await pipeline.process(
                 session, redis, tank,
                 pressure=0.03, temperature=25.0, status=0,
-                captured_at=datetime.now(timezone.utc),
+                captured_at=datetime.now(UTC),
             )
             if r is None:
                 continue
@@ -129,6 +129,7 @@ async def test_hypertables_and_pipeline(requires_infra):
     # ---- verify persistence ---------------------------------------------------
     async with async_session_factory() as session:
         from sqlalchemy import func, select
+
         from fmp.models import Alarm, Measurement
 
         count = (await session.execute(select(func.count()).select_from(Measurement))).scalar()
@@ -190,8 +191,9 @@ async def test_heartbeat_updates_station(requires_infra):
     await _handle_status(FakeRedis(), {"status": "online"}, "AA:BB:CC:DD:EE:02")
 
     async with async_session_factory() as session:
-        from fmp.models import Tank as TankModel
         from sqlalchemy import select
+
+        from fmp.models import Tank as TankModel
 
         tank = await session.get(TankModel, tank_id)
         assert tank.connection_status == "online"

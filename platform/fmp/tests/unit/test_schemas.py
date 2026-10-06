@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from fmp.schemas.fuel import FuelTypeCreate, FuelTypeRead
-from fmp.schemas.strapping import StrappingTableUpsert, StrappingTableRead
+from fmp.schemas.strapping import StrappingTableRead, StrappingTableUpsert
 from fmp.schemas.tanks import TankCreate
 
 

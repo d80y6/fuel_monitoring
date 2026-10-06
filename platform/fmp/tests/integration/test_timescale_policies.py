@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import os
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import text
@@ -55,11 +55,10 @@ def _cleanup_module():
 async def _reset_schema() -> None:
     """Fresh schema + policies per test (explicit helper, not a pytest fixture)."""
     await _cleanup()
+    import fmp.models  # noqa: F401
     from fmp.core.database import Base, async_session_factory, engine
     from fmp.ingestion.batch_writer import ensure_hypertables
     from fmp.ingestion.tsdb_policies import ensure_timescale_policies
-
-    import fmp.models  # noqa: F401
 
     os.environ.setdefault("POSTGRES_DB", "fuel_test")
     async with engine.begin() as conn:
@@ -100,7 +99,7 @@ async def _seed_tank(session):
 
 async def _seed_hourly_readings(session, tank, hours: int = 12):
     """Seed one reading per hour on the hour, ending 1h before now."""
-    now = datetime.now(timezone.utc).replace(microsecond=0)
+    now = datetime.now(UTC).replace(microsecond=0)
     base = (now - timedelta(hours=hours)).replace(minute=0, second=0)
     volumes = []
     from fmp.models import Measurement

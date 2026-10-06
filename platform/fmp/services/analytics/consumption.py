@@ -8,7 +8,7 @@ chose SMA for this platform; no bespoke model is invented here.
 """
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import text
 
@@ -78,7 +78,7 @@ async def compute_consumption(
     series is a complete calendar day; the trailing (possibly partial) day is
     only present once it has readings of its own.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     end = now
     start = (now - timedelta(days=days)).replace(
         hour=0, minute=0, second=0, microsecond=0

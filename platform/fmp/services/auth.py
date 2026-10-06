@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 
@@ -42,7 +42,7 @@ async def authenticate(session, username: str, password: str) -> User | None:
     if not verify_password(password, user.password_hash):
         return None
 
-    user.last_login = datetime.now(timezone.utc)
+    user.last_login = datetime.now(UTC)
     await session.commit()
     return user
 

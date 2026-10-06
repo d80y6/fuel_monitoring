@@ -4,7 +4,7 @@ from __future__ import annotations
 import uuid as uuid_type
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -29,8 +29,8 @@ class IoTGateway(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     connection_status: Mapped[str] = mapped_column(String(20), default="offline")
     is_active: Mapped[bool] = mapped_column(default=False)
 
-    commands: Mapped[list["GatewayCommand"]] = relationship(back_populates="gateway")
-    tanks: Mapped[list["Tank"]] = relationship(  # noqa: F821
+    commands: Mapped[list[GatewayCommand]] = relationship(back_populates="gateway")
+    tanks: Mapped[list[Tank]] = relationship(  # noqa: F821
         back_populates="gateway"
     )
 
@@ -58,4 +58,4 @@ class GatewayCommand(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     ack_received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     error_message: Mapped[str | None] = mapped_column(String(255))
 
-    gateway: Mapped["IoTGateway"] = relationship(back_populates="commands")
+    gateway: Mapped[IoTGateway] = relationship(back_populates="commands")

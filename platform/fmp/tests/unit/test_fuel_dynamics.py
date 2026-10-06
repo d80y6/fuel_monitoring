@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from fmp.ingestion.tank_geometry import density_at_temperature, net_standard_volume, volume_correction_factor
+from fmp.ingestion.tank_geometry import (
+    density_at_temperature,
+    net_standard_volume,
+    volume_correction_factor,
+)
 
 
 def test_density_at_reference_temp_equals_base():

@@ -27,11 +27,10 @@ async def test_end_to_end_org_authz(db):
         assert r.status_code in (401, 403)
 
     # seed an admin and override auth for the authenticated portion
-    from fmp.core.database import async_session_factory
-    from fmp.core.security import hash_password
-    from fmp.models import FuelType, User
     from fmp.api.deps import get_current_user
-    from fmp.core.security import create_access_token
+    from fmp.core.database import async_session_factory
+    from fmp.core.security import create_access_token, hash_password
+    from fmp.models import FuelType, User
 
     pw = hash_password("AdminPass123")
     async with async_session_factory() as session:

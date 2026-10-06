@@ -51,11 +51,9 @@ def _hash_device_key(plain: str) -> str:
     dk = hashlib.pbkdf2_hmac(
         "sha256", plain.encode("utf-8"), salt, DEVICE_KEY_ITERATIONS, dklen=32
     )
-    return "pbkdf2_sha256${0}${1}${2}".format(
-        DEVICE_KEY_ITERATIONS,
-        base64.b64encode(salt).decode(),
-        base64.b64encode(dk).decode(),
-    )
+    salt_b64 = base64.b64encode(salt).decode()
+    dk_b64 = base64.b64encode(dk).decode()
+    return f"pbkdf2_sha256${DEVICE_KEY_ITERATIONS}${salt_b64}${dk_b64}"
 
 
 def _verify_device_key(plain: str, stored: str) -> bool:

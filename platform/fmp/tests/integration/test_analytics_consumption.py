@@ -11,7 +11,7 @@ summaries) and the public API endpoint.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import func, select
@@ -26,9 +26,9 @@ async def _seed_declining_volumes(session, days: int = 3, per_day: int = 24):
     that closes the final day (at the next midnight), so every seeded night
     yields a complete 24-hour row of deltas.
     """
-    from fmp.models import Company, Site, Tank, Measurement
+    from fmp.models import Company, Measurement, Site, Tank
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     start = (now - timedelta(days=days)).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
