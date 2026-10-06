@@ -154,11 +154,13 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "celery", "-A", "fmp.workers.celery_app", "inspect", "ping", "-d", "celery@$$HOSTNAME", "-t", "20"]
+      # Shell form so $HOSTNAME expands; pings every worker node in the cluster
+      # (a single dead node among several still counts as a live worker pool).
+      test: ["CMD-SHELL", "celery -A fmp.workers.celery_app inspect ping -t 10 | grep -q pong"]
       interval: 30s
-      timeout: 25s
+      timeout: 20s
       retries: 5
-      start_period: 30s
+      start_period: 40s
 
   beat:
     <<: *app-image

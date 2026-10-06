@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fuel-platform"
+version = "1.0.0"
+description = "Cloud Fuel & Dispensing Platform — telemetry, alarms, dispensing authorization"
+requires-python = ">=3.12"
+
+[tool.setuptools.packages.find]
+include = ["fmp*"]
+
+# ---------------------------------------------------------------------------
+# pytest
+#
+# `asyncio_mode = "auto"` lets async tests run without an explicit marker, and
+# testpaths pins collection to the suite so `pytest` from the platform root is
+# unambiguous (previously `pytest fmp/tests/integration` failed to import `fmp`
+# because nothing established the package root).
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["fmp/tests"]
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers"
+filterwarnings = [
+    "ignore::DeprecationWarning:starlette.*",
+    "ignore::DeprecationWarning:httpx.*",
+]
+
+# ---------------------------------------------------------------------------
+# ruff — the backend lint/type-adjacent gate (CI runs `ruff check`).
+# Line length 100 matches the existing code style.
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+exclude = [".venv", ".mypy_cache", ".pytest_cache", ".ruff_cache", "alembic/versions"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # import sorting
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "C4",   # comprehensions
+    "SIM",  # simplify
+]
+ignore = [
+    "E501",    # long lines are handled by the formatter, not the linter
+    "B008",    # FastAPI Depends() in defaults is the framework idiom
+    "SIM117",  # nested `with` is clearer in the ingestion/DB code
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Test modules may use asserts freely and long setup blocks.
+"fmp/tests/*" = ["E402", "F401", "F811", "B011", "SIM117"]
+# Alembic revisions are generated; formatting churn is not useful.
+"alembic/versions/*" = ["E402", "F401"]
