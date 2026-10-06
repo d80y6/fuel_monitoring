@@ -18,11 +18,21 @@ COMMAND_TYPES = (
 
 
 class IoTGateway(UUIDPrimaryKeyMixin, TimestampMixin, Base):
-    """An edge gateway registered against the platform."""
+    """An edge gateway registered against the platform.
+
+    A gateway is shared hardware: one radio can carry tanks belonging to several
+    organizations, so it has no single owning tenant on the data model. What it
+    does have is an *optional* operator tenant (``company_id``). Visibility is
+    the union of "owned by this tenant" and "carries a tank of this tenant";
+    see ``fmp/api/v1/iot_gateways.py``.
+    """
 
     __tablename__ = "iot_gateways"
 
     gateway_mac: Mapped[str] = mapped_column(String(17), unique=True, index=True)
+    company_id: Mapped[uuid_type.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("companies.id"), index=True
+    )
     name: Mapped[str] = mapped_column(String(100), default="", index=True)
     firmware_version: Mapped[str | None] = mapped_column(String(32))
     last_seen: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

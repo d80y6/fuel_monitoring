@@ -27,9 +27,17 @@ settings = get_settings()
 #: aggregate view name → (bucket interval, refresh start, refresh end, refresh
 #: schedule). The refresh window (start minus end) must span at least two buckets
 #: for that aggregate's bucket width.
+#: view -> (bucket_interval, refresh start_offset, refresh end_offset, job schedule)
+#:
+#: ``start_offset`` must span the window that ``GET /tanks/{id}/range`` is willing
+#: to serve from the aggregate. It was previously "3 hours", while the endpoint
+#: routes *any* window of two hours or more to the aggregate — so every chart
+#: covering more than three hours silently returned only the most recent three.
+#: Both offsets now match the measurement retention window, so the aggregate is
+#: materialized across exactly the data that still exists.
 _CONTINUOUS_AGGREGATES = {
-    "measurements_hourly": ("1 hour", "3 hours", "1 hour", "1 hour"),
-    "measurements_daily": ("1 day", "3 days", "1 day", "1 day"),
+    "measurements_hourly": ("1 hour", "30 days", "1 hour", "1 hour"),
+    "measurements_daily": ("1 day", "30 days", "1 day", "1 day"),
 }
 
 _AGG_SELECT = """

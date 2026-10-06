@@ -17,6 +17,9 @@ class IoTGatewayCreate(BaseModel):
     gateway_mac: str = Field(min_length=1, max_length=17)
     name: str | None = Field(default=None, max_length=100)
     firmware_version: str | None = Field(default=None, max_length=32)
+    #: Optional operator tenant. ``None`` = platform-owned, visible to tenants
+    #: only through the tanks it carries.
+    company_id: uuid.UUID | None = None
 
 
 class IoTGatewayUpdate(BaseModel):
@@ -36,6 +39,10 @@ class IoTGatewayRead(BaseModel):
     last_seen: datetime | None
     connection_status: str
     is_active: bool
+    #: Operator tenant, or ``None`` for a platform-owned gateway.
+    company_id: uuid.UUID | None = None
+    #: Only the caller's own organization's tanks — a shared gateway never
+    #: discloses another tenant's asset ids.
     tank_ids: list[uuid.UUID] = Field(default_factory=list)
     created_at: datetime
 

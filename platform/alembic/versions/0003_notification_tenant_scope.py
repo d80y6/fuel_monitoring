@@ -10,6 +10,10 @@ Closes:
   globally by any ``company_admin``.
 * G-003 — ``notification_logs.company_id`` makes delivery history tenant-scoped.
 
+The IoT gateway tenant column is deliberately NOT in this revision: it had
+already been applied to deployed databases, so amending it here would never run
+again. It ships as revision 0004 instead.
+
 Additive and inspection-guarded: safe on a fresh ``create_all`` database (every
 step no-ops) and on a pre-0003 database.
 """
