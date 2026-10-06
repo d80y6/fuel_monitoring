@@ -1,3 +1,9 @@
+"""Liveness stays dependency-free (audit G-201).
+
+The orchestrator must not restart a healthy API because the database is down:
+liveness answers "is this process working", readiness answers "can it serve".
+Collapsing them is how a database blip turns into an outage.
+"""
 from fastapi.testclient import TestClient
 
 
@@ -8,4 +14,90 @@ def test_api_starts_and_serves_health():
         response = client.get("/api/v1/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "service": "api"}
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["service"] == "api"
+    assert "time" in body
+
+
+def test_health_echoes_a_request_id():
+    """An inbound correlation id is honoured, not replaced."""
+    from fmp.api.main import app
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/health", headers={"X-Request-ID": "abc123"})
+
+    assert response.headers["X-Request-ID"] == "abc123"
+
+
+def test_health_mints_a_request_id_when_none_is_supplied():
+    from fmp.api.main import app
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/health")
+
+    assert response.headers.get("X-Request-ID")
+
+
+def test_health_brief_is_public_and_coarse():
+    """Uptime checks must not need a token, and must not leak fleet topology.
+
+    The database is stubbed because a *unit* test must not require the
+    infrastructure this endpoint is meant to report on; the integration suite
+    exercises it against a real database.
+    """
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, patch
+
+    from fmp.api.main import app
+
+    # scalar_one() is awaited by the endpoint, so the mock must return the
+    # value directly rather than another coroutine.
+    fake_result = SimpleNamespace(scalar_one=lambda: None)
+    fake_session = AsyncMock()
+    fake_session.execute = AsyncMock(return_value=fake_result)
+    session_ctx = AsyncMock()
+    session_ctx.__aenter__.return_value = fake_session
+    session_ctx.__aexit__.return_value = False
+
+    with patch("fmp.core.database.async_session_factory", return_value=session_ctx):
+        with TestClient(app) as client:
+            response = client.get("/api/v1/metrics/health-brief")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "telemetry_receiving" in body
+    assert "tanks_offline" in body
+    # No tank/site/company identifiers in the public payload.
+    assert "tanks" not in body
+    assert "sites" not in body
+
+
+def test_metrics_requires_authentication():
+    """Detailed metrics expose fleet topology and must stay admin-only."""
+    from fmp.api.main import app
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/metrics")
+
+    assert response.status_code in (401, 403)
+
+
+def test_security_headers_are_present():
+    from fmp.api.main import app
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/health")
+
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert response.headers["X-Frame-Options"] == "DENY"
+
+
+def test_api_responses_are_not_cached():
+    """Operator data must never be served from a shared cache."""
+    from fmp.api.main import app
+
+    with TestClient(app) as client:
+        response = client.get("/api/v1/tanks")
+
+    assert response.headers.get("Cache-Control") == "no-store"

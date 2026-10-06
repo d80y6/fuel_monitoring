@@ -29,6 +29,7 @@ from sqlalchemy import select
 from fmp.core.config import get_settings
 from fmp.core.database import async_session_factory
 from fmp.core.device_auth import require_ingest_key
+from fmp.core.logging_setup import configure_logging
 from fmp.core.redis import RedisClient
 from fmp.ingestion.pipeline import IngestionPipeline, publish_live
 from fmp.ingestion.relay import parse_command_ack_topic
@@ -36,7 +37,7 @@ from fmp.schemas.dispensing import CodeValidateRequest, DispenseCompleteRequest
 from fmp.schemas.telemetry import BackfillBatch, IngestOutcome, TelemetryFrame
 from fmp.services.dispensing.dispense_engine import complete_dispense, validate_code
 
-logging.basicConfig(level=logging.INFO)
+configure_logging()
 logger = logging.getLogger("ingestion")
 settings = get_settings()
 

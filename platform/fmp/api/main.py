@@ -1,11 +1,10 @@
 """Central API — FastAPI application entrypoint on :8000."""
 from __future__ import annotations
 
-import logging
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from fmp.api.middleware import CorrelationMiddleware, SecurityHeadersMiddleware
 from fmp.api.v1 import (
     alarms,
     analytics,
@@ -20,6 +19,7 @@ from fmp.api.v1 import (
     sites,
     stations,
     strapping,
+    system,
     tanks,
     totalizers,
     users,
@@ -28,8 +28,9 @@ from fmp.api.v1 import (
     auth as auth_router,
 )
 from fmp.core.config import get_settings
+from fmp.core.logging_setup import configure_logging
 
-logging.basicConfig(level=logging.INFO)
+configure_logging()
 settings = get_settings()
 
 app = FastAPI(
@@ -39,6 +40,9 @@ app = FastAPI(
     openapi_url="/api/openapi.json",
 )
 
+# Correlation first so the security-headers pass is also logged with the id.
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(CorrelationMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -52,6 +56,7 @@ app.include_router(alarms.router)
 app.include_router(analytics.router)
 app.include_router(audit.router)
 app.include_router(reports.router)
+app.include_router(system.router)
 app.include_router(users.router)
 app.include_router(dispensing.router)
 app.include_router(tanks.router)
@@ -66,6 +71,3 @@ app.include_router(iot_gateways.router)
 app.include_router(strapping.router)
 
 
-@app.get("/api/v1/health", tags=["system"])
-async def health() -> dict:
-    return {"status": "ok", "service": "api"}

@@ -5,11 +5,12 @@ import uuid
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fmp.core.database import get_session
+from fmp.core.logging_setup import add_context
 from fmp.core.redis import RedisClient, get_redis_client
 from fmp.core.security import decode_token, token_revoked
 from fmp.models import User
@@ -21,6 +22,7 @@ _bearer = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
+    request: Request,
     session: SessionDep,
     credentials: HTTPAuthorizationCredentials | None = Depends(_bearer),
     redis: RedisClient = Depends(get_redis_client),
@@ -65,6 +67,19 @@ async def get_current_user(
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    # Record the actor twice, deliberately.
+    #
+    # `state` is per-request and propagates back out through Starlette's
+    # BaseHTTPMiddleware, so the access log can attribute the request. The
+    # ContextVar covers every record emitted *inside* the request's own task.
+    # Reading only the ContextVar leaves `username: null` in the access log,
+    # because that middleware frame never sees the downstream write.
+    add_context(username=user.username, role=user.role, company_id=str(user.company_id))
+    # `state` propagates back out through Starlette's BaseHTTPMiddleware; the
+    # ContextVar above does not, so the access log reads this instead.
+    request.state.username = user.username
+    request.state.role = user.role
+    request.state.company_id = str(user.company_id) if user.company_id else None
     return user
 
 

@@ -5,6 +5,9 @@ from celery import Celery
 from celery.schedules import crontab
 
 from fmp.core.config import get_settings
+from fmp.core.logging_setup import configure_logging
+
+configure_logging()
 
 settings = get_settings()
 
