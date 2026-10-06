@@ -84,11 +84,13 @@ services:
       - ./infra/emqx/api_keys.txt:/opt/emqx/etc/api_keys.txt:ro
       - emqx_data:/opt/emqx/data
     healthcheck:
-      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
+      # `emqx ctl status` shells into the running node; it needs more than the
+      # default 10s budget on a loaded host or the broker flaps as unhealthy.
+      test: ["CMD-SHELL", "/opt/emqx/bin/emqx ctl status | grep -q 'is started'"]
+      interval: 30s
+      timeout: 25s
+      retries: 5
+      start_period: 60s
 
   mqtt-init:
     # Provisions per-gateway MQTT accounts + ACL rules. Idempotent: re-running is

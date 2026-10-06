@@ -31,6 +31,14 @@ ALARMS_CHANNEL = "alarms:live"
 
 ALARM_LEVELS = {"WARNING", "CRITICAL"}
 
+#: A derived level may exceed the physical height only by this factor before it
+#: is treated as a measurement fault rather than an overfill. 1.05 leaves room
+#: for a probe mounted slightly above the tank floor.
+OVER_RANGE_TOLERANCE = 1.05
+
+#: Bit OR-ed into ``measurements.status`` when a frame is implausible.
+OVER_RANGE_STATUS_BIT = 0b10
+
 
 @dataclass
 class AlarmCandidate:
@@ -189,20 +197,33 @@ class IngestionPipeline:
 
         resolved: list = []
         checks = (
-            [(t, attr, level, settings.ALARM_CLEAR_HYSTERESIS_METERS)
+            [(t, attr, level, settings.ALARM_CLEAR_HYSTERESIS_METERS, "m")
              for t, _lvl, attr in LEVEL_RULES]
-            + [(t, attr, volume, settings.ALARM_CLEAR_HYSTERESIS_LITERS)
+            + [(t, attr, volume, settings.ALARM_CLEAR_HYSTERESIS_LITERS, "L")
                for t, _lvl, attr in VOLUME_RULES]
         )
-        for alarm_type, attr, value, hysteresis in checks:
-            threshold = getattr(tank, attr, None)
-            if threshold is None:
-                continue
+        # sensor_fault is not threshold-driven: it is raised when the derived
+        # level is impossible and must clear as soon as a plausible frame lands.
+        checks.append(("sensor_fault", None, level, 0.0, "m"))
+
+        for alarm_type, attr, value, hysteresis, unit in checks:
+            if attr is not None:
+                threshold = getattr(tank, attr, None)
+                if threshold is None:
+                    continue
+                still_violated = _is_violated(
+                    alarm_type, value, float(threshold), hysteresis, hysteresis
+                )
+            else:
+                threshold = None
+                # "sensor_fault" stays violated while the reading is still over-range;
+                # `raised` tells us whether this frame tripped it again.
+                still_violated = alarm_type in raised
+
             open_key = _open_alarm_key(tank.id, alarm_type)
             if not await redis.client.sismember(open_key, "1"):
                 continue
-            still_violated = _is_violated(alarm_type, value, float(threshold), hysteresis, hysteresis)
-            if still_violated or alarm_type in raised:
+            if still_violated:
                 continue
             row = (
                 await session.execute(
@@ -224,11 +245,15 @@ class IngestionPipeline:
                 continue
             row.state = "resolved"
             row.resolved_at = datetime.now(UTC)
-            row.resolved_message = (
-                f"Condition cleared: value {value:.3f} "
-                f"{'m' if alarm_type.endswith('level') else 'L'} back inside the safe band "
-                f"(threshold {threshold}, hysteresis {hysteresis})"
-            )
+            if threshold is None:
+                row.resolved_message = (
+                    f"Measurement back within the tank geometry: level {value} {unit}"
+                )
+            else:
+                row.resolved_message = (
+                    f"Condition cleared: value {value:.3f} {unit} back inside the safe band "
+                    f"(threshold {threshold}, hysteresis {hysteresis})"
+                )
             resolved.append(row)
         return resolved
 
@@ -285,6 +310,37 @@ class IngestionPipeline:
             is_outlier = state.anomaly.update(level)
             level = state.pressure_ema.update(level)
 
+            # Over-range detection (data quality).
+            #
+            # Hydrostatics can only produce a level greater than the tank's own
+            # height if the probe is misconfigured, the density assumption is
+            # wrong, or the frame is corrupt. Previously this was silently
+            # clamped by the geometry math, so the tank read "100% full" from an
+            # impossible measurement and no sensor fault was ever raised. Such a
+            # frame is now clamped for display, flagged, and reported as a
+            # sensor_fault alarm instead of being believed.
+            tank_height = tank.tank_height or (
+                tank.tank_diameter if (tank.tank_shape or "vertical_cylinder") == "vertical_cylinder" else None
+            )
+            derived_level = level
+            over_range = (
+                tank_height is not None
+                and tank_height > 0
+                and derived_level > tank_height * OVER_RANGE_TOLERANCE
+            )
+            if over_range:
+                logger.warning(
+                    "tank %s over-range: derived level %.3f m exceeds height %.3f m "
+                    "(pressure %.3f bar); clamping and flagging as a sensor fault",
+                    tank.id, derived_level, tank_height, pressure,
+                )
+                level = round(tank_height, 3)
+                # Discard the poisoned smoothing state: an EMA that absorbed an
+                # impossible level would keep reporting it after the probe is
+                # fixed, so the sensor_fault alarm could not clear.
+                state.pressure_ema.reset()
+                state.anomaly.reset()
+
             gov = calculate_volume(
                 level=level,
                 orientation=tank.tank_orientation,
@@ -301,6 +357,16 @@ class IngestionPipeline:
             nsv = net_standard_volume(gov, expansion_coeff, temperature)
             percent = fill_percent(gov, tank.total_capacity_liters)
             candidates = evaluate_alarm_rules(tank, level, volume, percent)
+            if over_range:
+                candidates.append(AlarmCandidate(
+                    type="sensor_fault", level="WARNING",
+                    message=(
+                        f"Measured level {derived_level} m exceeds the tank height "
+                        f"{tank_height} m at {pressure} bar — check the probe, the "
+                        f"fuel density or the tank geometry"
+                    ),
+                    value=round(derived_level, 3),
+                ))
 
             # --- raise: dedupe on the Redis open-set so a condition that stays
             #     true produces exactly one alarm, not one per frame.
@@ -342,6 +408,8 @@ class IngestionPipeline:
                     "pressure": pressure,
                     "temperature": temperature,
                     "level": level,
+                    # 2 = over-range / implausible measurement (see OVER_RANGE_TOLERANCE)
+                    "status": status | (OVER_RANGE_STATUS_BIT if over_range else 0),
                     "volume": volume,
                     "gov_volume": gov,
                     "net_volume": nsv,

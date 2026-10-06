@@ -89,6 +89,16 @@ class EMA:
             self.value = self.alpha * sample + (1 - self.alpha) * self.value
         return self.value
 
+    def reset(self) -> None:
+        """Drop the smoothed value so the next sample is taken at face value.
+
+        Used after a measurement fault: an EMA that has absorbed an impossible
+        reading keeps emitting the impossible value for a span/2 frames or so,
+        which would keep a corrected probe reading "out of range" long after the
+        probe was actually fixed.
+        """
+        self.value = None
+
 
 class MADAnomalyDetector:
     """Rolling-window modified Z-score (median absolute deviation) outlier detector."""
@@ -97,6 +107,14 @@ class MADAnomalyDetector:
         self.window = window
         self.threshold = threshold
         self._samples: list[float] = []
+
+    def reset(self) -> None:
+        """Forget the window.
+
+        Used after a measurement fault: a corrupted frame must not poison the
+        statistics that decide whether the *next* reading is an outlier.
+        """
+        self._samples.clear()
 
     def update(self, sample: float) -> bool:
         """Feed a sample; returns True when it is a statistical outlier."""
