@@ -8,6 +8,7 @@ import { fuelColor } from '../lib/tankGeometry';
 import { fuelCodeById } from '../lib/fuelMap';
 import { useTelemetry } from '../hooks/useTelemetry';
 import { PageHeader } from '../components/ui/PageHeader';
+import { TankRowActions } from '../components/tanks/TankEditor';
 import { Skeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 
@@ -70,6 +71,7 @@ export default function Tanks() {
                 <th className="text-left px-4 py-2">Shape</th>
                 <th className="text-right px-4 py-2">Volume (L)</th>
                 <th className="text-right px-4 py-2">Fill</th>
+                <th className="text-right px-4 py-2"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody>
@@ -108,6 +110,7 @@ function TankRowT({ tank, fuels }: { tank: TankRead; fuels: FuelType[] }) {
       <td className="px-4 py-2 text-secondary">{tank.tank_shape ?? 'vertical_cylinder'}</td>
       <td className="px-4 py-2 text-right">{Math.round(tank.tank_volume).toLocaleString()}</td>
       <td className="px-4 py-2 text-right">{Math.round((live ?? latest)?.fill_percent ?? 0) / 1}%</td>
+      <TankRowActions tank={tank} />
     </tr>
   );
 }

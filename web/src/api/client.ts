@@ -4,6 +4,7 @@ import type {
   ListTanksResponse,
   LoginResponse,
   TankCreatePayload,
+  TankUpdatePayload,
   TankRead,
   TelemetryPoint,
   UserRead,
@@ -58,6 +59,22 @@ export const api = {
 
   async getTank(id: string): Promise<TankRead> {
     return request<TankRead>(`${API_BASE}/tanks/${id}`);
+  },
+
+  async updateTank(id: string, payload: TankUpdatePayload): Promise<TankRead> {
+    return request<TankRead>(`${API_BASE}/tanks/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /** Soft-deletes: the tank keeps its telemetry and alarm history. */
+  async deleteTank(id: string): Promise<void> {
+    return request<void>(`${API_BASE}/tanks/${id}`, { method: 'DELETE' });
+  },
+
+  async restoreTank(id: string): Promise<TankRead> {
+    return request<TankRead>(`${API_BASE}/tanks/${id}/restore`, { method: 'POST' });
   },
 
   async createTank(payload: TankCreatePayload): Promise<TankRead> {

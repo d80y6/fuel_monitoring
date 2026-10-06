@@ -41,6 +41,32 @@ export type TankShape =
   | 'horizontal_elliptical_ends'
   | 'custom_strapping';
 
+/**
+ * Partial tank update. Mirrors the server's TankUpdate schema: geometry,
+ * calibration, fuel assignment, thresholds and the active flag. Deliberately
+ * has no `site_id` — moving a tank between sites would orphan its telemetry's
+ * tenant binding, so the server does not allow it.
+ */
+export interface TankUpdatePayload {
+  name?: string;
+  fuel_type_id?: string;
+  tank_height?: number;
+  tank_length?: number;
+  tank_width?: number;
+  dish_depth?: number;
+  tank_volume?: number;
+  elevation?: number;
+  calibration_factor?: number;
+  atmospheric_pressure?: number;
+  low_level_threshold?: number;
+  critical_level_threshold?: number;
+  high_level_threshold?: number;
+  low_volume_threshold?: number;
+  high_volume_threshold?: number;
+  is_active?: boolean;
+  gateway_mac?: string;
+}
+
 export interface TankRead {
   id: string;
   name: string;
