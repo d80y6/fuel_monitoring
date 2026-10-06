@@ -36,6 +36,7 @@ const groups: NavGroup[] = [
       { to: '/dispensing', label: 'Dispensing', icon: 'dispensing' },
       { to: '/totalizers', label: 'Totalizers', icon: 'totalizers' },
       { to: '/alarms', label: 'Alarm Center', icon: 'alarm' },
+      { to: '/reports', label: 'Reports', icon: 'reports' },
     ],
   },
   {

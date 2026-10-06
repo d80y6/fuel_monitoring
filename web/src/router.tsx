@@ -24,6 +24,7 @@ import UsersPage from './pages/UsersPage';
 import AuditPage from './pages/AuditPage';
 import NotificationRulesPage from './pages/NotificationRulesPage';
 import NotificationLogPage from './pages/NotificationLogPage';
+import ReportsPage from './pages/ReportsPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const authed = isAuthed(useAuthStore((s) => s.token));
@@ -68,6 +69,7 @@ export const router = createBrowserRouter([
       { path: 'dispensing', element: <Dispensing /> },
       { path: 'totalizers', element: <Totalizers /> },
       { path: 'alarms', element: <AlarmCenter /> },
+      { path: 'reports', element: <ReportsPage /> },
       { path: 'settings', element: <SettingsPage /> },
       {
         // Management: tenant admin + platform admin

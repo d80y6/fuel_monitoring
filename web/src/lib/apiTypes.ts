@@ -566,3 +566,39 @@ export interface TestDispatchSummary {
 
 /** Alarm state machine values (see the alarms table lifecycle). */
 export type AlarmState = 'active' | 'acknowledged' | 'escalated' | 'resolved' | 'suppressed';
+
+// ---------------------------------------------------------------------------
+// Reports
+// ---------------------------------------------------------------------------
+
+export interface ReportDescriptor {
+  name: string;
+  description: string;
+}
+
+export interface ReportRow {
+  [column: string]: string | number | boolean | null | undefined;
+}
+
+export interface ReportPayload {
+  report: string;
+  generated_at: string;
+  window: { start: string; end: string };
+  columns: string[];
+  /** How the numbers were produced — surfaced in the UI, never hidden. */
+  assumptions: string[];
+  rows: ReportRow[];
+  summary?: Record<string, unknown>;
+  totals_by_day?: Array<{ day: string; consumed_liters: number }>;
+  grand_total_liters?: number;
+  flagged_count?: number;
+  tolerance_liters?: number;
+}
+
+export interface ReportQuery {
+  start: string;
+  end: string;
+  site_id?: string;
+  tolerance_liters?: number;
+  level?: 'WARNING' | 'CRITICAL';
+}

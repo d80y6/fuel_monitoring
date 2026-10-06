@@ -45,6 +45,7 @@ describe('Sidebar', () => {
     expect(screen.getByText('Tanks')).toBeInTheDocument();
     expect(screen.getByText('Dispensing')).toBeInTheDocument();
     expect(screen.getByText('Alarm Center')).toBeInTheDocument();
+    expect(screen.getByText('Reports')).toBeInTheDocument();
     expect(screen.getByText('Settings')).toBeInTheDocument();
 
     // Management and administration surfaces must be hidden.
