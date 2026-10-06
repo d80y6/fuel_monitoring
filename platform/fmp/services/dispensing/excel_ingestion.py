@@ -267,6 +267,7 @@ async def ingest_excel(
                 code=row.code,
                 liters=row.result.allocated_liters,
                 invoice_number=row.result.invoice_number,
+                company_id=company_id,
             )
         )
 

@@ -63,6 +63,20 @@ class Settings(BaseSettings):
     MQTT_CLIENT_KEY: str | None = None
     MQTT_QOS: int = 1
     MQTT_KEEPALIVE: int = 60
+    #: Broker credentials for the platform's own ingestion service. The broker is
+    #: deny-by-default (see infra/emqx/emqx.conf), so these are required for
+    #: telemetry to flow at all (G-001).
+    MQTT_SERVICE_USERNAME: str = ""
+    MQTT_SERVICE_PASSWORD: str = ""
+    #: EMQX 5 automation credential for the REST API (provisioning script).
+    #: EMQX's REST API authenticates with an API key/secret, not with dashboard
+    #: credentials; the key is bootstrapped from infra/emqx/api_keys.txt.
+    EMQX_API_URL: str = "http://emqx:18083"
+    EMQX_API_KEY: str = ""
+    EMQX_API_SECRET: str = ""
+    #: Per-gateway device password template. Provisioning derives each device
+    #: password from this seed + the device MAC (see scripts/provision_mqtt_accounts).
+    MQTT_DEVICE_PASSWORD_SEED: str = ""
 
     # --- Dispensing --------------------------------------------------------
     CODE_LENGTH_MIN: int = 6
@@ -75,9 +89,29 @@ class Settings(BaseSettings):
     TOTALIZER_DISCREPANCY_TOLERANCE_LITERS: float = 1.0
 
     # --- Notifications -----------------------------------------------------
-    DEFAULT_NOTIFICATION_CHANNEL: Literal["sms", "whatsapp"] = "sms"
+    DEFAULT_NOTIFICATION_CHANNEL: str = "sms"     # sms|whatsapp|email|webhook
     NOTIFY_MAX_RETRIES: int = 3
     NOTIFY_RETRY_BACKOFF: int = 5          # seconds; exponential per attempt
+
+    # --- Alarm clearing -----------------------------------------------------
+    #: A threshold alarm only auto-resolves once the measurement is this far back
+    #: inside the safe band. Without it a value hovering on the threshold flaps
+    #: the alarm on and off (an "alarm storm").
+    ALARM_CLEAR_HYSTERESIS_METERS: float = 0.05
+    ALARM_CLEAR_HYSTERESIS_LITERS: float = 25.0
+
+    # --- Telemetry freshness ----------------------------------------------
+    # A tank/gateway that stays silent longer than this is reported offline and
+    # a communication_lost alarm is raised by the stale-connection sweeper.
+    TANK_STALE_AFTER_SECONDS: int = 300
+    GATEWAY_STALE_AFTER_SECONDS: int = 600
+    STALE_SWEEP_INTERVAL_SECONDS: int = 60
+
+    # --- Edge trust ----------------------------------------------------------
+    # Shared secret protecting the standalone ingestion service's HTTP fallback
+    # endpoints (/api/v1/ingest/*).  When empty those endpoints are DISABLED
+    # (404) — MQTT remains the normal path.  Never expose :8001 without it.
+    INGEST_API_KEY: str = ""
 
     # --- Gateway commands --------------------------------------------------
     COMMAND_QUEUE_OUTBOUND: str = "iot:commands:outbound"

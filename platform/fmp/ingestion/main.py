@@ -15,13 +15,15 @@ import asyncio
 import contextlib
 import json
 import logging
+import ssl
 import time
+import uuid
 from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import select
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from paho.mqtt.client import Client as MqttClient, CallbackAPIVersion
 
 from fmp.core.config import get_settings
@@ -29,7 +31,9 @@ from fmp.core.database import async_session_factory
 from fmp.core.redis import RedisClient
 from fmp.ingestion.pipeline import IngestionPipeline, publish_live
 from fmp.ingestion.relay import parse_command_ack_topic
+from fmp.core.device_auth import require_ingest_key
 from fmp.schemas.dispensing import CodeValidateRequest, DispenseCompleteRequest
+from fmp.schemas.telemetry import BackfillBatch, IngestOutcome, TelemetryFrame
 from fmp.services.dispensing.dispense_engine import complete_dispense, validate_code
 
 logging.basicConfig(level=logging.INFO)
@@ -55,7 +59,7 @@ async def lifespan(_app: FastAPI):
             logger.warning("hypertable/policy bootstrap skipped (is TimescaleDB enabled?)")
 
     _loop = asyncio.get_running_loop()
-    _client = MqttClient(CallbackAPIVersion.VERSION2)
+    _client = _build_client()
     _client.on_message = _on_message
     _client.on_connect = _on_connect
     _client.connect_async(settings.MQTT_BROKER, settings.MQTT_PORT, settings.MQTT_KEEPALIVE)
@@ -93,6 +97,31 @@ app = FastAPI(
 )
 
 
+#: In-process dead-letter ring: frames rejected after broker authentication.
+#: Bounded so a misbehaving device cannot grow the process unboundedly.
+DEAD_LETTER_MAX = 500
+_dead_letters: list[dict[str, Any]] = []
+
+
+def _dead_letter(gateway_mac: str, kind: str, payload: dict[str, Any], reason: str) -> None:
+    """Record a rejected frame with the reason it could not be applied (G-115)."""
+    entry = {
+        "at": datetime.now(timezone.utc).isoformat(),
+        "gateway_mac": gateway_mac,
+        "kind": kind,
+        "reason": reason,
+        "payload_keys": sorted(payload.keys()),
+    }
+    _dead_letters.append(entry)
+    del _dead_letters[:-DEAD_LETTER_MAX]
+    logger.warning("dead-letter %s from %s: %s", kind, gateway_mac, reason)
+
+
+def dead_letters() -> list[dict[str, Any]]:
+    """Recent rejected frames (newest last) for operators and tests."""
+    return list(_dead_letters)
+
+
 def parse_fuel_topic(topic: str) -> tuple[str, str, None] | None:
     """Parse fuel/<gateway_mac>/<kind> → (gateway_mac, kind, None)."""
     parts = topic.split("/")
@@ -110,7 +139,39 @@ async def _wait_connected(client, timeout: float = 30.0) -> None:
     raise ConnectionError("MQTT broker never became available")
 
 
+def _build_client() -> MqttClient:
+    """MQTT client authenticated against the broker (G-001).
+
+    The broker is deny-by-default, so a client without credentials is rejected at
+    CONNECT and no telemetry flows. TLS is enabled whenever a CA bundle is
+    configured, which is the production expectation.
+    """
+    client = MqttClient(
+        CallbackAPIVersion.VERSION2,
+        client_id=f"fuel-platform-ingest-{uuid.uuid4().hex[:8]}",
+    )
+    if settings.MQTT_TLS_PORT and settings.MQTT_CA_CERT:
+        client.tls_set(
+            ca_certs=settings.MQTT_CA_CERT,
+            certfile=settings.MQTT_CLIENT_CERT,
+            keyfile=settings.MQTT_CLIENT_KEY,
+            tls_version=ssl.PROTOCOL_TLS_CLIENT,
+        )
+    if settings.MQTT_SERVICE_USERNAME:
+        client.username_pw_set(
+            settings.MQTT_SERVICE_USERNAME, settings.MQTT_SERVICE_PASSWORD
+        )
+    else:
+        logger.warning(
+            "MQTT_SERVICE_USERNAME is not set; the broker denies anonymous clients, so this "
+            "service will not receive telemetry until broker credentials are provisioned"
+        )
+    return client
+
+
 def _on_connect(client, userdata, flags, reason_code, properties):
+    if getattr(reason_code, "is_failure", False) or int(getattr(reason_code, "value", 0) or 0) >= 128:
+        logger.error("MQTT connection refused by broker: %s", reason_code)
     client.subscribe(
         [
             ("ingestion/readings", settings.MQTT_QOS),
@@ -176,7 +237,13 @@ pipeline = IngestionPipeline(write_batch=True)
 
 async def _handle_reading(redis: RedisClient, payload: dict[str, Any], *, gateway_mac: str | None = None) -> None:
     """Persist a tank sensor frame and fan it out to the realtime channel."""
-    from fmp.ingestion.cache import resolve_tank_id, set_tank_cache, set_negative_cache, neg_cache_key
+    from fmp.ingestion.cache import (
+        neg_cache_key,
+        resolve_company_id,
+        resolve_tank_id,
+        set_negative_cache,
+        set_tank_cache,
+    )
     from fmp.models import Tank
 
     sensor_serial = payload.get("sensor_serial") or payload.get("sensor_serial_number")
@@ -231,8 +298,11 @@ async def _handle_reading(redis: RedisClient, payload: dict[str, Any], *, gatewa
             except ValueError:
                 captured_at = None
         if captured_at is None:
-            captured_at = datetime.utcnow()
+            # tz-aware: the measurements hypertable is timestamptz and a naive
+            # value would be interpreted in the server's local zone (G-205).
+            captured_at = datetime.now(timezone.utc)
 
+        company_id = await resolve_company_id(raw_redis, session, str(tank.id))
         reading = await pipeline.process(
             session,
             redis,
@@ -241,10 +311,56 @@ async def _handle_reading(redis: RedisClient, payload: dict[str, Any], *, gatewa
             temperature=float(frame.get("temperature")) if frame.get("temperature") is not None else None,
             status=int(frame.get("status", 0)),
             captured_at=captured_at,
+            company_id=company_id,
         )
         await session.commit()
         if reading is not None:
-            await publish_live(redis, reading)
+            await publish_live(redis, reading, company_id=company_id)
+        if reading is not None and reading.alarms:
+            await _notify_alarms(reading, tank, company_id, captured_at)
+
+
+async def _notify_alarms(reading, tank, company_id: str | None, at) -> None:
+    """Dispatch notifications for alarms raised by this frame (G-112).
+
+    Runs on the ingestion path with its own session: the rule engine records the
+    delivery outcome in ``notification_logs``, and a notification failure must
+    never fail the reading.
+    """
+    from fmp.models import Site
+    from fmp.services.notifications.rules import dispatch_event
+
+    site_name = "unknown site"
+    async with async_session_factory() as session:
+        row = (
+            await session.execute(select(Site.name).where(Site.id == tank.site_id))
+        ).first()
+        if row:
+            site_name = row[0]
+    for cand in reading.alarms:
+        try:
+            await dispatch_event(
+                session,
+                event_type="alarm",
+                level=cand.level,
+                company_id=uuid.UUID(company_id) if company_id else None,
+                site_id=tank.site_id,
+                tank_id=tank.id,
+                context={
+                    "tank": tank.name,
+                    "site": site_name,
+                    "level": cand.level,
+                    "type": cand.type,
+                    "value": cand.value,
+                    "message": cand.message,
+                    "event_ref": f"{tank.id}:{cand.type}",
+                },
+                default_message=(
+                    "[{level}] {tank} ({site}) — {type}: {message}"
+                ),
+            )
+        except Exception:  # noqa: BLE001 - alerting must not break ingestion
+            logger.exception("alarm notification dispatch failed for tank %s", tank.id)
 
 
 async def _handle_status(redis: RedisClient, payload: dict[str, Any], gateway_mac: str) -> None:
@@ -299,11 +415,19 @@ async def _handle_command_ack(redis: RedisClient, payload: dict[str, Any], gatew
     command_id = payload.get("command_id")
     status = payload.get("status")  # "executed" | "rejected"
     if not command_id or status not in ("executed", "rejected"):
-        logger.warning("dropped malformed ack frame from %s", gateway_mac)
+        _dead_letter(gateway_mac, "command_ack", payload, "missing command_id or bad status")
+        return
+    # command_id is a UUID column: a device sending anything else used to raise
+    # DataError inside the ack handler and kill the frame. Parse explicitly and
+    # dead-letter instead of crashing (G-115).
+    try:
+        command_uuid = uuid.UUID(str(command_id))
+    except (ValueError, AttributeError, TypeError):
+        _dead_letter(gateway_mac, "command_ack", payload, f"command_id {command_id!r} is not a UUID")
         return
     async with async_session_factory() as session:
         row = (
-            await session.execute(select(GatewayCommand).where(GatewayCommand.command_id == command_id))
+            await session.execute(select(GatewayCommand).where(GatewayCommand.command_id == command_uuid))
         ).scalar_one_or_none()
         if row is None:
             logger.info("ignoring ack for unknown command_id %s", command_id)
@@ -323,29 +447,49 @@ async def _handle_command_ack(redis: RedisClient, payload: dict[str, Any], gatew
         logger.info("command %s %s (gateway %s)", command_id, status, gateway_mac)
 
 
-@app.post("/api/v1/ingest/readings", tags=["ingest"])
-async def ingest_reading(frame: dict) -> dict:
-    """Direct HTTP path (fallback for offline edge nodes)."""
+@app.post("/api/v1/ingest/readings", tags=["ingest"], dependencies=[Depends(require_ingest_key)])
+async def ingest_reading(frame: TelemetryFrame) -> dict:
+    """Direct HTTP path (fallback for offline edge nodes).
+
+    Requires ``X-Ingest-Key`` (see ``INGEST_API_KEY``); when no key is configured
+    the endpoint is disabled (404) instead of open. The body is schema-validated,
+    so an implausible frame is rejected with 422 and never reaches tank state.
+    """
     redis = RedisClient()
     try:
-        await _handle_reading(redis, frame)
-        return {"accepted": True, "topic": "ingestion/readings", "fields": len(frame)}
+        await _handle_reading(redis, frame.as_frame())
+        return {"accepted": True, "topic": "ingestion/readings", "fields": len(frame.as_frame())}
     finally:
         await redis.client.aclose()
 
 
-@app.post("/api/v1/ingest/backfill", tags=["ingest"])
-async def ingest_backfill(frames: list[dict]) -> dict:
-    """Offline buffered frames replayed by edge nodes after reconnect."""
+@app.post("/api/v1/ingest/backfill", tags=["ingest"], dependencies=[Depends(require_ingest_key)])
+async def ingest_backfill(batch: BackfillBatch) -> IngestOutcome:
+    """Offline buffered frames replayed by edge nodes after reconnect.
+
+    Valid frames are applied; an invalid one is counted and reported instead of
+    aborting the whole replay (a single bad buffered frame must not block a
+    device's recovery after a network outage).
+    """
     redis = RedisClient()
     accepted = 0
+    errors: list[str] = []
     try:
-        for frame in frames:
-            await _handle_reading(redis, frame)
-            accepted += 1
+        for idx, frame in enumerate(batch.frames):
+            try:
+                await _handle_reading(redis, frame.as_frame())
+                accepted += 1
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"frame[{idx}]: {exc}")
     finally:
         await redis.client.aclose()
-    return {"accepted": accepted}
+    return IngestOutcome(accepted=accepted, rejected=len(batch.frames) - accepted, errors=errors)
+
+
+@app.get("/api/v1/ingest/dead-letters", tags=["ingest"], dependencies=[Depends(require_ingest_key)])
+async def ingest_dead_letters() -> dict:
+    """Frames rejected after arrival, with the reason (operator visibility)."""
+    return {"count": len(_dead_letters), "entries": dead_letters()}
 
 
 @app.get("/api/v1/health", tags=["system"])

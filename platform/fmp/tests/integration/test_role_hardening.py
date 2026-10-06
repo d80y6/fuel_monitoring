@@ -15,15 +15,19 @@ async def users(db):
     """Seed one user per role; return {role: User}."""
     from fmp.core.database import async_session_factory
     from fmp.core.security import hash_password
-    from fmp.models import User
+    from fmp.models import Company, User
 
     pw = hash_password("Passw0rd!")
     created = {}
     async with async_session_factory() as session:
+        company = Company(name="Assigned company")
+        session.add(company)
+        await session.flush()
         for idx, role in enumerate(("admin", "company_admin", "user")):
             user = User(
                 username=f"{role}_{idx}", email=f"{role}_{idx}@t.io",
                 password_hash=pw, role=role, is_active=True,
+                company_id=None if role == "admin" else company.id,
             )
             session.add(user)
             created[role] = user
@@ -96,8 +100,9 @@ async def test_tanks_require_auth_and_roles(db, users, tank_seed):
         # company_admin can create (company → site → tank)
         _set_override(users["company_admin"])
         r = await client.post("/api/v1/companies", json={"name": "Co T"})
-        assert r.status_code == 201, r.text
-        company_id = r.json()["id"]
+        # company creation is a platform-admin action; tenant admins are scoped
+        assert r.status_code == 403, r.text
+        company_id = str(users["company_admin"].company_id)
         r = await client.post("/api/v1/sites", json={
             "name": "Site A", "company_id": company_id,
         })
@@ -135,8 +140,9 @@ async def test_org_mutations_require_role(db, users):
 
         _set_override(users["company_admin"])
         r = await client.post("/api/v1/companies", json={"name": "Co A"})
-        assert r.status_code == 201, r.text
-        company_id = r.json()["id"]
+        # tenant admins cannot mint new companies (platform-admin action)
+        assert r.status_code == 403, r.text
+        company_id = str(users["company_admin"].company_id)
 
         _set_override(users["user"])
         r = await client.delete(f"/api/v1/companies/{company_id}")

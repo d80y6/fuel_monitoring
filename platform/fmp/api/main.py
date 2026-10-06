@@ -10,6 +10,7 @@ from fmp.api.v1 import (
     auth as auth_router,
 )
 from fmp.api.v1 import (
+    alarms,
     analytics,
     companies,
     dispensing,
@@ -22,6 +23,7 @@ from fmp.api.v1 import (
     strapping,
     tanks,
     totalizers,
+    users,
 )
 from fmp.core.config import get_settings
 
@@ -44,7 +46,9 @@ app.add_middleware(
 )
 
 app.include_router(auth_router.router)
+app.include_router(alarms.router)
 app.include_router(analytics.router)
+app.include_router(users.router)
 app.include_router(dispensing.router)
 app.include_router(tanks.router)
 app.include_router(realtime.router)

@@ -1,11 +1,20 @@
-﻿__pycache__/
+
+# Python / tooling caches
+__pycache__/
 *.pyc
 *.log
+app.log
+logs/
+data/
+.pytest_cache/
+.ruff_cache/
+platform/.mypy_cache/
+platform/.venv/
+node_modules/
+web/dist/
+
+# Secrets and local state
 .env
 
 # Superpowers worktrees
 .worktrees/
-
-node_modules/
-web/dist/
-platform/.venv/

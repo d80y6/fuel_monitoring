@@ -18,17 +18,36 @@ entry points that call ``asyncio.run()`` internally, exactly like the worker.
 from __future__ import annotations
 
 import asyncio
+import os
 import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
-
-from fmp.core.database import celery_session_factory  # noqa: F401 (fix must exist)
-
-# The celery engine must be a NullPool engine: one connection per session,
-# created AND closed inside the same asyncio.run() loop → no cross-loop reuse.
-from fmp.core.database import celery_engine
 from sqlalchemy.pool import NullPool
+
+from fmp.core.database import celery_engine, celery_session_factory
+
+
+class UnsafeTestTarget(RuntimeError):
+    """Raised when a destructive test would target a non-disposable database."""
+
+
+_GUARD_MESSAGE = (
+    "Refusing to run: destructive Celery tests require FMP_TEST_INFRA=1 "
+    "and an engine targeting the disposable fuel_test database."
+)
+
+
+def _require_test_database() -> None:
+    """Refuse to run destructive cleanup against a non-test database (G-118).
+
+    Raises :class:`UnsafeTestTarget` rather than exiting the process: these tests
+    delete rows, so they must never touch a real database — but they must also not
+    abort the rest of the session. The caller decides whether that means skipping
+    (module fixture) or failing.
+    """
+    if os.getenv("FMP_TEST_INFRA") != "1" or celery_engine.url.database != "fuel_test":
+        raise UnsafeTestTarget(_GUARD_MESSAGE)
 
 
 def _run(coro):
@@ -50,8 +69,9 @@ def _ensure_schema() -> None:
 
 def _seed_gateway_rows() -> None:
     """Fresh gateway_commands rows that exercise non-Redis sweep branches."""
-    from fmp.models import GatewayCommand, IoTGateway
     from sqlalchemy import delete
+
+    from fmp.models import GatewayCommand, IoTGateway
 
     async def _seed() -> None:
         async with celery_session_factory() as session:
@@ -92,8 +112,9 @@ def _seed_gateway_rows() -> None:
 
 def _clear_notification_gateways() -> None:
     """Ensure no active gateways so dispatch fails fast with a pure SELECT path."""
-    from fmp.models import NotificationGateway, NotificationLog
     from sqlalchemy import delete
+
+    from fmp.models import NotificationGateway, NotificationLog
 
     async def _clear() -> None:
         async with celery_session_factory() as session:
@@ -104,11 +125,62 @@ def _clear_notification_gateways() -> None:
     _run(_clear())
 
 
-@pytest.fixture(scope="module", autouse=True)
+@pytest.fixture(scope="module")
 def celery_schema():
-    """Ensure tables exist before this module runs (idempotent)."""
+    """Ensure tables exist before this module runs (idempotent).
+
+    Skips (does not abort the session) when the engine is not pointed at the
+    disposable test database.
+    """
+    try:
+        _require_test_database()
+    except UnsafeTestTarget as exc:
+        pytest.skip(str(exc))
     _ensure_schema()
     yield
+
+
+@pytest.mark.parametrize(
+    ("opt_in", "configured_database", "engine_database"),
+    [
+        (None, "fuel_test", "fuel_test"),
+        ("0", "fuel_test", "fuel_test"),
+        ("1", "fuel_test", "fuel_monitoring"),
+        ("1", "postgres", "postgres"),
+        ("1", "circle_test", "circle_test"),
+    ],
+)
+def test_database_guard_rejects_unsafe_targets(
+    monkeypatch, opt_in, configured_database, engine_database,
+):
+    from types import SimpleNamespace
+
+    from sqlalchemy.engine import URL
+
+    monkeypatch.setenv("POSTGRES_DB", configured_database)
+    if opt_in is None:
+        monkeypatch.delenv("FMP_TEST_INFRA", raising=False)
+    else:
+        monkeypatch.setenv("FMP_TEST_INFRA", opt_in)
+    monkeypatch.setitem(
+        globals(), "celery_engine",
+        SimpleNamespace(url=URL.create("postgresql", database=engine_database)),
+    )
+    with pytest.raises(UnsafeTestTarget, match="Refusing to run"):
+        _require_test_database()
+
+
+def test_database_guard_accepts_explicit_test_target(monkeypatch):
+    from types import SimpleNamespace
+
+    from sqlalchemy.engine import URL
+
+    monkeypatch.setenv("FMP_TEST_INFRA", "1")
+    monkeypatch.setitem(
+        globals(), "celery_engine",
+        SimpleNamespace(url=URL.create("postgresql", database="fuel_test")),
+    )
+    _require_test_database()
 
 
 def test_celery_engine_is_nullpool():
@@ -116,7 +188,7 @@ def test_celery_engine_is_nullpool():
     assert isinstance(celery_engine.pool, NullPool)
 
 
-def test_sweep_commands_survives_repeated_asyncio_run():
+def test_sweep_commands_survives_repeated_asyncio_run(celery_schema):
     """5 consecutive sweep_commands() calls, each a fresh loop, must all pass."""
     from fmp.workers.tasks.commands import sweep_commands
 
@@ -138,6 +210,10 @@ def test_sweep_commands_survives_repeated_asyncio_run():
 
 
 def test_dispatch_batch_empty_survives_repeated_asyncio_run():
+    try:
+        _require_test_database()
+    except UnsafeTestTarget as exc:
+        pytest.skip(str(exc))
     """dispatch_batch_task([]) must succeed across repeated loop creations."""
     from fmp.workers.tasks.notifications import dispatch_batch_task
 
@@ -145,7 +221,7 @@ def test_dispatch_batch_empty_survives_repeated_asyncio_run():
         assert dispatch_batch_task([]) == []
 
 
-def test_dispatch_batch_item_exercises_celery_session():
+def test_dispatch_batch_item_exercises_celery_session(celery_schema):
     """A single item drives the celery-session SELECT path (gateway lookup)."""
     from fmp.workers.tasks.notifications import dispatch_batch_task
 

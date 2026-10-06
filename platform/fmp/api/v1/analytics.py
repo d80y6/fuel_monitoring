@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import select
 
 from fmp.api.deps import CurrentUser, SessionDep
+from fmp.core.tenancy import company_id_for_tank, tenant_scope
 from fmp.core.config import get_settings
 from fmp.models import Tank
 from fmp.services.analytics.consumption import compute_consumption
@@ -26,10 +27,10 @@ router = APIRouter(prefix="/api/v1/analytics", tags=["analytics"])
 @router.get("/consumption/{tank_id}")
 async def tank_consumption(
     tank_id: uuid.UUID,
+    current: CurrentUser,
+    session: SessionDep,
     days: int = Query(default=30, ge=1, le=365),
     window_days: int = Query(default=7, ge=1, le=60),
-    session: SessionDep = None,
-    _: CurrentUser = None,
 ):
     """Daily consumption (liters) + SMA forecast for one tank."""
     tank = (
@@ -37,6 +38,11 @@ async def tank_consumption(
     ).scalar_one_or_none()
     if tank is None or tank.deleted_at is not None:
         raise HTTPException(404, "tank not found")
+    scope = tenant_scope(current)
+    if not scope.is_platform:
+        company_id = await company_id_for_tank(session, tank_id)
+        if company_id is None or company_id != scope.company_id:
+            raise HTTPException(404, "tank not found")
     return await compute_consumption(
         session, tank_id, days=days, window_days=window_days
     )

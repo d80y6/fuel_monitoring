@@ -58,6 +58,12 @@ class Station(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     connection_status: Mapped[str] = mapped_column(String(20), default="offline")
     last_heartbeat: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # Machine-to-machine identity: the RPi dispenser controller presents
+    # ``X-Station-Key`` on /dispensing/validate|complete. Stored salted-PBKDF2;
+    # the prefix identifies the key for rotation without decryption.
+    api_key_hash: Mapped[str | None] = mapped_column(String(256))
+    api_key_prefix: Mapped[str | None] = mapped_column(String(16), index=True)
+
     site: Mapped["Site"] = relationship(back_populates="stations")
     dispensers: Mapped[list["Dispenser"]] = relationship(back_populates="station")
 

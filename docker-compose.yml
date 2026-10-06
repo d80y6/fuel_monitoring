@@ -4,11 +4,23 @@
 #   docker compose up --build
 #
 # Services: API (:8000), Edge Ingestion (:8001), Celery worker + beat,
-#           TimescaleDB, Redis, EMQX MQTT broker, nginx reverse proxy (:80),
-#           web frontend (:8080 internal).
+#           TimescaleDB, Redis, EMQX MQTT broker (authenticated, deny-by-default),
+#           nginx reverse proxy (:80), web frontend (:8080 internal).
+#
+# Health gating: every application service declares a healthcheck and waits for
+# its dependencies to be *healthy*, so a cold start cannot produce the 502 /
+# connection-refused window that used to happen while the API was still booting.
 # =============================================================================
 
 name: fuel-platform
+
+# One image, built once, shared by every Python service (api, ingest, worker,
+# beat, db-init, mqtt-init) — they run identical code and must never drift.
+x-app-image: &app-image
+  image: fuel-platform-app:local
+  build: ./platform
+  restart: unless-stopped
+  env_file: .env
 
 services:
   db:
@@ -39,22 +51,57 @@ services:
       retries: 10
 
   emqx:
-    # Swap to emqx/emqx-enterprise for mTLS, JSON Schema + flow limits (per spec).
+    # Broker trust boundary (G-001): authentication + ACLs are configured in
+    # infra/emqx/emqx.conf and accounts are provisioned by the mqtt-init service.
+    # For mTLS / X.509 client certificates use EMQX Enterprise.
     image: emqx/emqx:5.8
     restart: unless-stopped
+    environment:
+      EMQX_NODE__NAME: "emqx@127.0.0.1"
+      EMQX_NODE__COOKIE: "${EMQX_NODE_COOKIE:-fuel_platform_cookie}"
+      # Dashboard (human) login — independent of the automation API key.
+      EMQX_DASHBOARD__DEFAULT_USERNAME: "${EMQX_DASHBOARD_USERNAME:-admin}"
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: "${EMQX_DASHBOARD_PASSWORD:-}"
     ports:
-      - "1883:1883"        # MQTT
-      - "8883:8883"        # MQTTS (mTLS in enterprise)
-      - "8083:8083"        # WebSocket
-      - "18083:18083"      # Dashboard
+      # Local/host access only. In production keep 1883/8883/8083/18083 on a
+      # private network or a VPN and terminate TLS at the edge (see docs/security).
+      - "127.0.0.1:1883:1883"        # MQTT
+      - "127.0.0.1:8883:8883"        # MQTTS
+      - "127.0.0.1:8083:8083"        # WebSocket
+      - "127.0.0.1:18083:18083"      # Dashboard
     volumes:
-      - ./infra/emqx:/opt/emqx/etc/custom:ro
+      # Mounted over the image's real config path: /opt/emqx/etc/custom is
+      # ignored by EMQX, which is how the broker ended up on anonymous defaults.
+      - ./infra/emqx/emqx.conf:/opt/emqx/etc/emqx.conf:ro
+      - ./infra/emqx/api_keys.txt:/opt/emqx/etc/api_keys.txt:ro
+      - emqx_data:/opt/emqx/data
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  mqtt-init:
+    # Provisions per-gateway MQTT accounts + ACL rules. Idempotent: re-running is
+    # safe and rotates device passwords. Requires EMQX_API_* credentials.
+    <<: *app-image
+    restart: "no"
+    command:
+      - bash
+      - -c
+      - >
+        python -m fmp.scripts.provision_mqtt_accounts ||
+        echo "WARNING: MQTT account provisioning failed; devices will not be able to connect. Check EMQX_API_* credentials."
+    depends_on:
+      db:
+        condition: service_healthy
+      emqx:
+        condition: service_healthy
 
   api:
-    build: ./platform
-    restart: unless-stopped
+    <<: *app-image
     command: ["uvicorn", "fmp.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
-    env_file: .env
     depends_on:
       db-init:
         condition: service_completed_successfully
@@ -62,12 +109,17 @@ services:
         condition: service_healthy
     expose:
       - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3).status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
 
   db-init:
-    build: ./platform
+    <<: *app-image
     restart: "no"
     command: ["bash", "-c", "python -m fmp.scripts.init_db && python -m fmp.scripts.backfill_gateways"]
-    env_file: .env
     depends_on:
       db:
         condition: service_healthy
@@ -75,36 +127,47 @@ services:
         condition: service_healthy
 
   ingest:
-    build: ./platform
-    restart: unless-stopped
+    <<: *app-image
     command: ["uvicorn", "fmp.ingestion.main:app", "--host", "0.0.0.0", "--port", "8001"]
-    env_file: .env
     depends_on:
       db-init:
         condition: service_completed_successfully
       redis:
         condition: service_healthy
       emqx:
-        condition: service_started
+        condition: service_healthy
     expose:
       - "8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=3).status==200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   worker:
-    build: ./platform
-    restart: unless-stopped
+    <<: *app-image
     command: ["celery", "-A", "fmp.workers.celery_app", "worker", "--loglevel=info", "--concurrency=4"]
-    env_file: .env
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "celery", "-A", "fmp.workers.celery_app", "inspect", "ping", "-d", "celery@$$HOSTNAME", "-t", "20"]
+      interval: 30s
+      timeout: 25s
+      retries: 5
+      start_period: 30s
 
   beat:
-    build: ./platform
-    restart: unless-stopped
+    <<: *app-image
     command: ["celery", "-A", "fmp.workers.celery_app", "beat", "--loglevel=info"]
-    env_file: .env
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
 
   nginx:
     image: nginx:1.27-alpine
@@ -114,8 +177,17 @@ services:
     volumes:
       - ./infra/nginx/conf.d:/etc/nginx/conf.d:ro
     depends_on:
-      - api
-      - ingest
+      api:
+        condition: service_healthy
+      ingest:
+        condition: service_healthy
+      web:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   web:
     build: ./web
@@ -123,8 +195,10 @@ services:
     expose:
       - "8080"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
 volumes:
   timescale_data:
   redis_data:
+  emqx_data:

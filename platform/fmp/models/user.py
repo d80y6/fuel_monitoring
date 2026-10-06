@@ -43,6 +43,12 @@ class User(TimestampMixin, SoftDeleteMixin, Base):
     first_name: Mapped[str | None] = mapped_column(String(64))
     last_name: Mapped[str | None] = mapped_column(String(64))
     role: Mapped[str] = mapped_column(String(20), default="user")  # admin|company_admin|user
+    #: Tenant binding. ``None`` is allowed ONLY for platform ``admin`` accounts;
+    #: ``company_admin`` / ``user`` MUST belong to exactly one company, and every
+    #: tenant-scoped query is filtered by it.
+    company_id: Mapped[uuid_type.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("companies.id"), index=True
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     phone: Mapped[str | None] = mapped_column(String(20))
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

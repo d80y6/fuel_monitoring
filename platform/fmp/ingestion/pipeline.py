@@ -9,8 +9,15 @@ from __future__ import annotations
 import logging
 import uuid
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 
+from sqlalchemy import select
+from sqlalchemy.orm import object_session
+
+from fmp.core.config import get_settings
 from fmp.ingestion.processor import EMA, MADAnomalyDetector
+
+settings = get_settings()
 
 logger = logging.getLogger(__name__)
 
@@ -57,45 +64,104 @@ class ProcessedReading:
     alarms: tuple = ()
 
 
-def evaluate_alarm_rules(tank, level: float, volume: float, fill_percent: float) -> list[AlarmCandidate]:
-    """Return alarm candidates (deduplicated by the caller) for crossed thresholds."""
-    candidates: list[AlarmCandidate] = []
+#: (alarm type, level, attribute holding the threshold, value fed to the rule)
+LEVEL_RULES: tuple[tuple[str, str, str], ...] = (
+    ("critical_level", "CRITICAL", "critical_level_threshold"),
+    ("low_level", "WARNING", "low_level_threshold"),
+    ("high_level", "WARNING", "high_level_threshold"),
+)
+VOLUME_RULES: tuple[tuple[str, str, str], ...] = (
+    ("low_volume", "WARNING", "low_volume_threshold"),
+    ("high_volume", "WARNING", "high_volume_threshold"),
+)
 
-    if tank.low_level_threshold is not None and level <= tank.low_level_threshold:
-        candidates.append(AlarmCandidate(
-            type="low_level", level="WARNING",
-            message=f"Level {level:.3f} m below low threshold {tank.low_level_threshold} m",
-            value=round(level, 3),
-        ))
-    if tank.critical_level_threshold is not None and level <= tank.critical_level_threshold:
-        candidates.append(AlarmCandidate(
-            type="critical_level", level="CRITICAL",
-            message=f"Level {level:.3f} m at/below critical threshold {tank.critical_level_threshold} m",
-            value=round(level, 3),
-        ))
-    if tank.high_level_threshold is not None and level >= tank.high_level_threshold:
-        candidates.append(AlarmCandidate(
-            type="high_level", level="WARNING",
-            message=f"Level {level:.3f} m above high threshold {tank.high_level_threshold} m",
-            value=round(level, 3),
-        ))
-    if tank.low_volume_threshold is not None and volume <= tank.low_volume_threshold:
-        candidates.append(AlarmCandidate(
-            type="low_volume", level="WARNING",
-            message=f"Volume {volume:.1f} L below low threshold {tank.low_volume_threshold} L",
-            value=round(volume, 1),
-        ))
-    if tank.high_volume_threshold is not None and volume >= tank.high_volume_threshold:
-        candidates.append(AlarmCandidate(
-            type="high_volume", level="WARNING",
-            message=f"Volume {volume:.1f} L above high threshold {tank.high_volume_threshold} L",
-            value=round(volume, 1),
-        ))
+
+def _is_violated(alarm_type: str, value: float, threshold: float,
+                 hysteresis_m: float = 0.0, hysteresis_l: float = 0.0) -> bool:
+    """Threshold test with hysteresis so a value sitting on the line cannot flap.
+
+    Raise uses a plain comparison; clear backs off by the hysteresis band, so an
+    alarm only resolves once the measurement is meaningfully back inside the
+    safe band (industry practice — avoids alarm storms on a noisy signal).
+    """
+    if alarm_type in ("low_level", "critical_level"):
+        return value <= threshold
+    if alarm_type == "high_level":
+        return value >= threshold + hysteresis_m
+    if alarm_type == "low_volume":
+        return value <= threshold - hysteresis_l
+    if alarm_type == "high_volume":
+        return value >= threshold + hysteresis_l
+    raise ValueError(f"unknown alarm type {alarm_type}")
+
+
+def evaluate_alarm_rules(tank, level: float, volume: float, fill_percent: float) -> list[AlarmCandidate]:
+    """Return alarm candidates for thresholds currently crossed by this reading.
+
+    Only *raised* conditions are returned; the caller resolves previously raised
+    alarms once ``_is_violated`` goes false for them.
+    """
+    candidates: list[AlarmCandidate] = []
+    for alarm_type, alarm_level, attr in LEVEL_RULES:
+        threshold = getattr(tank, attr, None)
+        if threshold is not None and _is_violated(alarm_type, level, float(threshold)):
+            candidates.append(AlarmCandidate(
+                type=alarm_type, level=alarm_level,
+                message=f"Level {level:.3f} m crossed {attr.replace('_threshold', '')} "
+                        f"threshold {threshold} m",
+                value=round(level, 3),
+            ))
+    for alarm_type, alarm_level, attr in VOLUME_RULES:
+        threshold = getattr(tank, attr, None)
+        if threshold is not None and _is_violated(alarm_type, volume, float(threshold)):
+            candidates.append(AlarmCandidate(
+                type=alarm_type, level=alarm_level,
+                message=f"Volume {volume:.1f} L crossed {attr.replace('_threshold', '')} "
+                        f"threshold {threshold} L",
+                value=round(volume, 1),
+            ))
     return candidates
 
 
 def _open_alarm_key(tank_id: uuid.UUID, alarm_type: str) -> str:
     return f"alarm:open:{tank_id}:{alarm_type}"
+
+
+async def load_strapping(tank) -> dict | None:
+    """Load a tank's calibration table in the shape the geometry math expects.
+
+    ``custom_strapping`` tanks used to reach ``calculate_volume`` with no table,
+    whose ``ValueError("custom_strapping requires a strapping table")" was
+    swallowed by the per-tank ``except`` — silently dropping every reading of
+    every custom-strapping tank (G-102).
+    """
+    if getattr(tank, "tank_shape", None) != "custom_strapping":
+        return None
+    from fmp.models import StrappingTable
+
+    session = object_session(tank)
+    if session is None:
+        return None
+    table = await session.get(StrappingTable, tank.strapping_table_id) if tank.strapping_table_id else None
+    if table is None:
+        result = await session.execute(
+            select(StrappingTable).where(StrappingTable.tank_id == tank.id)
+        )
+        table = result.scalars().first()
+    if table is None:
+        logger.error(
+            "tank %s is custom_strapping but has no strapping table; readings cannot be "
+            "converted to volume and will be rejected rather than silently mis-measured",
+            tank.id,
+        )
+        return None
+    return {
+        "points": [
+            {"height": float(p["height"]), "volume": float(p["volume"])}
+            for p in (table.calibration_data or [])
+        ],
+        "method": table.interpolation_method or "linear",
+    }
 
 
 class IngestionPipeline:
@@ -113,6 +179,59 @@ class IngestionPipeline:
     def state_for(self, tank_id: uuid.UUID) -> TankTelemetryState:
         return self._tank_states.setdefault(tank_id, TankTelemetryState())
 
+    async def _resolve_cleared(
+        self, session, redis, tank, level: float, volume: float, raised: set[str]
+    ) -> list:
+        """Resolve open alarms whose condition no longer holds. Returns the rows."""
+        from sqlalchemy import select
+
+        from fmp.models import Alarm
+
+        resolved: list = []
+        checks = (
+            [(t, attr, level, settings.ALARM_CLEAR_HYSTERESIS_METERS)
+             for t, _lvl, attr in LEVEL_RULES]
+            + [(t, attr, volume, settings.ALARM_CLEAR_HYSTERESIS_LITERS)
+               for t, _lvl, attr in VOLUME_RULES]
+        )
+        for alarm_type, attr, value, hysteresis in checks:
+            threshold = getattr(tank, attr, None)
+            if threshold is None:
+                continue
+            open_key = _open_alarm_key(tank.id, alarm_type)
+            if not await redis.client.sismember(open_key, "1"):
+                continue
+            still_violated = _is_violated(alarm_type, value, float(threshold), hysteresis, hysteresis)
+            if still_violated or alarm_type in raised:
+                continue
+            row = (
+                await session.execute(
+                    select(Alarm)
+                    .where(
+                        Alarm.tank_id == tank.id,
+                        Alarm.type == alarm_type,
+                        Alarm.state.in_(("active", "acknowledged", "escalated")),
+                    )
+                    .order_by(Alarm.timestamp.desc())
+                    .limit(1)
+                )
+            ).scalar_one_or_none()
+            await redis.client.srem(open_key, "1")
+            if row is None:
+                # Redis said open but no live row exists (history pruned or a
+                # restart lost the set): still clear the dedupe key so the next
+                # violation can fire again.
+                continue
+            row.state = "resolved"
+            row.resolved_at = datetime.now(timezone.utc)
+            row.resolved_message = (
+                f"Condition cleared: value {value:.3f} "
+                f"{'m' if alarm_type.endswith('level') else 'L'} back inside the safe band "
+                f"(threshold {threshold}, hysteresis {hysteresis})"
+            )
+            resolved.append(row)
+        return resolved
+
     async def process(
         self,
         session,
@@ -123,8 +242,13 @@ class IngestionPipeline:
         temperature: float | None,
         status: int = 0,
         captured_at=None,
+        company_id: str | None = None,
     ) -> ProcessedReading | None:
-        """Run a single reading through calibration -> smoothing -> alarms -> persist."""
+        """Run a single reading through calibration -> smoothing -> alarms -> persist.
+
+        ``company_id`` is the tank's tenant; it is stamped on every realtime event
+        so subscribers only receive their own data (G-003).
+        """
         from fmp.ingestion.batch_writer import insert_measurements
         from fmp.ingestion.processor import (
             calculate_volume,
@@ -170,6 +294,7 @@ class IngestionPipeline:
                 tank_shape=getattr(tank, "tank_shape", None),
                 tank_width=getattr(tank, "tank_width", None),
                 dish_depth=getattr(tank, "dish_depth", None),
+                strapping=await load_strapping(tank),
             )
             # volume == GOV (liters at current temperature); kept as the legacy field name
             volume = gov
@@ -177,6 +302,8 @@ class IngestionPipeline:
             percent = fill_percent(gov, tank.total_capacity_liters)
             candidates = evaluate_alarm_rules(tank, level, volume, percent)
 
+            # --- raise: dedupe on the Redis open-set so a condition that stays
+            #     true produces exactly one alarm, not one per frame.
             fired_alarms = []
             for cand in candidates:
                 open_key = _open_alarm_key(tank.id, cand.type)
@@ -184,7 +311,14 @@ class IngestionPipeline:
                     await redis.client.sadd(open_key, "1")
                     fired_alarms.append(cand)
 
-            if fired_alarms:
+            # --- resolve: conditions that are no longer true (G-004). Without
+            #     this the open-set never clears and each alarm type can only
+            #     ever fire once per Redis lifetime.
+            resolved = await self._resolve_cleared(
+                session, redis, tank, level, volume, raised={c.type for c in candidates}
+            )
+
+            if fired_alarms or resolved:
                 from datetime import datetime, timezone
 
                 from fmp.models import Alarm
@@ -195,7 +329,11 @@ class IngestionPipeline:
                         tank_id=tank.id, timestamp=at, type=cand.type,
                         level=cand.level, message=cand.message, value=cand.value,
                     ))
-                    await publish_alarm(redis, tank, cand, at)
+                    await publish_alarm(redis, tank, cand, at, company_id=company_id,
+                                         state="active")
+                for alarm in resolved:
+                    await publish_alarm_resolution(redis, tank, alarm, at,
+                                                   company_id=company_id)
 
             if self._write_batch:
                 read = {
@@ -234,10 +372,11 @@ class IngestionPipeline:
             return None
 
 
-async def publish_live(redis, reading: ProcessedReading):
+async def publish_live(redis, reading: ProcessedReading, *, company_id=None):
     """Fan out a processed reading to the realtime channel (JSON payload)."""
     await redis.publish(LIVE_CHANNEL, {
         "tank_id": str(reading.tank_id),
+        "company_id": company_id,
         "timestamp": reading.timestamp,
         "pressure": reading.pressure,
         "temperature": reading.temperature,
@@ -252,15 +391,31 @@ async def publish_live(redis, reading: ProcessedReading):
     })
 
 
-async def publish_alarm(redis, tank, alarm: AlarmCandidate, at=None):
+async def publish_alarm(redis, tank, alarm: AlarmCandidate, at=None, *, company_id=None,
+                        state: str = "active"):
     """Fan out a newly-raised alarm to the realtime alarms channel."""
-    from datetime import datetime, timezone
-
     await redis.publish(ALARMS_CHANNEL, {
         "type": alarm.type,
         "level": alarm.level,
         "message": alarm.message,
         "value": alarm.value,
         "tank_id": str(tank.id),
+        "company_id": company_id,
+        "state": state,
+        "timestamp": (at or datetime.now(timezone.utc)).isoformat(),
+    })
+
+
+async def publish_alarm_resolution(redis, tank, alarm, at=None, *, company_id=None):
+    """Fan out an automatic resolution so live clients clear the alarm."""
+    await redis.publish(ALARMS_CHANNEL, {
+        "type": alarm.type,
+        "level": alarm.level,
+        "message": alarm.resolved_message or "condition cleared",
+        "value": alarm.value,
+        "tank_id": str(tank.id),
+        "alarm_id": str(alarm.id),
+        "company_id": company_id,
+        "state": "resolved",
         "timestamp": (at or datetime.now(timezone.utc)).isoformat(),
     })

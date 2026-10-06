@@ -88,10 +88,18 @@ class Alarm(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UUID(as_uuid=True), ForeignKey("tanks.id"), index=True
     )
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    type: Mapped[str] = mapped_column(String(40))
+    type: Mapped[str] = mapped_column(String(40), index=True)
     level: Mapped[str] = mapped_column(String(20))
     message: Mapped[str] = mapped_column(Text)
     value: Mapped[float] = mapped_column(Float, nullable=True)
+
+    #: Lifecycle state: active -> acknowledged -> resolved.
+    #: ``communication_lost`` alarms flip active->resolved automatically when the
+    #: device reports again; threshold alarms resolve when the value re-enters
+    #: the safe band (see the ingestion pipeline rule evaluator).
+    state: Mapped[str] = mapped_column(String(20), default="active", index=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolved_message: Mapped[str | None] = mapped_column(Text)
 
     acknowledged: Mapped[bool] = mapped_column(Boolean, default=False)
     acknowledged_by: Mapped[uuid_type.UUID | None] = mapped_column(

@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
 from fmp.api.deps import CurrentUser, PrivilegedUser, SessionDep
+from fmp.core.tenancy import company_id_for_tank, tenant_scope
 from fmp.models import StrappingTable, Tank
 from fmp.schemas.strapping import StrappingTableRead, StrappingTableUpsert
 
@@ -23,18 +24,27 @@ def _to_read(row: StrappingTable) -> StrappingTableRead:
     )
 
 
-async def _require_tank(tank_id, session) -> Tank:
+async def _require_tank(tank_id, session, scope) -> Tank:
+    """Load a tank the caller may use, or 404.
+
+    A strapping table is calibration data for a physical asset, so it carries the
+    same tenant boundary as the tank itself.
+    """
     tank = (await session.execute(
         select(Tank).where(Tank.id == tank_id, Tank.deleted_at.is_(None))
     )).scalar_one_or_none()
     if tank is None:
         raise HTTPException(404, "tank not found")
+    if not scope.is_platform:
+        company_id = await company_id_for_tank(session, tank_id)
+        if company_id is None or company_id != scope.company_id:
+            raise HTTPException(404, "tank not found")
     return tank
 
 
 @router.get("", response_model=StrappingTableRead)
-async def get_strapping(tank_id: uuid.UUID, _: CurrentUser, session: SessionDep):
-    await _require_tank(tank_id, session)
+async def get_strapping(tank_id: uuid.UUID, current: CurrentUser, session: SessionDep):
+    await _require_tank(tank_id, session, tenant_scope(current))
     row = (await session.execute(
         select(StrappingTable).where(StrappingTable.tank_id == tank_id)
     )).scalar_one_or_none()
@@ -45,9 +55,9 @@ async def get_strapping(tank_id: uuid.UUID, _: CurrentUser, session: SessionDep)
 
 @router.put("", response_model=StrappingTableRead)
 async def upsert_strapping(
-    tank_id: uuid.UUID, payload: StrappingTableUpsert, _: PrivilegedUser, session: SessionDep
+    tank_id: uuid.UUID, payload: StrappingTableUpsert, current: PrivilegedUser, session: SessionDep
 ):
-    tank = await _require_tank(tank_id, session)
+    tank = await _require_tank(tank_id, session, tenant_scope(current))
     row = (await session.execute(
         select(StrappingTable).where(StrappingTable.tank_id == tank_id)
     )).scalar_one_or_none()

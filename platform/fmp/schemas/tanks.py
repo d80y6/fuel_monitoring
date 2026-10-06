@@ -58,6 +58,26 @@ class TankCreate(TankBase):
         return self
 
 
+class TankUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    fuel_type_id: uuid.UUID | None = None
+    tank_height: float | None = Field(default=None, gt=0)
+    tank_length: float | None = Field(default=None, gt=0)
+    tank_width: float | None = Field(default=None, gt=0)
+    dish_depth: float | None = Field(default=None, gt=0)
+    tank_volume: float | None = Field(default=None, gt=0)
+    elevation: float | None = None
+    calibration_factor: float | None = None
+    atmospheric_pressure: float | None = None
+    low_level_threshold: float | None = None
+    critical_level_threshold: float | None = None
+    high_level_threshold: float | None = None
+    low_volume_threshold: float | None = None
+    high_volume_threshold: float | None = None
+    is_active: bool | None = None
+    gateway_mac: str | None = Field(default=None, max_length=17)
+
+
 class TankRead(TankBase):
     model_config = ConfigDict(from_attributes=True)
 
@@ -66,6 +86,10 @@ class TankRead(TankBase):
     created_at: datetime
     connection_status: str
     last_connection: datetime | None
+    #: Effective freshness derived server-side: a tank whose last connection is
+    #: older than the staleness threshold reports ``offline`` even if the
+    #: stored flag still says "online".
+    effective_status: str | None = None
 
 
 class TelemetryPoint(BaseModel):
@@ -94,8 +118,14 @@ class AlarmSummary(BaseModel):
     level: str
     message: str
     value: float | None = None
+    state: str = "active"
+    resolved_at: datetime | None = None
+    resolved_message: str | None = None
     acknowledged: bool
     acknowledged_at: datetime | None = None
+    tank_name: str | None = None
+    site_id: uuid.UUID | None = None
+    company_id: uuid.UUID | None = None
 
 
 class AlarmAckOutcome(BaseModel):

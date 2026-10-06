@@ -6,12 +6,13 @@ from fmp.models.dispensing import (
     DispenseTransaction,
     StationTotalizer,
 )
-from fmp.models.notifications import NotificationGateway, NotificationLog
+from fmp.models.notifications import NotificationGateway, NotificationLog, NotificationRule
 from fmp.models.user import UploadBatch, User
 from fmp.models.fuel import FuelType, StrappingTable
 from fmp.models.tank import Alarm, Measurement, Tank
 from fmp.models.gateway import COMMAND_TYPES, GatewayCommand, IoTGateway
 from fmp.models.analytics import ConsumptionSummary
+from fmp.models.audit import AuditEvent
 
 __all__ = [
     "Base",
@@ -40,4 +41,6 @@ __all__ = [
     "GatewayCommand",
     "IoTGateway",
     "ConsumptionSummary",
+    "NotificationRule",
+    "AuditEvent",
 ]

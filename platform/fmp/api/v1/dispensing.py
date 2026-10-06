@@ -20,8 +20,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from fmp.api.deps import CurrentUser, PrivilegedUser, SessionDep
 from fmp.core.database import get_session
+from fmp.core.device_auth import require_station
 from fmp.core.redis import get_redis_client, RedisClient
-from fmp.models import Allocation, DispenseTransaction, UploadBatch
+from fmp.core.tenancy import scope_company_query, tenant_scope
+from fmp.models import Allocation, Company, DispenseTransaction, Site, Station, UploadBatch
 from fmp.schemas.dispensing import (
     CodeValidateRequest,
     CodeValidateResponse,
@@ -39,15 +41,29 @@ router = APIRouter(prefix="/api/v1/dispensing", tags=["dispensing"])
 
 @router.post("/upload", response_model=ExcelIngestOutcome, status_code=201)
 async def upload_quota_sheet(
+    current: PrivilegedUser,
     file: UploadFile = File(...),
     company_id: uuid.UUID = Form(...),
-    uploaded_by_id: uuid.UUID = Form(...),
     session: AsyncSession = Depends(get_session),
     redis: RedisClient = Depends(get_redis_client),
 ) -> ExcelIngestOutcome:
-    """Parse the quota Excel file and generate single-use codes for each row."""
+    """Parse the quota Excel file and generate single-use codes for each row.
+
+    Operator-authenticated (was unauthenticated): an anonymous caller could mint
+    fuel-authorization codes for any company. ``uploaded_by_id`` is taken from the
+    authenticated caller, not from the form, and the target company must be the
+    caller's own tenant.
+    """
     if not file.filename:
         raise HTTPException(400, "missing filename")
+
+    scope = tenant_scope(current)
+    if not scope.is_platform and company_id != scope.company_id:
+        raise HTTPException(403, "cannot upload a quota sheet for another company")
+    company = await session.get(Company, company_id)
+    if company is None or company.deleted_at is not None:
+        raise HTTPException(404, "company not found")
+    uploaded_by_id = current.id
 
     tmp = Path("/tmp") / f"quota_{uuid.uuid4().hex}_{Path(file.filename).name}"
     try:
@@ -76,19 +92,36 @@ async def upload_quota_sheet(
 @router.post("/validate", response_model=CodeValidateResponse)
 async def validate(
     req: CodeValidateRequest,
+    station: Station = Depends(require_station),
     session: AsyncSession = Depends(get_session),
     redis: RedisClient = Depends(get_redis_client),
 ) -> CodeValidateResponse:
+    """Authorize a single-use code **at the station**.
+
+    Device-authenticated (G-002): the controller presents ``X-Station-Key`` and
+    may only authorize codes for its own station — the body cannot claim another
+    station.
+    """
+    _require_own_station(station, req.station_id)
     return await validate_code(session, redis, req)
 
 
 @router.post("/complete", response_model=DispenseCompleteResponse)
 async def complete(
     req: DispenseCompleteRequest,
+    station: Station = Depends(require_station),
     session: AsyncSession = Depends(get_session),
     redis: RedisClient = Depends(get_redis_client),
 ) -> DispenseCompleteResponse:
+    """Settle a dispense transaction. Device-authenticated (G-002)."""
+    _require_own_station(station, req.station_id)
     return await complete_dispense(session, redis, req)
+
+
+def _require_own_station(authenticated: Station, claimed: uuid.UUID) -> None:
+    """Reject a device that authenticates as one station but claims another."""
+    if authenticated.id != claimed:
+        raise HTTPException(403, "device is not authorized for this station")
 
 
 @router.post("/upload/{batch_id}/dispatch")
@@ -106,6 +139,11 @@ async def redispatch_batch_codes(
     batch = await session.get(UploadBatch, batch_id)
     if batch is None:
         raise HTTPException(404, "batch not found")
+    scope = tenant_scope(_user)
+    if not scope.is_platform:
+        uploader_company = await _company_of_user(session, batch.uploaded_by_id)
+        if uploader_company is None or uploader_company != scope.company_id:
+            raise HTTPException(404, "batch not found")
     return {
         "message": (
             "Plaintext codes are intentionally not persisted. "
@@ -116,14 +154,22 @@ async def redispatch_batch_codes(
     }
 
 
+async def _company_of_user(session: AsyncSession, user_id: uuid.UUID) -> uuid.UUID | None:
+    from fmp.models import User
+
+    row = (await session.execute(select(User.company_id).where(User.id == user_id))).first()
+    return row[0] if row else None
+
+
 @router.get("/allocations", response_model=list[AllocationRead])
 async def list_allocations(
-    _: CurrentUser,
+    user: CurrentUser,
     session: SessionDep,
     max_rows: int = Query(default=100, ge=1, le=500),
 ) -> list[AllocationRead]:
     """Read-only list of quota allocations (newest first) for dashboards."""
     stmt = select(Allocation).order_by(desc(Allocation.created_at)).limit(max_rows)
+    stmt = scope_company_query(stmt, Allocation.company_id, tenant_scope(user))  # type: ignore[arg-type]
     rows = (await session.execute(stmt)).scalars().all()
     return [
         AllocationRead(
@@ -141,13 +187,23 @@ async def list_allocations(
 
 @router.get("/transactions", response_model=list[TransactionRead])
 async def list_transactions(
-    _: CurrentUser,
+    user: CurrentUser,
     session: SessionDep,
     dispenser_id: uuid.UUID | None = None,
     limit: int = Query(default=200, ge=1, le=1000),
 ) -> list[TransactionRead]:
-    """Read-only list of dispense transactions (newest first) for dashboards."""
-    stmt = select(DispenseTransaction).order_by(desc(DispenseTransaction.created_at)).limit(limit)
+    """Read-only list of dispense transactions (newest first) for dashboards.
+
+    Scoped to the caller's tenant through ``station -> site -> company``.
+    """
+    stmt = (
+        select(DispenseTransaction)
+        .join(Station, Station.id == DispenseTransaction.station_id)
+        .join(Site, Site.id == Station.site_id)
+        .order_by(desc(DispenseTransaction.created_at))
+        .limit(limit)
+    )
+    stmt = scope_company_query(stmt, Site.company_id, tenant_scope(user))  # type: ignore[arg-type]
     if dispenser_id:
         stmt = stmt.where(DispenseTransaction.dispenser_id == dispenser_id)
     rows = (await session.execute(stmt)).scalars().all()

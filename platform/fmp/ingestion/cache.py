@@ -65,3 +65,40 @@ async def set_tank_cache(redis, *, tank_id: str,
 
 async def set_negative_cache(redis, *, lookup: str) -> None:
     await redis.set(neg_cache_key(lookup), json.dumps(_NULL), ex=TANK_NEG_TTL)
+
+
+def company_cache_key(tank_id: str) -> str:
+    return f"tank:company:{tank_id}"
+
+
+async def resolve_company_id(redis, session, tank_id: str) -> str | None:
+    """Tenant of a tank (site -> company), cached to keep the hot path query-free.
+
+    The realtime fan-out has to tag every event with its tenant so subscribers
+    only ever receive their own data (G-003). That lookup would otherwise cost
+    one join per frame, so it is cached alongside the tank mapping.
+    """
+    key = company_cache_key(tank_id)
+    cached = await redis.get(key)
+    if cached is not None:
+        if cached == _NULL:
+            return None
+        try:
+            return json.loads(cached)
+        except (TypeError, json.JSONDecodeError):
+            pass
+
+    from sqlalchemy import select
+
+    from fmp.models import Site, Tank
+
+    row = (
+        await session.execute(
+            select(Site.company_id)
+            .join(Tank, Tank.site_id == Site.id)
+            .where(Tank.id == tank_id)
+        )
+    ).first()
+    company_id = str(row[0]) if row and row[0] is not None else None
+    await redis.set(key, json.dumps(company_id or _NULL), ex=TANK_CACHE_TTL)
+    return company_id

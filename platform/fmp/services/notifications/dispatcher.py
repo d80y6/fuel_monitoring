@@ -203,7 +203,7 @@ class NotificationDispatcher:
     async def dispatch(self, item: PendingDispatch) -> DispatchResult:
         """Deliver a code to one employee with cross-gateway failover + retries."""
         session = self._session
-        gateways = await self._load_active_gateways(session)
+        gateways = await self._load_active_gateways(session, item.company_id)
         if not gateways:
             return DispatchResult(
                 allocation_id=item.allocation_id,
@@ -219,7 +219,7 @@ class NotificationDispatcher:
         for attempt in range(1, settings.NOTIFY_MAX_RETRIES + 1):
             for gw in gateways:
                 channel = item.channel or settings.DEFAULT_NOTIFICATION_CHANNEL
-                if gw.type != channel:
+                if gw.type not in CHANNEL_GATEWAY_TYPES.get(channel, {channel}):
                     continue
                 try:
                     provider_id = await self._send_via(gw, item.phone, text)
@@ -257,28 +257,29 @@ class NotificationDispatcher:
         )
 
     async def _send_via(
-        self, gw: NotificationGateway, phone: str, text: str
+        self, gw: NotificationGateway, recipient: str, text: str
     ) -> str:
-        cfg = json.loads(gw.config_json) if gw.config_json else {}
-        if gw.type == "smpp":
-            client = SMPPClient(**cfg)
-            try:
-                return await client.send_sms(phone, text)
-            finally:
-                await client.close()
-        if gw.type == "whatsapp":
-            client = WhatsAppClient(**cfg)
-            return await client.send_text(phone, text)
-        raise SendError(gw.type, "unknown gateway type")
+        return await send_via_gateway(gw, recipient, text)
 
     async def _load_active_gateways(
-        self, session: AsyncSession
+        self, session: AsyncSession, company_id: uuid.UUID | None = None
     ) -> list[NotificationGateway]:
-        res = await session.execute(
+        """Active channels visible to a tenant: its own plus platform-wide ones."""
+        stmt = (
             select(NotificationGateway)
             .where(NotificationGateway.is_active.is_(True))
             .order_by(NotificationGateway.priority.asc())
         )
+        if company_id is not None:
+            from sqlalchemy import or_
+
+            stmt = stmt.where(
+                or_(
+                    NotificationGateway.company_id == company_id,
+                    NotificationGateway.company_id.is_(None),
+                )
+            )
+        res = await session.execute(stmt)
         return list(res.scalars().all())
 
     async def _log(
@@ -292,20 +293,135 @@ class NotificationDispatcher:
         error: str | None = None,
         retry: int = 0,
     ) -> None:
-        session.add(
-            NotificationLog(
-                allocation_id=item.allocation_id,
-                gateway_id=gateway_id,
-                channel=channel,
-                recipient_phone=item.phone,
-                status=status,
-                provider_message_id=provider_msg_id,
-                error_message=(error or None),
-                retry_count=retry,
-                sent_at=datetime.now(timezone.utc) if status == "SENT" else None,
-            )
+        await log_delivery(
+            session,
+            gateway_id=gateway_id,
+            channel=channel,
+            recipient=item.phone,
+            status=status,
+            provider_message_id=provider_msg_id,
+            error=error,
+            retry=retry,
+            event_type="dispense_code",
+            event_ref=str(item.allocation_id),
+            allocation_id=item.allocation_id,
+            company_id=item.company_id,
         )
-        await session.commit()
+
+
+# ---------------------------------------------------------------------------
+# Channel senders (single source of truth — also used by rule dispatch)
+# ---------------------------------------------------------------------------
+
+#: "sms" is the operator-facing channel name; it is carried by SMPP gateways.
+CHANNEL_GATEWAY_TYPES: dict[str, set[str]] = {
+    "sms": {"sms", "smpp"},
+    "smpp": {"sms", "smpp"},
+    "whatsapp": {"whatsapp"},
+    "email": {"email"},
+    "webhook": {"webhook"},
+}
+
+
+async def send_via_gateway(gw: NotificationGateway, recipient: str, text: str) -> str:
+    """Send one message through a concrete gateway; returns provider message id."""
+    cfg = json.loads(gw.config_json) if gw.config_json else {}
+    if gw.type in ("sms", "smpp"):
+        client = SMPPClient(**cfg)
+        try:
+            return await client.send_sms(recipient, text)
+        finally:
+            await client.close()
+    if gw.type == "whatsapp":
+        client = WhatsAppClient(**cfg)
+        return await client.send_text(recipient, text)
+    if gw.type == "email":
+        return await _send_smtp(cfg, recipient, text)
+    if gw.type == "webhook":
+        return await _post_webhook(cfg, recipient, text)
+    raise SendError(gw.type, "unknown gateway type")
+
+
+async def _send_smtp(cfg: dict, to: str, text: str) -> str:
+    """RFC-compliant plain-text email over SMTP/SMTPS (stdlib only)."""
+    import smtplib
+    from email.message import EmailMessage
+
+    host = cfg["host"]
+    port = int(cfg.get("port", 587))
+    username = cfg.get("username")
+    password = cfg.get("password")
+    use_tls = bool(cfg.get("tls", True))
+    sender = cfg.get("from") or username or "alerts@fuel-platform.local"
+    subject = cfg.get("subject") or "Fuel platform alert"
+
+    msg = EmailMessage()
+    msg["From"] = sender
+    msg["To"] = to
+    msg["Subject"] = subject
+    msg.set_content(text, charset="utf-8")
+
+    def _send() -> None:
+        cls = smtplib.SMTP_SSL if use_tls and port == 465 else smtplib.SMTP
+        with cls(host, port, timeout=20) as smtp:
+            if use_tls and port != 465:
+                smtp.starttls()
+            if username:
+                smtp.login(username, password or "")
+            smtp.send_message(msg)
+
+    await asyncio.to_thread(_send)
+    return f"smtp:{host}:{port}"
+
+
+async def _post_webhook(cfg: dict, ref: str, text: str) -> str:
+    """POST a JSON event document to the configured URL."""
+    import urllib.request
+
+    url = cfg["url"]
+    body = json.dumps({"event": cfg.get("event", "alert"), "ref": ref, "text": text}).encode()
+    headers = {"Content-Type": "application/json"}
+    if cfg.get("auth_header"):
+        headers["Authorization"] = cfg["auth_header"]
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    resp = await asyncio.to_thread(urllib.request.urlopen, req)
+    if resp.status >= 400:
+        raise SendError("webhook", f"webhook returned {resp.status}")
+    return f"webhook:{resp.status}"
+
+
+async def log_delivery(
+    session: AsyncSession,
+    *,
+    gateway_id: uuid.UUID | None,
+    channel: str,
+    recipient: str,
+    status: str,
+    provider_message_id: str | None = None,
+    error: str | None = None,
+    retry: int = 0,
+    event_type: str = "dispense_code",
+    event_ref: str | None = None,
+    allocation_id: uuid.UUID | None = None,
+    company_id: uuid.UUID | None = None,
+) -> None:
+    session.add(
+        NotificationLog(
+            allocation_id=allocation_id,
+            company_id=company_id,
+            event_type=event_type,
+            event_ref=event_ref,
+            gateway_id=gateway_id,
+            channel=channel,
+            recipient=recipient,
+            status=status,
+            provider_message_id=provider_message_id,
+            error_message=(error or None),
+            retry_count=retry,
+            sent_at=datetime.now(timezone.utc) if status == "SENT" else None,
+        )
+    )
+    await session.commit()
 
 
 async def _dispatch_one(item: PendingDispatch) -> DispatchResult:
