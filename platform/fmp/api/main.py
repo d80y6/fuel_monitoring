@@ -16,6 +16,7 @@ from fmp.api.v1 import (
     iot_gateways,
     notifications,
     realtime,
+    reports,
     sites,
     stations,
     strapping,
@@ -50,6 +51,7 @@ app.include_router(auth_router.router)
 app.include_router(alarms.router)
 app.include_router(analytics.router)
 app.include_router(audit.router)
+app.include_router(reports.router)
 app.include_router(users.router)
 app.include_router(dispensing.router)
 app.include_router(tanks.router)
