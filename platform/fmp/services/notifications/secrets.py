@@ -85,10 +85,10 @@ def merge_config(
     for key, value in incoming.items():
         if is_secret_key(key, channel_type):
             if is_masked(value):
-                # Keep whatever is already stored (mask echo / omitted).
-                merged.setdefault(key, MASK if key not in stored else stored[key])
-                if key not in stored:
-                    merged[key] = MASK
+                # Keep whatever is already stored (mask echo / omitted). A brand
+                # new secret that arrives pre-masked is stored as the mask, which
+                # the read path then renders identically.
+                merged[key] = stored.get(key, MASK)
                 continue
             merged[key] = value
         else:

@@ -38,7 +38,7 @@ def hash_password(plain: str) -> str:
     dk = hashlib.pbkdf2_hmac(
         "sha256", plain.encode("utf-8"), salt, PBKDF2_ITERATIONS, dklen=_HASH_BYTES
     )
-    return "$pbkdf2-sha256${0}${1}${2}".format(
+    return "$pbkdf2-sha256${}${}${}".format(
         PBKDF2_ITERATIONS,
         base64.b64encode(salt).decode("ascii"),
         base64.b64encode(dk).decode("ascii"),

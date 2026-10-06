@@ -25,9 +25,9 @@ from starlette.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from fmp.api.main import app
+from fmp.core.config import get_settings
 from fmp.core.database import async_session_factory
 from fmp.core.security import hash_password
-from fmp.core.config import get_settings
 from fmp.ingestion.pipeline import LIVE_CHANNEL
 from fmp.models import (
     Alarm,
@@ -467,10 +467,10 @@ async def test_anonymous_is_rejected(anon_client, method, path):
 # ---------------------------------------------------------------------------
 @pytest.mark.asyncio
 async def test_ws_event_filtering_is_tenant_scoped():
+    import uuid
+
     from fmp.api.v1.realtime import _event_visible
     from fmp.models import User
-
-    import uuid
 
     alpha_company = uuid.uuid4()
     beta_company = uuid.uuid4()

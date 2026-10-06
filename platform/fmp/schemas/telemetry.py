@@ -82,6 +82,8 @@ class TelemetryFrame(BaseModel):
     def _timestamp_plausible(cls, v: datetime | None) -> datetime | None:
         if v is None:
             return None
+        # A naive device timestamp is interpreted as UTC; an aware one is
+        # converted, so a frame from a UTC+3 site lands on the correct instant.
         if v.tzinfo is None:
             v = v.replace(tzinfo=UTC)
         else:

@@ -207,7 +207,7 @@ def main(argv: list[str] | None = None) -> int:
 
     api = EmqxApi(settings.EMQX_API_URL, settings.EMQX_API_KEY, settings.EMQX_API_SECRET)
     try:
-        existing = api.list_users()
+        api.list_users()  # fail fast with a clear message if the broker is unreachable
     except urllib.error.URLError as exc:
         logger.error("cannot reach the EMQX API at %s: %s", settings.EMQX_API_URL, exc)
         return 1

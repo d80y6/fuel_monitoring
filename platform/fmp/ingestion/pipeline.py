@@ -416,7 +416,6 @@ class IngestionPipeline:
                     "density_at_temperature": density,
                     "fill_percent": percent,
                     "is_outlier": is_outlier,
-                    "status": status,
                 }
                 await insert_measurements(session, [read])
                 self._pending.append(read)

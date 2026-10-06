@@ -24,9 +24,6 @@ def _reset_login_rate_limit():
     _fallback_attempts.clear()
     try:
         from fmp.core.redis import get_redis_client
-        from fmp.core.config import get_settings
-
-        settings = get_settings()
 
         async def _clear():
             client = await get_redis_client()

@@ -16,6 +16,7 @@ celery_app = Celery(
         "fmp.workers.tasks.notifications",
         "fmp.workers.tasks.commands",
         "fmp.workers.tasks.analytics",
+        "fmp.workers.tasks.telemetry",
     ],
 )
 
@@ -40,5 +41,12 @@ celery_app.conf.beat_schedule = {
     "analytics-daily-consumption": {
         "task": "analytics.compute_all_consumption",
         "schedule": crontab(hour=0, minute=5),
+    },
+    # Detects silent devices. Without this a dead probe is indistinguishable
+    # from a steady one: connection_status would stay "online" forever and no
+    # communication_lost alarm would ever be raised.
+    "telemetry-sweep-stale": {
+        "task": "telemetry.sweep_stale",
+        "schedule": float(settings.STALE_SWEEP_INTERVAL_SECONDS),
     },
 }

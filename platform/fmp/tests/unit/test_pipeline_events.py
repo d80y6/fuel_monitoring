@@ -153,5 +153,4 @@ async def test_processed_reading_carries_gov_nsv_density():
     assert read.density_at_temperature == pytest.approx(845.0 * (1 - 0.0008 * (35 - 15)))
     # live payload includes new fields (live publishing is caller-driven)
     await publish_live(redis, read)
-    msgs = [m for ch, m in redis.published if ch == LIVE_CHANNEL]
     assert any("gov_volume" in json.dumps(m) for _, m in redis.published)

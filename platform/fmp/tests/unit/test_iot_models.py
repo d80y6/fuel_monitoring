@@ -28,4 +28,4 @@ def test_command_columns():
 
 
 def test_tank_has_gateway_fk():
-    assert "gateway_id" in Tank.__table__.columns.keys()
+    assert "gateway_id" in Tank.__table__.columns

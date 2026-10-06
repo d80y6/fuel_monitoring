@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from datetime import UTC, date, datetime, timedelta
+from datetime import date, timedelta
 
 from sqlalchemy import delete, select
 
@@ -27,7 +27,6 @@ async def _compute_and_store(tank_id, days: int, window_days: int) -> dict:
             session, tank_id, days=days, window_days=window_days
         )
     if payload["series"]:
-        now = datetime.now(UTC)
         lookback = date.today() - timedelta(days=days)
         forecast_value = payload["forecast"]["liters_per_day"]
         async with celery_session_factory() as session:

@@ -303,6 +303,13 @@ async def _handle_reading(redis: RedisClient, payload: dict[str, Any], *, gatewa
             captured_at = datetime.now(UTC)
 
         company_id = await resolve_company_id(raw_redis, session, str(tank.id))
+        # Liveness: every accepted frame is proof the device is talking. Without
+        # this the stale sweeper would mark a perfectly healthy tank offline.
+        now = datetime.now(UTC)
+        tank.last_connection = now
+        if tank.connection_status != "online":
+            tank.connection_status = "online"
+
         reading = await pipeline.process(
             session,
             redis,

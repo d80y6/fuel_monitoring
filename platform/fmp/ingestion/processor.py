@@ -139,7 +139,9 @@ class MADAnomalyDetector:
 
 
 # Re-export the fuel-dynamics helpers (kept for backward-compatible imports).
-from fmp.ingestion.tank_geometry import (  # noqa: F401
+# ruff: noqa: E402 -- the geometry module imports this one, so these names must
+# be bound at the bottom of the module to avoid a circular import.
+from fmp.ingestion.tank_geometry import (  # noqa: F401, E402
     density_at_temperature,
     interpolate_strapping,
     net_standard_volume,
