@@ -10,6 +10,43 @@ from sqlalchemy import text
 
 
 @pytest.fixture(autouse=True)
+def _reset_login_rate_limit():
+    """Clear login-throttle counters between tests.
+
+    Integration tests log in repeatedly as the same username from one IP, which
+    the production limiter (5 failures / 15 min per username+IP) correctly reads
+    as brute force. Clearing the counters restores a clean slate *without*
+    changing the configured threshold, so the tests that assert on the limiter's
+    real behaviour still exercise it.
+    """
+    from fmp.api.v1.auth import _fallback_attempts
+
+    _fallback_attempts.clear()
+    try:
+        from fmp.core.redis import get_redis_client
+        from fmp.core.config import get_settings
+
+        settings = get_settings()
+
+        async def _clear():
+            client = await get_redis_client()
+            keys = await client.client.keys("ratelimit:login:*")
+            if keys:
+                await client.client.delete(*keys)
+
+        import asyncio
+
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            asyncio.run(_clear())
+    except Exception:  # Redis unreachable — the in-process fallback is cleared above
+        pass
+    yield
+    _fallback_attempts.clear()
+
+
+@pytest.fixture(autouse=True)
 def _reset_dependency_overrides():
     """Clear any FastAPI dependency overrides left by a previous test."""
     from fmp.api.main import app

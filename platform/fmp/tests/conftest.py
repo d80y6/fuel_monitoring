@@ -42,6 +42,20 @@ class FakeRedis:
         self.sets.setdefault(key, set()).add(member)
         return 1
 
+    async def srem(self, key: str, member: str) -> int:
+        """Remove a member from a set.
+
+        Needed by the alarm-resolution path, which clears the dedupe key once a
+        condition is no longer in violation.
+        """
+        members = self.sets.get(key)
+        if not members or member not in members:
+            return 0
+        members.discard(member)
+        if not members:
+            self.sets.pop(key, None)
+        return 1
+
     async def get(self, key: str):
         return self.store.get(key)
 

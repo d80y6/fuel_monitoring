@@ -32,6 +32,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fuel_platform}
     volumes:
       - timescale_data:/var/lib/postgresql/data
+    # Loopback-only: lets a developer run psql and the test suite against the
+    # same database the stack uses. Never reachable from another host.
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fuel_platform} -d ${POSTGRES_DB:-fuel_platform}"]
       interval: 10s
@@ -42,6 +46,10 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
+    # Loopback-only: lets the local test suite share the running cache instead of
+    # starting a second one. Never reachable from another host.
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
