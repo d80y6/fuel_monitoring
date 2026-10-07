@@ -1,0 +1,21 @@
+# EMQX 5 automation credentials (API key/secret) used ONLY by
+# `python -m fmp.scripts.provision_mqtt_accounts` to create per-device MQTT
+# accounts and ACL rules.
+#
+# EMQX bootstraps API keys from this file at node start, so the value here is a
+# live administrative credential: anyone who can reach the dashboard port and
+# knows this pair can administer the broker.
+#
+# Generate your own and copy this file to api_keys.txt (git-ignored):
+#
+#   printf '%s:%s:administrator\n' \
+#     "fuel-platform-bootstrap" "$(openssl rand -hex 32)" > infra/emqx/api_keys.txt
+#   chmod 600 infra/emqx/api_keys.txt
+#
+# Then put the same pair in .env:
+#   EMQX_API_KEY=fuel-platform-bootstrap
+#   EMQX_API_SECRET=<the generated secret>
+#
+# The mqtt-init service refuses to provision without it, so a deployment that
+# forgets this step fails loudly instead of leaving the broker open.
+fuel-platform-bootstrap:REPLACE_ME_WITH_OPENSSL_RAND_HEX_32:administrator

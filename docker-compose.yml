@@ -81,6 +81,9 @@ services:
       # Mounted over the image's real config path: /opt/emqx/etc/custom is
       # ignored by EMQX, which is how the broker ended up on anonymous defaults.
       - ./infra/emqx/emqx.conf:/opt/emqx/etc/emqx.conf:ro
+      # Mounted only when present: without it the broker starts with no API
+      # key, mqtt-init cannot provision device accounts, and telemetry fails
+      # closed. That is the intended behaviour for an unconfigured deployment.
       - ./infra/emqx/api_keys.txt:/opt/emqx/etc/api_keys.txt:ro
       - emqx_data:/opt/emqx/data
     healthcheck:

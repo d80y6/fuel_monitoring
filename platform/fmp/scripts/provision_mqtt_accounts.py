@@ -181,7 +181,15 @@ def main(argv: list[str] | None = None) -> int:
     if not settings.EMQX_API_KEY or not settings.EMQX_API_SECRET:
         logger.error(
             "EMQX_API_KEY / EMQX_API_SECRET are required to provision broker accounts. "
-            "The key/secret pair is bootstrapped from infra/emqx/api_keys.txt."
+            "Create infra/emqx/api_keys.txt from infra/emqx/api_keys.txt.example "
+            "(it is git-ignored because it holds a live administrative credential) "
+            "and put the same pair in .env."
+        )
+        return 2
+    if settings.EMQX_API_SECRET.startswith("REPLACE_ME"):
+        logger.error(
+            "EMQX_API_SECRET is still the placeholder from the example file. "
+            "Generate a real secret with: openssl rand -hex 32"
         )
         return 2
     if not settings.MQTT_DEVICE_PASSWORD_SEED and (args.strict_seed or settings.ENVIRONMENT == "prod"):
