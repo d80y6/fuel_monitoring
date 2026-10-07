@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import '../i18n';
 
 if (typeof window.matchMedia !== 'function') {
   Object.defineProperty(window, 'matchMedia', {
@@ -7,10 +8,10 @@ if (typeof window.matchMedia !== 'function') {
       matches: false,
       media: query,
       onchange: null,
-      addEventListener: () => {},
-      removeEventListener: () => {},
       addListener: () => {},
       removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
       dispatchEvent: () => false,
     }),
   });

@@ -6,6 +6,8 @@ import { router } from './router';
 import { useAuthStore } from './store/auth';
 import { useTelemetrySocket } from './hooks/useTelemetrySocket';
 import { ThemeProvider } from './components/theme/ThemeProvider';
+import { LocaleProvider } from './i18n/LocaleProvider';
+import './i18n';
 import { registerChartThemes } from './lib/chartTheme';
 import './index.css';
 
@@ -21,7 +23,9 @@ function Root() {
   useTelemetrySocket();
   return (
     <ThemeProvider>
-      <RouterProvider router={router} />
+      <LocaleProvider>
+        <RouterProvider router={router} />
+      </LocaleProvider>
     </ThemeProvider>
   );
 }
@@ -31,5 +35,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <Root />
     </QueryClientProvider>
-  </React.StrictMode>
+  </React.StrictMode>,
 );

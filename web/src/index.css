@@ -43,3 +43,39 @@ body,
   --color-danger-bg: #4c0519; --color-danger-text: #fda4af;
   --color-info-bg: #0c4a6e; --color-info-text: #7dd3fc;
 }
+/* ===========================================================================
+   Right-to-left support (audit G-117)
+   ===========================================================================
+   The document direction is set on <html> by the i18n layer, and Tailwind's
+   logical utilities (ps-*, pe-*, ms-*, me-*, text-start, text-end) handle most
+   spacing automatically. These rules cover what logical utilities cannot:
+
+   * mirroring directional icons (an arrow that means "forward" must not keep
+     pointing right when the page reads right-to-left),
+   * keeping numeric columns numerically ordered in RTL, where the default
+     bidi algorithm would otherwise reorder mixed digit/punctuation content,
+   * preserving monospace alignment for identifiers and serials.
+   =========================================================================== */
+
+[dir='rtl'] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+/* Numbers, serials and timestamps stay left-to-right inside an RTL document:
+   a fuel volume or a MAC address is not Arabic text and reordering it changes
+   what the operator reads. */
+[dir='rtl'] .tabular-nums,
+[dir='rtl'] .font-mono,
+[dir='rtl'] [dir='ltr'] {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Explicit start/end alignment is honoured rather than inherited. */
+[dir='rtl'] .text-start {
+  text-align: right;
+}
+
+[dir='rtl'] .text-end {
+  text-align: left;
+}

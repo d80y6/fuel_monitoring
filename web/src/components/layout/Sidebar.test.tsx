@@ -1,8 +1,8 @@
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Sidebar } from './Sidebar';
 import { useAuthStore } from '../../store/auth';
+import { renderWithProviders } from '../../test/utils';
 import type { UserRead } from '../../lib/apiTypes';
 
 vi.mock('../../hooks/useRealtimeAlarms', () => ({
@@ -36,11 +36,7 @@ describe('Sidebar', () => {
   });
 
   it('gives a read-only operator only the operational pages', () => {
-    render(
-      <MemoryRouter>
-        <Sidebar />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<Sidebar />);
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Tanks')).toBeInTheDocument();
     expect(screen.getByText('Dispensing')).toBeInTheDocument();
@@ -58,11 +54,7 @@ describe('Sidebar', () => {
 
   it('gives a company admin management pages but not the cross-tenant Companies list', () => {
     useAuthStore.setState({ user: companyAdmin });
-    render(
-      <MemoryRouter>
-        <Sidebar />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<Sidebar />);
     expect(screen.getByText('Sites')).toBeInTheDocument();
     expect(screen.getByText('Users')).toBeInTheDocument();
     expect(screen.getByText('Audit Log')).toBeInTheDocument();
@@ -75,11 +67,7 @@ describe('Sidebar', () => {
 
   it('gives a platform admin every section', () => {
     useAuthStore.setState({ user: platformAdmin });
-    render(
-      <MemoryRouter>
-        <Sidebar />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<Sidebar />);
     expect(screen.getByText('Sites')).toBeInTheDocument();
     expect(screen.getByText('Companies')).toBeInTheDocument();
     expect(screen.getByText('Users')).toBeInTheDocument();
@@ -89,11 +77,7 @@ describe('Sidebar', () => {
 
   it('renders every nav item with an icon', () => {
     useAuthStore.setState({ user: platformAdmin });
-    const { container } = render(
-      <MemoryRouter>
-        <Sidebar />
-      </MemoryRouter>,
-    );
+    const { container } = renderWithProviders(<Sidebar />);
     const links = container.querySelectorAll('nav a');
     expect(links.length).toBeGreaterThan(0);
     links.forEach((link) => {
@@ -103,11 +87,7 @@ describe('Sidebar', () => {
   });
 
   it('exposes an accessible navigation landmark', () => {
-    const { container } = render(
-      <MemoryRouter>
-        <Sidebar />
-      </MemoryRouter>,
-    );
+    const { container } = renderWithProviders(<Sidebar />);
     expect(container.querySelector('nav[aria-label="Main"]')).toBeTruthy();
   });
 });

@@ -1,12 +1,15 @@
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/auth';
 import { useRealtimeAlarms } from '../../hooks/useRealtimeAlarms';
 import { canAdminister, canManage } from '../../lib/roles';
 import { Icon, type IconName } from '../ui/icons';
+import { LocaleSwitcher } from './LocaleSwitcher';
 
 interface NavItem {
   to: string;
-  label: string;
+  /** i18n key for the label; the sidebar is the app's primary navigation. */
+  labelKey: string;
   icon: IconName;
   /** Requires a management role (tenant admin or platform admin). */
   manageOnly?: boolean;
@@ -15,7 +18,7 @@ interface NavItem {
 }
 
 interface NavGroup {
-  heading?: string;
+  headingKey?: string;
   items: NavItem[];
 }
 
@@ -28,48 +31,49 @@ interface NavGroup {
  * what this list shows.
  */
 const groups: NavGroup[] = [
-  { items: [{ to: '/dashboard', label: 'Dashboard', icon: 'dashboard' }] },
+  { items: [{ to: '/dashboard', labelKey: 'nav.dashboard', icon: 'dashboard' }] },
   {
-    heading: 'Operations',
+    headingKey: 'nav.operations',
     items: [
-      { to: '/tanks', label: 'Tanks', icon: 'tank' },
-      { to: '/dispensing', label: 'Dispensing', icon: 'dispensing' },
-      { to: '/totalizers', label: 'Totalizers', icon: 'totalizers' },
-      { to: '/alarms', label: 'Alarm Center', icon: 'alarm' },
-      { to: '/reports', label: 'Reports', icon: 'reports' },
+      { to: '/tanks', labelKey: 'nav.tanks', icon: 'tank' },
+      { to: '/dispensing', labelKey: 'nav.dispensing', icon: 'dispensing' },
+      { to: '/totalizers', labelKey: 'nav.totalizers', icon: 'totalizers' },
+      { to: '/alarms', labelKey: 'nav.alarms', icon: 'alarm' },
+      { to: '/reports', labelKey: 'nav.reports', icon: 'reports' },
     ],
   },
   {
-    heading: 'Organization',
+    headingKey: 'nav.organization',
     items: [
-      { to: '/sites', label: 'Sites', icon: 'site', manageOnly: true },
-      { to: '/companies', label: 'Companies', icon: 'building', adminOnly: true },
+      { to: '/sites', labelKey: 'nav.sites', icon: 'site', manageOnly: true },
+      { to: '/companies', labelKey: 'nav.companies', icon: 'building', adminOnly: true },
     ],
   },
   {
-    heading: 'Notifications',
+    headingKey: 'nav.notifications',
     items: [
-      { to: '/admin/notification-rules', label: 'Rules', icon: 'bell', manageOnly: true },
-      { to: '/admin/notification-log', label: 'Delivery Log', icon: 'reports', manageOnly: true },
+      { to: '/admin/notification-rules', labelKey: 'nav.rules', icon: 'bell', manageOnly: true },
+      { to: '/admin/notification-log', labelKey: 'nav.deliveryLog', icon: 'reports', manageOnly: true },
     ],
   },
   {
-    heading: 'Administration',
+    headingKey: 'nav.administration',
     items: [
-      { to: '/admin/users', label: 'Users', icon: 'users', manageOnly: true },
-      { to: '/admin/audit', label: 'Audit Log', icon: 'audit', manageOnly: true },
-      { to: '/admin/fuel-types', label: 'Fuel Types', icon: 'fuel', manageOnly: true },
-      { to: '/admin/gateways', label: 'Channels', icon: 'gateway', manageOnly: true },
-      { to: '/admin/iot-gateways', label: 'IoT Gateways', icon: 'gateway', manageOnly: true },
+      { to: '/admin/users', labelKey: 'nav.users', icon: 'users', manageOnly: true },
+      { to: '/admin/audit', labelKey: 'nav.auditLog', icon: 'audit', manageOnly: true },
+      { to: '/admin/fuel-types', labelKey: 'nav.fuelTypes', icon: 'fuel', manageOnly: true },
+      { to: '/admin/gateways', labelKey: 'nav.channels', icon: 'gateway', manageOnly: true },
+      { to: '/admin/iot-gateways', labelKey: 'nav.iotGateways', icon: 'gateway', manageOnly: true },
     ],
   },
   {
-    heading: 'Account',
-    items: [{ to: '/settings', label: 'Settings', icon: 'settings' }],
+    headingKey: 'nav.account',
+    items: [{ to: '/settings', labelKey: 'nav.settings', icon: 'settings' }],
   },
 ];
 
 export function Sidebar() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const alarms = useRealtimeAlarms();
@@ -83,7 +87,7 @@ export function Sidebar() {
   return (
     <aside className="w-56 shrink-0 bg-slate-900 text-slate-100 flex flex-col">
       <div className="px-4 py-5 border-b border-slate-800">
-        <p className="font-bold tracking-tight">FuelOps SCADA</p>
+        <p className="font-bold tracking-tight">{t('app.name')}</p>
         <p className="text-xs text-slate-400">{user?.username ?? ''}</p>
       </div>
       <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-4" aria-label="Main">
@@ -91,10 +95,10 @@ export function Sidebar() {
           const visibleItems = group.items.filter(isVisible);
           if (visibleItems.length === 0) return null;
           return (
-            <div key={group.heading ?? 'root'}>
-              {group.heading && (
+            <div key={group.headingKey ?? 'root'}>
+              {group.headingKey && (
                 <p className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                  {group.heading}
+                  {t(group.headingKey)}
                 </p>
               )}
               <div className="space-y-1">
@@ -109,7 +113,7 @@ export function Sidebar() {
                     }
                   >
                     <Icon name={l.icon} className="h-4 w-4 shrink-0" />
-                    <span className="flex-1 truncate">{l.label}</span>
+                    <span className="flex-1 truncate">{t(l.labelKey)}</span>
                     {l.to === '/alarms' && openCount > 0 ? (
                       <span
                         className="inline-block h-2 w-2 rounded-full bg-rose-400"
@@ -124,9 +128,10 @@ export function Sidebar() {
           );
         })}
       </nav>
+      <LocaleSwitcher />
       <div className="px-4 py-4 border-t border-slate-800">
         <button onClick={logout} className="text-sm text-slate-400 hover:text-white">
-          Sign out
+          {t('nav.signOut')}
         </button>
       </div>
     </aside>
