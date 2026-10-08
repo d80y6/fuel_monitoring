@@ -60,6 +60,7 @@ async def lifespan(_app: FastAPI):
             logger.warning("hypertable/policy bootstrap skipped (is TimescaleDB enabled?)")
 
     _loop = asyncio.get_running_loop()
+    _flusher = asyncio.create_task(_flush_readings(), name="reading-batch-flusher")
     _client = _build_client()
     _client.on_message = _on_message
     _client.on_connect = _on_connect
@@ -83,7 +84,14 @@ async def lifespan(_app: FastAPI):
     from fmp.ingestion.relay import command_relay_loop
 
     relay_task = asyncio.create_task(command_relay_loop(_client))
-    yield
+    try:
+        yield
+    finally:
+        _flusher.cancel()
+        try:
+            await _flusher
+        except (asyncio.CancelledError, Exception):  # noqa: B014 — shutdown is best effort
+            pass
     relay_task.cancel()
     _client.loop_stop()
     _client.disconnect()
@@ -224,7 +232,7 @@ async def _route(topic: str, payload: dict[str, Any]) -> None:
             if kind == "status":
                 await _handle_status(redis, payload, gateway_mac)
             else:
-                await _handle_reading(redis, payload, gateway_mac=gateway_mac)
+                _enqueue_reading(payload, gateway_mac)
         elif topic.startswith("ingestion/readings"):
             await _handle_reading(redis, payload)
     except Exception:  # noqa: BLE001 — a bad frame must not kill the loop
@@ -236,7 +244,35 @@ async def _route(topic: str, payload: dict[str, Any]) -> None:
 pipeline = IngestionPipeline(write_batch=True)
 
 
-async def _handle_reading(redis: RedisClient, payload: dict[str, Any], *, gateway_mac: str | None = None) -> None:
+@contextlib.asynccontextmanager
+async def _session_scope(db_session=None):
+    """Yield ``db_session`` when the batch flusher already owns one.
+
+    Opening a session per frame exhausted the QueuePool (size 20 + overflow 20)
+    at ~40 concurrent frames and silently dropped telemetry, so reading frames
+    are now drained in batches over a single connection.
+    """
+    if db_session is not None:
+        yield db_session
+    else:
+        async with async_session_factory() as owned:
+            yield owned
+
+
+async def _handle_reading(
+    redis: RedisClient, payload: dict[str, Any], *, gateway_mac: str | None = None
+) -> None:
+    """Persist a single reading on its own connection (HTTP/direct callers)."""
+    await _process_reading(None, redis, payload, gateway_mac=gateway_mac)
+
+
+async def _process_reading(
+    db_session,
+    redis: RedisClient,
+    payload: dict[str, Any],
+    *,
+    gateway_mac: str | None = None,
+) -> None:
     """Persist a tank sensor frame and fan it out to the realtime channel."""
     from fmp.ingestion.cache import (
         neg_cache_key,
@@ -251,7 +287,7 @@ async def _handle_reading(redis: RedisClient, payload: dict[str, Any], *, gatewa
     raw_redis = redis.client
     tank_id = await resolve_tank_id(raw_redis, gateway_mac=gateway_mac, sensor_serial=sensor_serial)
 
-    async with async_session_factory() as session:
+    async with _session_scope(db_session) as session:
         tank = None
         if tank_id is not None:
             tank = await session.get(Tank, tank_id)
@@ -326,6 +362,67 @@ async def _handle_reading(redis: RedisClient, payload: dict[str, Any], *, gatewa
             await publish_live(redis, reading, company_id=company_id)
         if reading is not None and reading.alarms:
             await _notify_alarms(reading, tank, company_id, captured_at)
+
+
+READ_QUEUE_MAX = 50_000
+BATCH_SIZE = 500
+BATCH_INTERVAL_S = 0.5
+
+_READ_QUEUE: asyncio.Queue[tuple[dict[str, Any], str | None]] = asyncio.Queue(
+    maxsize=READ_QUEUE_MAX
+)
+_dropped_reading_frames = 0
+
+
+def _enqueue_reading(payload: dict[str, Any], gateway_mac: str | None) -> None:
+    """Accept a frame without touching the database.
+
+    Returns immediately so a burst cannot hold an MQTT callback (and its
+    connection) open; ``_flush_readings`` drains the queue over one session.
+    """
+    global _dropped_reading_frames
+    try:
+        _READ_QUEUE.put_nowait((payload, gateway_mac))
+    except asyncio.QueueFull:
+        _dropped_reading_frames += 1
+        if _dropped_reading_frames in (1, 100, 1000) or _dropped_reading_frames % 10000 == 0:
+            logger.error(
+                "reading intake queue full (%d frames); dropped %d frames so far",
+                READ_QUEUE_MAX,
+                _dropped_reading_frames,
+            )
+
+
+async def _flush_readings() -> None:
+    """Drain queued reading frames over a single pooled connection."""
+    while True:
+        try:
+            await asyncio.sleep(BATCH_INTERVAL_S)
+        except asyncio.CancelledError:
+            raise
+        batch: list[tuple[dict[str, Any], str | None]] = []
+        while len(batch) < BATCH_SIZE:
+            try:
+                batch.append(_READ_QUEUE.get_nowait())
+            except asyncio.QueueEmpty:
+                break
+        if not batch:
+            continue
+        redis = RedisClient()
+        try:
+            async with async_session_factory() as session:
+                for payload, mac in batch:
+                    try:
+                        await _process_reading(session, redis, payload, gateway_mac=mac)
+                    except Exception:  # noqa: BLE001 — one bad frame must not drop the batch
+                        logger.exception("failed to persist frame (gateway=%s)", mac)
+                        await session.rollback()
+        except Exception:  # noqa: BLE001
+            logger.exception("reading batch flush failed (%d frames)", len(batch))
+            global _dropped_reading_frames
+            _dropped_reading_frames += len(batch)
+        finally:
+            await redis.client.aclose()
 
 
 async def _notify_alarms(reading, tank, company_id: str | None, at) -> None:

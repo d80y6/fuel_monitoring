@@ -87,13 +87,18 @@ services:
       - ./infra/emqx/api_keys.txt:/opt/emqx/etc/api_keys.txt:ro
       - emqx_data:/opt/emqx/data
     healthcheck:
-      # `emqx ctl status` shells into the running node; it needs more than the
-      # default 10s budget on a loaded host or the broker flaps as unhealthy.
-      test: ["CMD-SHELL", "/opt/emqx/bin/emqx ctl status | grep -q 'is started'"]
+      # A plain TCP connect to the MQTT listener. `emqx ctl status` spawns an
+      # Erlang RPC node, which is heavy enough to time out on a loaded host and
+      # make a perfectly healthy broker flap as unhealthy; a socket connect
+      # answers the same question ("is the broker accepting clients") cheaply.
+      # The image has no nc and no python; a listening-socket check on
+      # /proc/net/tcp answers "is the broker accepting clients" cheaply.
+      # Port 1883 is 0x075B in the hex column and 0A is the LISTEN state.
+      test: ["CMD-SHELL", "grep -qiE ':075B 00000000:0000 0A' /proc/net/tcp"]
       interval: 30s
-      timeout: 25s
+      timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 45s
 
   mqtt-init:
     # Provisions per-gateway MQTT accounts + ACL rules. Idempotent: re-running is
@@ -125,9 +130,13 @@ services:
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3).status==200 else 1)"]
       interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
+      # The probe spawns a Python interpreter before it can even open a socket,
+      # so on a CPU-starved host the interpreter startup alone blew a 5s budget
+      # and a responsive API was reported unhealthy. Give the check room for
+      # startup plus the 3s request budget.
+      timeout: 20s
+      retries: 5
+      start_period: 40s
 
   db-init:
     <<: *app-image
@@ -154,9 +163,11 @@ services:
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8001/api/v1/health', timeout=3).status==200 else 1)"]
       interval: 15s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      # Same reasoning as the api probe: interpreter startup before the socket
+      # opens exceeded a 5s budget under CPU starvation.
+      timeout: 20s
+      retries: 5
+      start_period: 40s
 
   worker:
     <<: *app-image
@@ -171,9 +182,12 @@ services:
       # (a single dead node among several still counts as a live worker pool).
       test: ["CMD-SHELL", "celery -A fmp.workers.celery_app inspect ping -t 10 | grep -q pong"]
       interval: 30s
-      timeout: 20s
-      retries: 5
-      start_period: 40s
+      # `celery inspect ping` boots a whole client process (app import + broker
+      # round trip), which legitimately takes tens of seconds on a busy host.
+      # A 20s budget reported a live pool as unhealthy purely from CPU starvation.
+      timeout: 90s
+      retries: 3
+      start_period: 90s
 
   beat:
     <<: *app-image

@@ -182,7 +182,6 @@ class IngestionPipeline:
     def __init__(self, write_batch: bool = True) -> None:
         self._tank_states: dict[uuid.UUID, TankTelemetryState] = {}
         self._write_batch = write_batch
-        self._pending: list[dict] = []
 
     def state_for(self, tank_id: uuid.UUID) -> TankTelemetryState:
         return self._tank_states.setdefault(tank_id, TankTelemetryState())
@@ -418,7 +417,6 @@ class IngestionPipeline:
                     "is_outlier": is_outlier,
                 }
                 await insert_measurements(session, [read])
-                self._pending.append(read)
 
             return ProcessedReading(
                 tank_id=tank.id,
