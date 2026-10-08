@@ -31,6 +31,7 @@ from fmp.core.database import async_session_factory
 from fmp.core.device_auth import require_ingest_key
 from fmp.core.logging_setup import configure_logging
 from fmp.core.redis import RedisClient
+from fmp.ingestion import metrics_counters as _counters
 from fmp.ingestion.pipeline import IngestionPipeline, publish_live
 from fmp.ingestion.relay import parse_command_ack_topic
 from fmp.schemas.dispensing import CodeValidateRequest, DispenseCompleteRequest
@@ -272,8 +273,15 @@ async def _process_reading(
     payload: dict[str, Any],
     *,
     gateway_mac: str | None = None,
+    commit: bool = True,
 ) -> None:
-    """Persist a tank sensor frame and fan it out to the realtime channel."""
+    """Persist a tank sensor frame and fan it out to the realtime channel.
+
+    ``commit=False`` lets the batch flusher accumulate many frames and commit
+    once. Committing per frame meant a 500-frame batch performed 500 fsyncs and
+    drained at well under 1 frame/second; one commit per batch is what makes the
+    batch worth batching.
+    """
     from fmp.ingestion.cache import (
         neg_cache_key,
         resolve_company_id,
@@ -357,11 +365,40 @@ async def _process_reading(
             captured_at=captured_at,
             company_id=company_id,
         )
-        await session.commit()
+        if commit:
+            await session.commit()
         if reading is not None:
             await publish_live(redis, reading, company_id=company_id)
         if reading is not None and reading.alarms:
             await _notify_alarms(reading, tank, company_id, captured_at)
+
+
+def _record_overflow_async() -> None:
+    """Persist the overflow counter without blocking the MQTT callback thread.
+
+    Scheduling the write must never be able to fail the enqueue itself, so a
+    missing event loop is tolerated rather than raised.
+    """
+    global _overflow_record_task
+    if _overflow_record_task is not None and not _overflow_record_task.done():
+        return
+    try:
+        _overflow_record_task = asyncio.create_task(_record_overflow())
+    except RuntimeError:
+        # No running loop (e.g. called from a synchronous context); the log line
+        # above is still the operator's signal.
+        _overflow_record_task = None
+
+
+async def _record_overflow() -> None:
+    try:
+        redis = RedisClient()
+        try:
+            await _counters.record_dropped(redis.client, _dropped_reading_frames)
+        finally:
+            await redis.client.aclose()
+    except Exception:  # noqa: BLE001 — metrics must never drop telemetry
+        logger.debug("failed to record overflow counter", exc_info=True)
 
 
 READ_QUEUE_MAX = 50_000
@@ -372,6 +409,7 @@ _READ_QUEUE: asyncio.Queue[tuple[dict[str, Any], str | None]] = asyncio.Queue(
     maxsize=READ_QUEUE_MAX
 )
 _dropped_reading_frames = 0
+_overflow_record_task: asyncio.Task | None = None
 
 
 def _enqueue_reading(payload: dict[str, Any], gateway_mac: str | None) -> None:
@@ -391,6 +429,7 @@ def _enqueue_reading(payload: dict[str, Any], gateway_mac: str | None) -> None:
                 READ_QUEUE_MAX,
                 _dropped_reading_frames,
             )
+            _record_overflow_async()
 
 
 async def _flush_readings() -> None:
@@ -409,18 +448,48 @@ async def _flush_readings() -> None:
         if not batch:
             continue
         redis = RedisClient()
+        started = time.perf_counter()
+        persisted = 0
         try:
             async with async_session_factory() as session:
                 for payload, mac in batch:
+                    # A SAVEPOINT per frame: with the commit deferred to the end
+                    # of the batch, a plain rollback would discard every earlier
+                    # frame in the batch. The savepoint confines the damage to
+                    # the one frame that failed.
+                    savepoint = await session.begin_nested()
                     try:
-                        await _process_reading(session, redis, payload, gateway_mac=mac)
+                        await _process_reading(
+                            session, redis, payload, gateway_mac=mac, commit=False
+                        )
+                        persisted += 1
+                        await savepoint.commit()
                     except Exception:  # noqa: BLE001 — one bad frame must not drop the batch
                         logger.exception("failed to persist frame (gateway=%s)", mac)
-                        await session.rollback()
+                        await savepoint.rollback()
+                # One commit for the whole batch. If it fails, nothing in the
+                # batch is persisted, so the frames must be counted as unaccounted
+                # rather than delivered.
+                await session.commit()
+            await _counters.record_received(redis.client, len(batch))
+            await _counters.record_persisted(redis.client, persisted)
+            await _counters.record_batch(
+                redis.client,
+                size=len(batch),
+                latency_ms=round((time.perf_counter() - started) * 1000, 1),
+                depth=_READ_QUEUE.qsize(),
+            )
         except Exception:  # noqa: BLE001
             logger.exception("reading batch flush failed (%d frames)", len(batch))
             global _dropped_reading_frames
             _dropped_reading_frames += len(batch)
+            try:
+                # Persisted is deliberately NOT incremented: a failed commit
+                # means none of this batch reached TimescaleDB.
+                await _counters.record_received(redis.client, len(batch))
+                await _counters.record_dropped(redis.client, len(batch))
+            except Exception:  # noqa: BLE001
+                logger.debug("failed to record failure metrics", exc_info=True)
         finally:
             await redis.client.aclose()
 

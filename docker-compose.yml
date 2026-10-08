@@ -81,10 +81,14 @@ services:
       # Mounted over the image's real config path: /opt/emqx/etc/custom is
       # ignored by EMQX, which is how the broker ended up on anonymous defaults.
       - ./infra/emqx/emqx.conf:/opt/emqx/etc/emqx.conf:ro
-      # Mounted only when present: without it the broker starts with no API
-      # key, mqtt-init cannot provision device accounts, and telemetry fails
-      # closed. That is the intended behaviour for an unconfigured deployment.
-      - ./infra/emqx/api_keys.txt:/opt/emqx/etc/api_keys.txt:ro
+      # The *directory* is mounted, not the file. The real key is git-ignored
+      # (only api_keys.txt.example and .gitkeep are tracked), so a fresh clone has
+      # no file at that path -- and bind-mounting a missing file aborts
+      # `docker compose up` for the entire stack. Mounting the tracked directory
+      # means the source always exists: with no key generated, EMQX starts with
+      # no bootstrap credential, mqtt-init provisions nothing and says so
+      # explicitly, and telemetry fails closed on its own terms.
+      - ./infra/emqx/secrets:/opt/emqx/etc/secrets:ro
       - emqx_data:/opt/emqx/data
     healthcheck:
       # A plain TCP connect to the MQTT listener. `emqx ctl status` spawns an

@@ -15,8 +15,8 @@ web/dist/
 # Secrets and local state
 .env
 # EMQX API key/secret — a live administrative credential bootstrapped by the
-# broker. Never commit; see infra/emqx/api_keys.txt.example.
-infra/emqx/api_keys.txt
+# broker. Never commit; see infra/emqx/secrets/api_keys.txt.example.
+infra/emqx/secrets/api_keys.txt
 
 # Superpowers worktrees
 .worktrees/

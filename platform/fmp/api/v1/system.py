@@ -203,10 +203,50 @@ async def metrics(_current: AdminUser) -> dict:
         "gateways": {"total": gateway_total, "online": gateway_online},
         "alarms": {"open": open_alarms, "resolved": resolved_alarms},
         "notifications_last_24h": {row[0]: row[1] for row in delivery},
+        "ingestion": await _ingestion_counters(),
         "thresholds": {
             "tank_stale_after_seconds": settings.TANK_STALE_AFTER_SECONDS,
             "gateway_stale_after_seconds": settings.GATEWAY_STALE_AFTER_SECONDS,
         },
+    }
+
+
+async def _ingestion_counters() -> dict:
+    """Frame accounting published by the ingestion process.
+
+    ``unaccounted`` is the operator's headline number: frames the broker handed
+    over minus frames actually written. It is expected to stay flat; growth
+    means telemetry is being lost between the broker and TimescaleDB.
+    """
+    from fmp.core.redis import get_redis
+    from fmp.ingestion.metrics_counters import snapshot
+
+    redis = await get_redis()
+    try:
+        counters = await snapshot(redis)
+    except Exception:  # noqa: BLE001 — metrics must never fail the endpoint
+        return {"available": False}
+    finally:
+        await redis.aclose()
+
+    received = counters.get("received", 0)
+    persisted = counters.get("persisted", 0)
+    rejected = counters.get("rejected_no_tank", 0)
+    dropped = counters.get("dropped_queue_full", 0)
+    return {
+        "available": True,
+        "frames_received": received,
+        "frames_persisted": persisted,
+        "frames_rejected_no_tank": rejected,
+        "frames_dropped_queue_full": dropped,
+        "frames_unaccounted": received - persisted - rejected,
+        "delivery_ratio": (
+            round(persisted / received, 4) if received else None
+        ),
+        "queue_depth": counters.get("queue_depth", 0),
+        "batches": counters.get("batches", 0),
+        "batch_latency_ms": counters.get("batch_latency_ms", 0.0),
+        "batch_latency_ms_max": counters.get("batch_latency_ms_max", 0.0),
     }
 
 

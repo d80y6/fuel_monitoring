@@ -59,7 +59,21 @@ async def test_batch_flush_uses_one_connection_for_the_whole_batch(monkeypatch):
     opened = 0
     processed: list[tuple] = []
 
+    class _Savepoint:
+        async def commit(self):
+            return None
+
+        async def rollback(self):
+            return None
+
     class _Session:
+        def __init__(self):
+            self.savepoints = 0
+
+        async def begin_nested(self):
+            self.savepoints += 1
+            return _Savepoint()
+
         async def __aenter__(self):
             return self
 
@@ -71,8 +85,9 @@ async def test_batch_flush_uses_one_connection_for_the_whole_batch(monkeypatch):
         opened += 1
         return _Session()
 
-    async def fake_process(db_session, redis, payload, *, gateway_mac=None):
+    async def fake_process(db_session, redis, payload, *, gateway_mac=None, commit=True):
         assert db_session is not None, "flusher must pass its own session in"
+        assert commit is False, "flusher must defer the commit to the batch"
         processed.append((payload, gateway_mac))
 
     async def fake_close():
@@ -104,9 +119,22 @@ async def test_batch_flush_uses_one_connection_for_the_whole_batch(monkeypatch):
 async def test_a_bad_frame_does_not_drop_its_batch(monkeypatch):
     processed: list[dict] = []
 
+    class _Savepoint:
+        def __init__(self, session):
+            self._session = session
+
+        async def commit(self):
+            return None
+
+        async def rollback(self):
+            self._session.rollbacks += 1
+
     class _Session:
         def __init__(self):
             self.rollbacks = 0
+
+        async def begin_nested(self):
+            return _Savepoint(self)
 
         async def __aenter__(self):
             return self
@@ -117,6 +145,9 @@ async def test_a_bad_frame_does_not_drop_its_batch(monkeypatch):
         async def rollback(self):
             self.rollbacks += 1
 
+        async def commit(self):
+            return None
+
     sessions: list[_Session] = []
 
     def factory():
@@ -124,7 +155,7 @@ async def test_a_bad_frame_does_not_drop_its_batch(monkeypatch):
         sessions.append(session)
         return session
 
-    async def fake_process(db_session, redis, payload, *, gateway_mac=None):
+    async def fake_process(db_session, redis, payload, *, gateway_mac=None, commit=True):
         if payload.get("boom"):
             raise ValueError("corrupt frame")
         processed.append(payload)

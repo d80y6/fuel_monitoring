@@ -118,41 +118,92 @@ Observations:
 
 ## 4. Telemetry ingestion (measured)
 
-Devices were provisioned through the real path: rows in `iot_gateways` → `mqtt-init` → EMQX accounts with
-per-device ACLs → authenticated MQTT publish on `fuel/<mac>/readings`. No unauthenticated or ACL-bypassing
-path was used. Provisioned devices were deleted and tank bindings restored afterwards.
+Devices were provisioned through the real path: rows in `iot_gateways` -> `mqtt-init` -> EMQX accounts
+with per-device ACLs -> authenticated MQTT publish on `fuel/<mac>/readings`. No unauthenticated or
+ACL-bypassing path was used. Provisioned devices were deleted and tank bindings restored afterwards.
 
-| Offered load | Devices | Frames | Client-side rate | Delivered |
-|---|---|---|---|---|
-| Throttled | 1 | 200 @ 20 fps | 20 fps | ~100% |
-| Unthrottled | 4 | 800 | 132 fps | ~46% |
-| Unthrottled | 4 | 1000 | 105 fps | ~46% |
+### 4.1 What the first round got wrong, and what it revealed
 
-Interpretation, stated precisely:
+An early round reported "46% delivered" and attributed the loss to broker flow control. That conclusion
+was premature. Adding frame counters (see 4.3) showed the platform had **not** lost those frames — it was
+queueing them and draining far too slowly. Two further defects were behind it:
 
-- At a rate a single device can sustain (20 fps), delivery is complete.
-- Under an **unthrottled** burst the platform persisted only ~46% of frames. With the connection-pool
-  defect fixed there were **zero** `QueuePool` errors and **zero** intake-queue overflows, so the loss is
-  **not** in the database layer. Timestamps that did arrive were unique, confirming the
-  `ON CONFLICT (tank_id, timestamp)` guard is not the cause.
-- The remaining loss is therefore broker/client flow control: paho defaults (`max_inflight_messages=20`)
-  plus EMQX's per-session queue, with no publisher-side rate limiting and no persistent session on the
-  ingestion client (`client_id` is randomised per start, so `clean_session` is in effect). Under
-  overload the broker drops rather than buffering.
-- **This is a real production characteristic and not yet a defect-free configuration.** Sustained-rate
-  behaviour is sound; burst behaviour needs either publisher-side flow control (recommended — an ATG or
-  RTU must respect inflight limits) or broker-side buffering (`max_mqueue_len`, persistent sessions).
+| Defect | Symptom | Fix |
+|---|---|---|
+| Commit per frame inside the batch | A 500-frame batch took 100s; 344 frames in 2 minutes | Commit once per batch (`commit=False` per frame) |
+| No savepoint per frame | A single bad frame would have discarded the whole batch | `session.begin_nested()` per frame confines the damage |
 
-Frame loss is visible to an operator: the queue-overflow counter is logged at `ERROR`, and `/readyz`
-reflects dependency health. It is *not* currently surfaced as a Prometheus counter — see §7.
+A third issue was found in the counters themselves: `frames_persisted` was incremented before the batch
+commit, so a failed commit would have reported phantom deliveries. Accounting now happens only after a
+successful commit.
 
----
+### 4.2 Current measured behaviour
 
-## 5. Resource envelope
+Final run: 1000 frames published by 4 devices at **394 fps**, unthrottled, QoS 1.
 
-Not measured to a defensible standard. The host never fell below 4.0 load/core, so CPU, memory and
-container-restart behaviour under sustained load were **not** characterised. Recording this as unknown is
-the correct outcome; guessing a figure here would be worse than leaving it blank.
+| Stage | Result |
+|---|---|
+| MQTT -> intake queue | **1000 / 1000** (344 processed + 656 queued at first observation) |
+| Queue -> TimescaleDB | **1000 / 1000** persisted, queue drained to 0 |
+| Intake-queue overflow | 0 |
+| Pool errors | 0 |
+
+**Ingestion is now lossless end to end** for this workload, which is the property that matters for a fuel
+ledger. `frames_unaccounted` stayed at 0 throughout.
+
+### 4.3 Throughput and its limit
+
+Drain rate is the real capacity constraint, and it is **not** healthy:
+
+| Observation | Value |
+|---|---|
+| Batch latency (500 frames) | 25.3 s - 100.9 s |
+| Effective drain rate | ~11 - 20 frames/s |
+| Offered load in the test | 394 fps |
+
+At an offered load of ~394 fps the platform persists everything but does so by queueing, and the queue
+would grow without bound under a sustained overload until it reaches its 50 000-frame bound and starts
+dropping (now counted, and logged at `ERROR`).
+
+The per-frame cost is dominated by work that is repeated for every frame rather than cached: strapping
+lookup, alarm-rule evaluation with Redis round trips, company resolution, and the realtime publish. Batching
+fixed the commit amplification but not the per-frame database and Redis chatter. **This is the top open
+capacity risk** and needs a proper pass (per-tank memoisation of strapping and liveness, batched alarm
+evaluation, batched realtime fan-out) before any capacity claim.
+
+### 4.4 Frame accounting is now observable
+
+`/api/v1/metrics` reports (admin-only):
+
+```json
+{"ingestion": {"available": true, "frames_received": 1000, "frames_persisted": 1000,
+  "frames_rejected_no_tank": 0, "frames_dropped_queue_full": 0, "frames_unaccounted": 0,
+  "delivery_ratio": 1.0, "queue_depth": 0, "batches": 4,
+  "batch_latency_ms": 25295.5, "batch_latency_ms_max": 100855.5}}
+```
+
+`frames_unaccounted` is the operator's headline number: it should stay flat, and growth means telemetry is
+being lost between broker and database. Counters live in Redis so they survive an ingestion restart and are
+read by the API process, which is the one serving the endpoint. A fresh deployment reports zeros rather
+than failing the endpoint.
+
+## 5. Host conditions affecting these numbers
+
+Two environmental factors degraded every measurement and must be corrected before sign-off:
+
+- **Host was never idle.** Load per core ranged from ~4 to ~11 against 4 cores.
+- **Disk was at 99% capacity** (`/` 145 GB, 1.8 GB free) for the whole exercise, largely from unrelated
+  projects in `/home/ubuntu` (`~/.cache` 11 GB, `~/.local` 15 GB, plus several other project trees). A
+  full disk inflates every commit and page fault, which is very likely why drain rate (4.3) and export
+  latency are as poor as measured. This was not remediated: the space belongs to other projects and
+  deleting it is not a decision this exercise should make unilaterally.
+
+Two code-side contributions to the pressure were found and fixed: the image build context had no
+`.dockerignore`, so `.mypy_cache`, `.pytest_cache`, `__pycache__` and `.venv` were being copied into the
+image -- one image extract failed outright with `no space left on device`. The image is now 91 MB.
+
+CPU, memory and container-restart behaviour under sustained load remain **uncharacterised**. Recording
+that as unknown is the correct outcome.
 
 ---
 
@@ -178,19 +229,19 @@ Redis and is unaffected.
 
 ## 7. Outstanding work before capacity sign-off
 
-1. **Re-run this harness on a dedicated, idle host** (load < 1.0/core) and replace the upper-bound figures
-   in §3 with real characteristics.
-2. **Fix or formally accept the `telemetry export 24h` path** (1.64 s median / 4.20 s max). It needs
-   streaming or pagination to be acceptable for large tanks.
-3. **Decide the burst-tolerance policy** — publisher-side flow control, or EMQX buffering with persistent
-   sessions. Then re-run the unthrottled burst and require a stated delivery target.
-4. **Characterise the resource envelope** (§5): sustained-load CPU, memory, and whether the ingestion
-   container restarts.
-5. **Expose ingestion health as metrics** — queue depth, overflow count, and frames persisted vs received
-   as counters on `/api/v1/metrics`, so silent loss becomes alertable rather than log-only.
-6. **Fix the deployment path for `infra/emqx/api_keys.txt`** — the file is git-ignored but Compose
-   bind-mounts it unconditionally, so a clean checkout fails to start. Provisioning instructions must
-   create it first, or the mount must become optional.
+1. **Re-run this harness on a dedicated, idle host with free disk** (load < 1.0/core, `df` > 20% free)
+   and replace the upper-bound figures in §3 with real characteristics.
+2. **Raise ingestion drain rate** (§4.3). At ~11–20 frames/s the platform cannot absorb realistic fleet
+   bursts without growing its queue to the 50 000-frame drop bound. Needs per-tank memoisation of
+   strapping/liveness, batched alarm evaluation, and batched realtime fan-out. This is the single largest
+   open risk.
+3. **Quantify the export optimisation** on a fixed dataset, and add streaming/pagination if it is still not
+   acceptable for large tanks.
+4. **Set and test a delivery target** for sustained overload, and decide publisher-side flow control vs
+   broker-side buffering now that loss is measurable.
+5. **Alert on the new counters** — `frames_unaccounted` and `queue_depth` should page, not just be visible
+   in a JSON response.
+6. **Characterise the resource envelope** (§5): sustained-load CPU, memory, and container restarts.
 
-Items 2–6 are correctness/reliability items, not polish. Capacity sign-off should not be issued until
+Items 2–5 are correctness/reliability items, not polish. Capacity sign-off should not be issued until
 they are closed.

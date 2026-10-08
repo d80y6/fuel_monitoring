@@ -1,0 +1,19 @@
+# Keep the build context small and reproducible. Without this, the image was
+# carrying .mypy_cache/.pytest_cache/__pycache__/.venv, which bloated the
+# context, slowed every build, and once filled the disk during an image extract.
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.env
+.env.*
+!.env.example
+*.log
+docs/
+node_modules/

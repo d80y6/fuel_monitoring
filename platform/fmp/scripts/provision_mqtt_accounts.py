@@ -20,7 +20,7 @@ script refuses to run rather than minting guessable credentials.
 
 Usage::
 
-    EMQX_API_KEY=fuel-platform-bootstrap EMQX_API_SECRET="$(cat infra/emqx/api_keys.txt | cut -d: -f2)" \
+    EMQX_API_KEY=fuel-platform-bootstrap EMQX_API_SECRET="$(cat infra/emqx/secrets/api_keys.txt | cut -d: -f2)" \
     MQTT_DEVICE_PASSWORD_SEED="$(openssl rand -hex 32)" \
     python -m fmp.scripts.provision_mqtt_accounts
 
@@ -181,7 +181,7 @@ def main(argv: list[str] | None = None) -> int:
     if not settings.EMQX_API_KEY or not settings.EMQX_API_SECRET:
         logger.error(
             "EMQX_API_KEY / EMQX_API_SECRET are required to provision broker accounts. "
-            "Create infra/emqx/api_keys.txt from infra/emqx/api_keys.txt.example "
+            "Create infra/emqx/secrets/api_keys.txt from infra/emqx/secrets/api_keys.txt.example "
             "(it is git-ignored because it holds a live administrative credential) "
             "and put the same pair in .env."
         )

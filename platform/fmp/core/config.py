@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     MQTT_SERVICE_PASSWORD: str = ""
     #: EMQX 5 automation credential for the REST API (provisioning script).
     #: EMQX's REST API authenticates with an API key/secret, not with dashboard
-    #: credentials; the key is bootstrapped from infra/emqx/api_keys.txt.
+    #: credentials; the key is bootstrapped from infra/emqx/secrets/api_keys.txt.
     EMQX_API_URL: str = "http://emqx:18083"
     EMQX_API_KEY: str = ""
     EMQX_API_SECRET: str = ""
