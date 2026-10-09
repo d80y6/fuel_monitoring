@@ -32,6 +32,7 @@ from fmp.core.device_auth import require_ingest_key
 from fmp.core.logging_setup import configure_logging
 from fmp.core.redis import RedisClient
 from fmp.ingestion import metrics_counters as _counters
+from fmp.ingestion.batch_writer import insert_measurements
 from fmp.ingestion.pipeline import IngestionPipeline, publish_live
 from fmp.ingestion.relay import parse_command_ack_topic
 from fmp.schemas.dispensing import CodeValidateRequest, DispenseCompleteRequest
@@ -216,6 +217,15 @@ def _on_message(client, userdata, msg) -> None:  # paho runs this on its own thr
 
 
 async def _route(topic: str, payload: dict[str, Any]) -> None:
+    # Readings are only enqueued; building a Redis client for them would open a
+    # connection per message on the hot path and throw it away immediately.
+    if topic.startswith("fuel/") and topic.endswith("/readings"):
+        parsed = parse_fuel_topic(topic)
+        if parsed is None:
+            logger.warning("dropped malformed fuel topic %s", topic)
+            return
+        _enqueue_reading(payload, parsed[0])
+        return
     redis = RedisClient()
     try:
         if topic == "ingestion/dispense/complete":
@@ -284,13 +294,23 @@ async def _process_reading(
     *,
     gateway_mac: str | None = None,
     commit: bool = True,
-) -> None:
+    tank_cache: dict[str, Any] | None = None,
+    pending_rows: list[dict] | None = None,
+) -> list[dict]:
     """Persist a tank sensor frame and fan it out to the realtime channel.
 
     ``commit=False`` lets the batch flusher accumulate many frames and commit
     once. Committing per frame meant a 500-frame batch performed 500 fsyncs and
     drained at well under 1 frame/second; one commit per batch is what makes the
     batch worth batching.
+
+    ``pending_rows`` collects measurement rows for a single bulk INSERT instead
+    of one INSERT per frame.
+
+    ``tank_cache`` is a per-batch identity map. Tanks arrive in bursts of many
+    frames from the same device, and re-reading the Tank row for each one was a
+    database round trip per frame that bought nothing: the row cannot meaningfully
+    change inside a half-second batch.
     """
     from fmp.ingestion.cache import (
         neg_cache_key,
@@ -308,7 +328,12 @@ async def _process_reading(
     async with _session_scope(db_session) as session:
         tank = None
         if tank_id is not None:
-            tank = await session.get(Tank, tank_id)
+            if tank_cache is not None and tank_id in tank_cache:
+                tank = tank_cache[tank_id]
+            else:
+                tank = await session.get(Tank, tank_id)
+                if tank is not None and tank_cache is not None:
+                    tank_cache[tank_id] = tank
         if tank is None and tank_id is None:
             neg_hit = False
             if sensor_serial and await raw_redis.get(neg_cache_key(sensor_serial)) is not None:
@@ -316,7 +341,7 @@ async def _process_reading(
             if not neg_hit and gateway_mac and await raw_redis.get(neg_cache_key(gateway_mac)) is not None:
                 neg_hit = True
             if neg_hit:
-                return  # known-unknown device — skip DB for this frame
+                return []  # known-unknown device — skip DB for this frame
         tank_key = payload.get("tank_id")
         if tank is None and tank_id is None and tank_key:
             tank_id = tank_key  # legacy payload may carry tank_id directly
@@ -328,11 +353,16 @@ async def _process_reading(
                 )
             ).scalar_one_or_none()
         if tank is None and gateway_mac:
-            tank = (
-                await session.execute(
-                    select(Tank).where(Tank.gateway_mac == gateway_mac)
-                )
-            ).scalar_one_or_none()
+            if tank_cache is not None and gateway_mac in tank_cache:
+                tank = tank_cache[gateway_mac]
+            else:
+                tank = (
+                    await session.execute(
+                        select(Tank).where(Tank.gateway_mac == gateway_mac)
+                    )
+                ).scalar_one_or_none()
+                if tank is not None and tank_cache is not None:
+                    tank_cache[gateway_mac] = tank
         if tank is None:
             if sensor_serial:
                 await set_negative_cache(raw_redis, lookup=sensor_serial)
@@ -340,7 +370,7 @@ async def _process_reading(
                 await set_negative_cache(raw_redis, lookup=gateway_mac)
             logger.warning("no tank matched for reading (gateway=%s serial=%s)",
                            gateway_mac, sensor_serial)
-            return
+            return []
         if tank_id is None:
             await set_tank_cache(raw_redis, tank_id=str(tank.id),
                                  gateway_mac=gateway_mac, sensor_serial=sensor_serial)
@@ -374,6 +404,8 @@ async def _process_reading(
             status=int(frame.get("status", 0)),
             captured_at=captured_at,
             company_id=company_id,
+            defer_insert=pending_rows is not None,
+            pending_rows=pending_rows,
         )
         if commit:
             await session.commit()
@@ -461,6 +493,8 @@ async def _flush_readings() -> None:
         started = time.perf_counter()
         persisted = 0
         try:
+            tank_cache: dict[str, Any] = {}
+            rows: list[dict] = []
             async with async_session_factory() as session:
                 for payload, mac in batch:
                     # A SAVEPOINT per frame: with the commit deferred to the end
@@ -470,13 +504,16 @@ async def _flush_readings() -> None:
                     savepoint = await session.begin_nested()
                     try:
                         await _process_reading(
-                            session, redis, payload, gateway_mac=mac, commit=False
+                            session, redis, payload, gateway_mac=mac,
+                            commit=False, tank_cache=tank_cache, pending_rows=rows,
                         )
                         persisted += 1
                         await savepoint.commit()
                     except Exception:  # noqa: BLE001 — one bad frame must not drop the batch
                         logger.exception("failed to persist frame (gateway=%s)", mac)
                         await savepoint.rollback()
+                if rows:
+                    await insert_measurements(session, rows)
                 # One commit for the whole batch. If it fails, nothing in the
                 # batch is persisted, so the frames must be counted as unaccounted
                 # rather than delivered.

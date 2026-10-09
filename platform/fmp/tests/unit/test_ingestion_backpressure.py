@@ -69,6 +69,7 @@ async def test_batch_flush_uses_one_connection_for_the_whole_batch(monkeypatch):
     class _Session:
         def __init__(self):
             self.savepoints = 0
+            self.bulk_inserts = []
 
         async def begin_nested(self):
             self.savepoints += 1
@@ -80,25 +81,52 @@ async def test_batch_flush_uses_one_connection_for_the_whole_batch(monkeypatch):
         async def __aexit__(self, *exc):
             return False
 
+    sessions: list = []
+
     def factory():
         nonlocal opened
         opened += 1
-        return _Session()
+        session = _Session()
+        sessions.append(session)
+        return session
 
-    async def fake_process(db_session, redis, payload, *, gateway_mac=None, commit=True):
+    async def fake_process(db_session, redis, payload, **kwargs):
         assert db_session is not None, "flusher must pass its own session in"
-        assert commit is False, "flusher must defer the commit to the batch"
-        processed.append((payload, gateway_mac))
+        assert kwargs.get("commit") is False, "flusher must defer the commit"
+        assert kwargs.get("pending_rows") is not None, "batch must bulk-insert"
+        kwargs["pending_rows"].append({"tank_id": "t", "pressure": 1.0})
+        processed.append((payload, kwargs.get("gateway_mac")))
 
     async def fake_close():
         return None
 
+    class _NoCounters:
+        async def record_received(self, *a, **k):
+            return None
+
+        async def record_persisted(self, *a, **k):
+            return None
+
+        async def record_dropped(self, *a, **k):
+            return None
+
+        async def record_batch(self, *a, **k):
+            return None
+
+    monkeypatch.setattr(ing, "_counters", _NoCounters())
+
     class _Redis:
         client = type("C", (), {"aclose": staticmethod(fake_close)})()
+
+    bulk: list[list[dict]] = []
+
+    async def fake_bulk(session, rows):
+        bulk.append(list(rows))
 
     monkeypatch.setattr(ing, "async_session_factory", factory)
     monkeypatch.setattr(ing, "RedisClient", lambda *a, **k: _Redis())
     monkeypatch.setattr(ing, "_process_reading", fake_process)
+    monkeypatch.setattr(ing, "insert_measurements", fake_bulk)
 
     frames = [({"pressure": float(i)}, f"AA:00:00:00:00:{i:02X}") for i in range(250)]
     for frame, mac in frames:
@@ -114,6 +142,12 @@ async def test_batch_flush_uses_one_connection_for_the_whole_batch(monkeypatch):
 
     assert len(processed) == 250
     assert opened == 1, f"expected a single pooled connection, opened {opened}"
+    assert len(sessions) == 1, "the batch must use one pooled connection"
+    assert bulk, "the batch must issue a bulk INSERT"
+    assert len(bulk) == 1, f"expected one bulk statement, got {len(bulk)}"
+    # One statement carrying every row, rather than one INSERT per frame: each
+    # round trip to PostgreSQL costs tens of milliseconds on a loaded host.
+    assert len(bulk[0]) == 250, "every frame must be carried in the bulk insert"
 
 
 async def test_a_bad_frame_does_not_drop_its_batch(monkeypatch):
@@ -155,20 +189,43 @@ async def test_a_bad_frame_does_not_drop_its_batch(monkeypatch):
         sessions.append(session)
         return session
 
-    async def fake_process(db_session, redis, payload, *, gateway_mac=None, commit=True):
+    async def fake_process(db_session, redis, payload, **kwargs):
         if payload.get("boom"):
             raise ValueError("corrupt frame")
+        if kwargs.get("pending_rows") is not None:
+            kwargs["pending_rows"].append(payload)
         processed.append(payload)
 
     async def fake_close():
         return None
 
+    class _NoCounters:
+        async def record_received(self, *a, **k):
+            return None
+
+        async def record_persisted(self, *a, **k):
+            return None
+
+        async def record_dropped(self, *a, **k):
+            return None
+
+        async def record_batch(self, *a, **k):
+            return None
+
+    monkeypatch.setattr(ing, "_counters", _NoCounters())
+
     class _Redis:
         client = type("C", (), {"aclose": staticmethod(fake_close)})()
+
+    bulk = []
+
+    async def fake_bulk(session, rows):
+        bulk.append(list(rows))
 
     monkeypatch.setattr(ing, "async_session_factory", factory)
     monkeypatch.setattr(ing, "RedisClient", lambda *a, **k: _Redis())
     monkeypatch.setattr(ing, "_process_reading", fake_process)
+    monkeypatch.setattr(ing, "insert_measurements", fake_bulk)
 
     for payload in [{"pressure": 1.0}, {"boom": True}, {"pressure": 2.0}]:
         ing._enqueue_reading(payload, "AA:00:00:00:00:03")

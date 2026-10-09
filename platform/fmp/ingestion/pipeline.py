@@ -267,6 +267,8 @@ class IngestionPipeline:
         status: int = 0,
         captured_at=None,
         company_id: str | None = None,
+        defer_insert: bool = False,
+        pending_rows: list[dict] | None = None,
     ) -> ProcessedReading | None:
         """Run a single reading through calibration -> smoothing -> alarms -> persist.
 
@@ -416,7 +418,15 @@ class IngestionPipeline:
                     "fill_percent": percent,
                     "is_outlier": is_outlier,
                 }
-                await insert_measurements(session, [read])
+                if defer_insert and pending_rows is not None:
+                    # Hand the row back so the caller can insert the whole batch in
+                    # one statement. Round-trip latency to PostgreSQL dominates
+                    # this path on a loaded host (~57 ms even for SELECT 1), so a
+                    # per-frame INSERT caps throughput no matter how little work
+                    # the frame itself does.
+                    pending_rows.append(read)
+                else:
+                    await insert_measurements(session, [read])
 
             return ProcessedReading(
                 tank_id=tank.id,
