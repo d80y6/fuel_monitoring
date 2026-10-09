@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '../api/http';
 import { api } from '../api/client';
@@ -36,6 +37,7 @@ function nowLocal(): string {
  * are the same data.
  */
 export default function ReportsPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [report, setReport] = useState(DEFAULT_REPORT);
   const [start, setStart] = useState(() => daysAgo(7));
@@ -139,7 +141,7 @@ export default function ReportsPage() {
         </Field>
         <Field label="Site" htmlFor="report-site">
           <Select id="report-site" value={siteId} onChange={(e) => setSiteId(e.target.value)}>
-            <option value="">All sites</option>
+            <option value="">{t('reports.allSites')}</option>
             {sites.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -162,7 +164,7 @@ export default function ReportsPage() {
         ) : report === 'alarms' ? (
           <Field label="Level" htmlFor="report-level">
             <Select id="report-level" value={level} onChange={(e) => setLevel(e.target.value)}>
-              <option value="">All levels</option>
+              <option value="">{t('reports.allLevels')}</option>
               <option value="WARNING">WARNING</option>
               <option value="CRITICAL">CRITICAL</option>
             </Select>

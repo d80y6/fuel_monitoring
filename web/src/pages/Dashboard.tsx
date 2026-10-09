@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { useTelemetry } from '../hooks/useTelemetry';
 import { TankTile } from '../components/tanks/TankTile';
@@ -11,19 +12,20 @@ import { ErrorCard } from '../components/ui/ErrorCard';
 import type { FuelType, TankRead } from '../lib/apiTypes';
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const tanks = useQuery({ queryKey: ['tanks'], queryFn: () => api.listTanks() });
   const fuels = useQuery({ queryKey: ['fuel-types'], queryFn: () => api.listFuelTypes() });
   const rows = tanks.data ?? [];
 
   return (
     <div>
-      <PageHeader title="Dashboard" subtitle="Live tank overview" />
+      <PageHeader title={t('dashboard.title')} subtitle={t('dashboard.subtitle')} />
       <AlertSummaryStrip />
       <KpiCards />
       {tanks.isLoading ? <Skeleton className="h-40 w-full" /> : null}
-      {tanks.isError ? <ErrorCard message="Failed to load tanks." /> : null}
+      {tanks.isError ? <ErrorCard message={t('dashboard.loadFailed')} /> : null}
       {!tanks.isLoading && !tanks.isError && rows.length === 0 ? (
-        <EmptyState title="No tanks" hint="Tanks will appear here once provisioned." />
+        <EmptyState title={t('common.noTanks')} hint={t('common.noTanksHint')} />
       ) : null}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
         {rows.map((t) => <TankRow key={t.id} tank={t} fuels={fuels.data ?? []} />)}

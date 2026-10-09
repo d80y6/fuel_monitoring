@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import type { AlarmSummary } from '../lib/apiTypes';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -6,6 +7,7 @@ import { Skeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 
 export default function AlarmCenter() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const tanks = useQuery({ queryKey: ['tanks'], queryFn: () => api.listTanks() });
 
@@ -45,13 +47,13 @@ export default function AlarmCenter() {
           <table className="min-w-full divide-y divide-line text-sm">
             <thead className="bg-inset">
               <tr>
-                <th className="px-4 py-3 text-left font-medium text-secondary">Time</th>
-                <th className="px-4 py-3 text-left font-medium text-secondary">Tank</th>
-                <th className="px-4 py-3 text-left font-medium text-secondary">Type</th>
-                <th className="px-4 py-3 text-left font-medium text-secondary">Level</th>
-                <th className="px-4 py-3 text-left font-medium text-secondary">Message</th>
-                <th className="px-4 py-3 text-left font-medium text-secondary">Value</th>
-                <th className="px-4 py-3 text-left font-medium text-secondary"><span className="sr-only">Actions</span></th>
+                <th className="px-4 py-3 text-left font-medium text-secondary>{t('alarms.time')}</th>
+                <th className="px-4 py-3 text-left font-medium text-secondary>{t('alarms.tank')}</th>
+                <th className="px-4 py-3 text-left font-medium text-secondary>{t('alarms.type')}</th>
+                <th className="px-4 py-3 text-left font-medium text-secondary>{t('alarms.level')}</th>
+                <th className="px-4 py-3 text-left font-medium text-secondary>{t('alarms.message')}</th>
+                <th className="px-4 py-3 text-left font-medium text-secondary>{t('alarms.value')}</th>
+                <th className="px-4 py-3 text-left font-medium text-secondary"><span className="sr-only">{t('common.actions')}</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">

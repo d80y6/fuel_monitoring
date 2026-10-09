@@ -57,7 +57,9 @@
     "username": "Username",
     "password": "Password",
     "requiredField": "Required",
-    "noResults": "No results"
+    "noResults": "No results",
+    "noTanks": "No tanks",
+    "noTanksHint": "Tanks will appear here once provisioned."
   },
   "status": {
     "online": "Online",
@@ -92,7 +94,9 @@
     "dispensed24h": "Dispensed 24h",
     "sites": "Sites",
     "noAlarms": "No open alarms",
-    "noData": "No telemetry yet"
+    "noData": "No telemetry yet",
+    "subtitle": "Live tank overview",
+    "loadFailed": "Failed to load tanks."
   },
   "tanks": {
     "title": "Tanks",
@@ -135,7 +139,10 @@
     "type": "Type",
     "level": "Level",
     "state": "State",
-    "message": "Message"
+    "message": "Message",
+    "time": "Time",
+    "tank": "Tank",
+    "value": "Value"
   },
   "reports": {
     "title": "Reports",
