@@ -1,0 +1,18 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+rule_files:
+  - alerts.yml
+
+scrape_configs:
+  # The API exposes fleet topology, so this endpoint is admin-only. The token is
+  # a service account scoped to metrics; see docs/operations/monitoring.md.
+  - job_name: fuel-platform
+    metrics_path: /api/v1/metrics/prometheus
+    static_configs:
+      - targets: ['api:8000']
+        labels:
+          service: fuel-platform
+    # api is not published outside the compose network.
+    bearer_token_file: /run/secrets/metrics_token

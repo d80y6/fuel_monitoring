@@ -1,0 +1,18 @@
+# Where alerts go. The default is a null receiver: wiring a real destination
+# (email, PagerDuty, Slack) is an operator decision, but an alertmanager with no
+# route is still useful -- it surfaces firing rules in its own UI.
+route:
+  receiver: default
+  group_by: [alertname]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: default
+
+# Optional webhook wiring:
+# receivers:
+#   - name: pagerduty
+#     pagerduty_configs:
+#       - routing_key_file: /run/secrets/pagerduty_key

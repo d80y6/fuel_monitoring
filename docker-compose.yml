@@ -242,7 +242,40 @@ services:
       api:
         condition: service_healthy
 
+  # Opt-in monitoring. Started with:
+  #   docker compose --profile monitoring up -d prometheus alertmanager
+  # It is not part of the default stack because it competes for the same 4 CPUs
+  # the platform needs; on a small host scraping plus evaluation makes the
+  # ingestion latency numbers worse, not better.
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infra/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+      - ./infra/prometheus/metrics_token:/run/secrets/metrics_token:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    expose:
+      - "9090"
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    volumes:
+      - ./infra/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    expose:
+      - "9093"
+
 volumes:
+  prometheus_data:
   timescale_data:
   redis_data:
   emqx_data:

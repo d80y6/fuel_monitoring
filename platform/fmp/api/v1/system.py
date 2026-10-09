@@ -22,6 +22,7 @@ import json
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Response
+from fastapi.responses import PlainTextResponse
 from sqlalchemy import text
 
 from fmp.api.deps import AdminUser
@@ -248,6 +249,58 @@ async def _ingestion_counters() -> dict:
         "batch_latency_ms": counters.get("batch_latency_ms", 0.0),
         "batch_latency_ms_max": counters.get("batch_latency_ms_max", 0.0),
     }
+
+
+@router.get("/api/v1/metrics/prometheus", response_class=PlainTextResponse)
+async def metrics_prometheus(_current: AdminUser) -> PlainTextResponse:
+    """Prometheus exposition format for the same counters as /api/v1/metrics.
+
+    /api/v1/metrics returns JSON for humans; a scraper cannot parse that. Without
+    this endpoint the ingestion counters exist but nothing can alert on them, so
+    frame loss stayed invisible outside a manual curl.
+
+    Admin-only, like the JSON endpoint: it exposes fleet topology.
+    """
+    body = await metrics(_current)
+    ingestion = body["ingestion"]
+    telemetry = body["telemetry"]
+    tanks = body["tanks"]
+    alarms = body["alarms"]
+    lines: list[str] = []
+
+    def emit(name: str, value, help_text: str, labels: str = "") -> None:
+        lines.append(f"# HELP {name} {help_text}")
+        lines.append(f"# TYPE {name} gauge")
+        lines.append(f"{name}{labels} {value}")
+
+    if ingestion.get("available"):
+        emit("fuel_ingest_frames_received_total", ingestion["frames_received"],
+             "Frames accepted by the intake queue since start.")
+        emit("fuel_ingest_frames_persisted_total", ingestion["frames_persisted"],
+             "Frames written to TimescaleDB.")
+        emit("fuel_ingest_frames_unaccounted", ingestion["frames_unaccounted"],
+             "Received minus persisted minus rejected. Growth means telemetry loss.")
+        emit("fuel_ingest_frames_dropped_queue_full_total",
+             ingestion["frames_dropped_queue_full"],
+             "Frames dropped because the intake queue was full.")
+        emit("fuel_ingest_queue_depth", ingestion["queue_depth"],
+             "Frames waiting in the intake queue.")
+        emit("fuel_ingest_batch_latency_ms", ingestion["batch_latency_ms"],
+             "Duration of the most recent batch flush.")
+        emit("fuel_ingest_batch_latency_ms_max", ingestion["batch_latency_ms_max"],
+             "Slowest batch flush observed since start.")
+
+    emit("fuel_telemetry_freshest_age_seconds",
+         telemetry["freshest_reading_age_seconds"] if telemetry["freshest_reading_age_seconds"] is not None else -1,
+         "Seconds since the newest stored reading; -1 when nothing has ever arrived.")
+    emit("fuel_telemetry_receiving", 1 if telemetry["receiving"] else 0,
+         "1 when telemetry is arriving within the staleness threshold.")
+    emit("fuel_tanks_total", tanks["total"], "Tanks not soft-deleted.")
+    emit("fuel_tanks_offline", tanks["offline"], "Tanks the platform considers offline.")
+    emit("fuel_tanks_stale", tanks["stale"], "Tanks past the staleness threshold.")
+    emit("fuel_alarms_open", alarms["open"], "Alarms in active/acknowledged/escalated.")
+
+    return PlainTextResponse("\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
 
 
 @router.get("/api/v1/metrics/health-brief")

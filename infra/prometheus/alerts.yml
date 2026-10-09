@@ -1,0 +1,136 @@
+# Alerting rules for the fuel platform.
+#
+# These exist because ingestion frame loss was previously invisible: the
+# platform dropped telemetry under load and nothing but a log line recorded it.
+# Every rule below maps to a failure mode that has actually occurred during
+# development, not a hypothetical.
+#
+# Load with: prometheus --config.file=infra/prometheus/prometheus.yml
+
+groups:
+  - name: fuel-ingestion
+    rules:
+      # The headline number. received - persisted - rejected should be flat.
+      - alert: FuelTelemetryFrameLoss
+        expr: increase(fuel_ingest_frames_unaccounted[15m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Telemetry frames are being lost"
+          description: >-
+            {{ $value }} frames were received but neither persisted nor rejected in
+            the last 15 minutes. The fuel ledger is diverging from what devices
+            are actually reporting.
+
+      # Backpressure: the queue absorbs bursts, but a persistently deep queue
+      # means the drain rate cannot keep up with the fleet.
+      - alert: FuelIngestQueueBacklog
+        expr: fuel_ingest_queue_depth > 5000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ingestion queue is backing up"
+          description: >-
+            {{ $value }} frames are queued. Drain rate is below the arrival rate.
+            At the 50000-frame bound, frames start being dropped outright.
+
+      - alert: FuelIngestQueueOverflow
+        expr: increase(fuel_ingest_frames_dropped_queue_full_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ingestion queue overflowed; frames were dropped"
+          description: >-
+            The intake queue hit its bound and discarded {{ $value }} frames in the
+            last 5 minutes. This is unrecoverable data loss.
+
+      # A slow batch flush means the whole pipeline is stalling.
+      - alert: FuelIngestBatchSlow
+        expr: fuel_ingest_batch_latency_ms > 30000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ingestion batch flush is slow"
+          description: >-
+            The most recent batch took {{ $value }}ms. Sustained values like this
+            mean ingestion cannot keep up with arrival rate.
+
+      # Negative or absent counters usually mean the ingestion service is down.
+      - alert: FuelIngestCountersMissing
+        expr: absent(fuel_ingest_frames_received_total)
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ingestion counters absent"
+          description: >-
+            The metrics endpoint is serving but reports no ingestion counters,
+            which means the ingestion service is not publishing them.
+
+  - name: fuel-telemetry
+    rules:
+      - alert: FuelTelemetryStale
+        expr: fuel_telemetry_receiving == 0
+        for: 15m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No telemetry is arriving"
+          description: >-
+            The newest stored reading is {{ $value }} seconds old. Devices are not
+            reporting, or ingestion is broken.
+
+      - alert: FuelTelemetryNeverReceived
+        expr: fuel_telemetry_freshest_age_seconds < 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No telemetry has ever been received"
+          description: "The measurements table has no rows at all."
+
+  - name: fuel-fleet
+    rules:
+      # Some tanks offline is normal maintenance; all of them is an outage.
+      - alert: FuelAllTanksOffline
+        expr: fuel_tanks_total > 0 and fuel_tanks_offline == fuel_tanks_total
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Every tank is offline"
+          description: "All {{ $value }} tanks report offline."
+
+      - alert: FuelTanksGoingStale
+        expr: fuel_tanks_stale / fuel_tanks_total > 0.5
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Majority of tanks are stale"
+          description: >-
+            Over half the fleet has not reported within the staleness threshold.
+            Check network and broker health.
+
+      - alert: FuelAlarmsOpen
+        expr: fuel_alarms_open > 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Alarms remain open"
+          description: "{{ $value }} alarms are active/acknowledged/escalated."
+
+      # Capacity planning signal, not an incident.
+      - alert: FuelTelemetryBacklogGrowing
+        expr: deriv(fuel_telemetry_freshest_age_seconds[1h]) > 1
+        for: 1h
+        labels:
+          severity: info
+        annotations:
+          summary: "Telemetry is falling behind"
+          description: "Ingestion is not keeping up with the fleet over the last hour."
