@@ -4,6 +4,32 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    // The app chunk was 1.54 MB (493 kB gzip) because every dependency was
+    // bundled into it. Splitting vendors means a dependency upgrade invalidates
+    // only its own chunk instead of the whole app bundle, which matters most for
+    // the lazily-loaded 3D tank view that users on the dashboard never fetch.
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('/three/')) return 'three';
+          if (id.includes('/react-three/')) return 'react-three';
+          if (id.includes('/react-dom/') || id.includes('/react/')) return 'react';
+          if (id.includes('/i18next/') || id.includes('/react-i18next/')) return 'i18n';
+          if (id.includes('/zustand/')) return 'state';
+          if (id.includes('/echarts/') || id.includes('/zrender/')) return 'charts';
+          return 'vendor';
+        },
+      },
+    },
+    // Raised from the 500 kB default only to cover two deliberate lazy chunks:
+    // `charts` (echarts, 1.04 MB) and `three` (667 kB), both fetched solely by
+    // the tank detail page and the 3D view. Everything on the critical path is
+    // far smaller -- index is 173 kB and vendor 287 kB -- so a regression past
+    // this line still means someone re-inlined a heavy dependency eagerly.
+    chunkSizeWarningLimit: 1100,
+  },
   server: {
     port: 5173,
     proxy: {

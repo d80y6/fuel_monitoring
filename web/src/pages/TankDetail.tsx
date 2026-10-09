@@ -6,8 +6,13 @@ import { useTelemetry } from "../hooks/useTelemetry";
 import { webglSupported } from "../lib/webgl";
 import { TankCanvas } from "../components/tanks/TankCanvas";
 import StrappingCard from "../components/tanks/StrappingCard";
-import ConsumptionCard from "../components/tanks/ConsumptionCard";
-import { TelemetryChart } from "../components/charts/TelemetryChart";
+// ECharts is ~1 MB. Loading it eagerly made it part of the initial download for
+// every route, including ones that never draw a chart. Both chart surfaces are
+// code-split so the cost is only paid on a tank page that renders them.
+const ConsumptionCard = lazy(() => import("../components/tanks/ConsumptionCard"));
+const TelemetryChart = lazy(() =>
+  import("../components/charts/TelemetryChart").then((m) => ({ default: m.TelemetryChart })),
+);
 import { Skeleton } from "../components/ui/Skeleton";
 import { ErrorCard } from "../components/ui/ErrorCard";
 import { Icon } from "../components/ui/icons";
@@ -181,13 +186,15 @@ export default function TankDetail() {
           {exportError ? (
             <p className="text-xs text-danger-fg">{exportError}</p>
           ) : null}
-          <TelemetryChart
-            points={range.data ?? []}
-            live={live ?? latest}
-            tankTitle={tank.name}
-            lowVolume={tank.low_volume_threshold}
-            highVolume={tank.high_volume_threshold}
-          />
+          <Suspense fallback={<Skeleton className="h-72" />}>
+            <TelemetryChart
+              points={range.data ?? []}
+              live={live ?? latest}
+              tankTitle={tank.name}
+              lowVolume={tank.low_volume_threshold}
+              highVolume={tank.high_volume_threshold}
+            />
+          </Suspense>
         </div>
       </div>
       <div className="mt-6 bg-surface rounded-lg border border-line p-4">
@@ -223,7 +230,9 @@ export default function TankDetail() {
         </div>
       ) : null}
       <div className="mt-6 bg-surface rounded-lg border border-line p-4">
-        <ConsumptionCard tankId={tank.id} />
+        <Suspense fallback={<Skeleton className="h-48" />}>
+          <ConsumptionCard tankId={tank.id} />
+        </Suspense>
       </div>
     </div>
   );

@@ -96,7 +96,10 @@ async def _stream(ws: WebSocket, redis: RedisClient, user: User, channels: set[s
     finally:
         await manager.unsubscribe(ws)
         await pubsub.unsubscribe()
-        await pubsub.close()
+        # aclose(), not close(): redis-py 5 deprecated the synchronous close on
+        # the async client. Calling close() still worked but emits a
+        # DeprecationWarning and will be removed.
+        await pubsub.aclose()
 
 
 @router.websocket("/ws/telemetry")

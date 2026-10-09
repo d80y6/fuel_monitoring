@@ -141,6 +141,15 @@ class FakeRedis:
         return True, limit
 
 
+# The suite must never share a Redis keyspace with a running deployment. A live
+# Celery worker's command relay drains the same queues the tests assert on, which
+# made test_sweeper_requeues_then_fails and test_issue_command_and_history fail
+# against the live stack while passing in CI's isolated Redis. DB 15 gives the
+# tests their own keyspace on the same server; a FLUSHALL against the live stack
+# during development can no longer corrupt test state either.
+os.environ.setdefault("REDIS_DB", "15")
+
+
 @pytest_asyncio.fixture
 async def fake_redis() -> AsyncIterator[FakeRedis]:
     yield FakeRedis()
