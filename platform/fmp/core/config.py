@@ -9,6 +9,7 @@ import secrets
 from functools import lru_cache
 from typing import Literal
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -61,6 +62,13 @@ class Settings(BaseSettings):
     MQTT_CA_CERT: str | None = None
     MQTT_CLIENT_CERT: str | None = None
     MQTT_CLIENT_KEY: str | None = None
+    #: Connect to the broker over TLS. Previously inferred from MQTT_CA_CERT being
+    #: non-empty, which meant a deployment could look configured (a cert path was
+    #: set) while still connecting in plaintext. Make it explicit instead.
+    MQTT_USE_TLS: bool = False
+    #: Refuse to start without TLS. A production deployment that silently falls
+    #: back to plaintext would transmit device credentials in the clear.
+    MQTT_REQUIRE_TLS: bool = False
     MQTT_QOS: int = 1
     MQTT_KEEPALIVE: int = 60
     #: Broker credentials for the platform's own ingestion service. The broker is
@@ -138,6 +146,39 @@ class Settings(BaseSettings):
 
     # --- CORS --------------------------------------------------------------
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+
+    # --- Production safety --------------------------------------------------
+    @model_validator(mode="after")
+    def _fail_closed_in_production(self) -> Settings:
+        """Refuse to run a production deployment on insecure defaults.
+
+        Every one of these was silently satisfied before: the platform would
+        start happily with plaintext broker credentials, development secrets and
+        debug logging, and the operator would only find out on the first audit.
+        Failing at startup is the only moment the mistake is cheap to fix.
+        """
+        if self.ENVIRONMENT != "prod":
+            return self
+        problems = []
+        if not self.MQTT_USE_TLS:
+            problems.append(
+                "MQTT_USE_TLS is false: device credentials would cross the network "
+                "in plaintext. Run scripts/generate_certs.sh and set "
+                "MQTT_USE_TLS=true with MQTT_CA_CERT."
+            )
+        if self.ENVIRONMENT == "prod" and self.DEBUG:
+            problems.append("DEBUG is true in production")
+        placeholder = {"change-me", "changeme", "dev-secret", "secret"}
+        if self.SECRET_KEY.strip().lower() in placeholder:
+            problems.append("SECRET_KEY is still a placeholder value")
+        if not self.POSTGRES_PASSWORD:
+            problems.append("POSTGRES_PASSWORD is empty")
+        if problems:
+            raise ValueError(
+                "Refusing to start in production with insecure configuration:\n  - "
+                + "\n  - ".join(problems)
+            )
+        return self
 
     # --- Property convenience ---------------------------------------------
     @property

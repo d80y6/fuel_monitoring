@@ -65,7 +65,7 @@ async def lifespan(_app: FastAPI):
     _client = _build_client()
     _client.on_message = _on_message
     _client.on_connect = _on_connect
-    _client.connect_async(settings.MQTT_BROKER, settings.MQTT_PORT, settings.MQTT_KEEPALIVE)
+    _client.connect_async(settings.MQTT_BROKER, _broker_port(), settings.MQTT_KEEPALIVE)
     _client.loop_start()
     await _wait_connected(_client)
     _client.subscribe(
@@ -80,7 +80,8 @@ async def lifespan(_app: FastAPI):
         ]
     )
     logger.info(
-        "MQTT subscription active on %s:%s", settings.MQTT_BROKER, settings.MQTT_PORT
+        "MQTT subscription active on %s:%s%s", settings.MQTT_BROKER, _broker_port(),
+        " (TLS)" if settings.MQTT_USE_TLS else " (PLAINTEXT)"
     )
     from fmp.ingestion.relay import command_relay_loop
 
@@ -149,6 +150,10 @@ async def _wait_connected(client, timeout: float = 30.0) -> None:
     raise ConnectionError("MQTT broker never became available")
 
 
+def _broker_port() -> int:
+    return settings.MQTT_TLS_PORT if settings.MQTT_USE_TLS else settings.MQTT_PORT
+
+
 def _build_client() -> MqttClient:
     """MQTT client authenticated against the broker (G-001).
 
@@ -160,7 +165,12 @@ def _build_client() -> MqttClient:
         CallbackAPIVersion.VERSION2,
         client_id=f"fuel-platform-ingest-{uuid.uuid4().hex[:8]}",
     )
-    if settings.MQTT_TLS_PORT and settings.MQTT_CA_CERT:
+    if settings.MQTT_USE_TLS:
+        if not settings.MQTT_CA_CERT:
+            raise RuntimeError(
+                "MQTT_USE_TLS is enabled but MQTT_CA_CERT is not configured; refusing "
+                "to fall back to plaintext"
+            )
         client.tls_set(
             ca_certs=settings.MQTT_CA_CERT,
             certfile=settings.MQTT_CLIENT_CERT,

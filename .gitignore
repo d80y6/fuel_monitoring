@@ -20,3 +20,6 @@ infra/emqx/secrets/api_keys.txt
 
 # Superpowers worktrees
 .worktrees/
+
+# TLS material for the MQTT listener. Generate with scripts/generate_certs.sh.
+infra/emqx/certs/
